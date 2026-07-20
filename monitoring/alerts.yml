@@ -1,0 +1,62 @@
+# AgentValue-AI Prometheus 告警规则
+# 阈值来源:docs/alerting-rules.md
+# 三条核心告警:评估失败率 / 评估 P99 耗时 / LLM 调用失败率
+# 评估窗口统一 5m,持续 5m 触发,避免瞬时抖动误报。
+
+groups:
+  - name: agentvalue-evaluation
+    interval: 30s
+    rules:
+      # 评估失败率 >5%
+      # 分子:agentvalue_evaluation_failures_total(评估任务失败,未产出结果)
+      # 分母:成功评估数 + 失败数(总尝试次数)
+      - alert: EmpvalueEvaluationFailureRateHigh
+        expr: |
+          (
+            sum(rate(agentvalue_evaluation_failures_total[5m]))
+            /
+            clamp_min(
+              sum(rate(agentvalue_evaluations_total[5m]))
+              + sum(rate(agentvalue_evaluation_failures_total[5m])),
+              0.001
+            )
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: agentvalue
+        annotations:
+          summary: "评估失败率超过 5%"
+          description: "5 分钟窗口评估失败率 {{ $value | humanizePercentage }},阈值 5%。按 reason 标签(graph_error / no_result / exception)定位失败类型,查 backend 日志 grep '评估处理失败'。"
+
+      # 评估 P99 耗时 >3s(按 model_tier 分组)
+      - alert: EmpvalueEvaluationP99LatencyHigh
+        expr: |
+          histogram_quantile(
+            0.99,
+            sum by (le, model_tier) (rate(agentvalue_evaluation_duration_seconds_bucket[5m]))
+          ) > 3
+        for: 5m
+        labels:
+          severity: warning
+          service: agentvalue
+        annotations:
+          summary: "评估 P99 耗时超过 3s"
+          description: "model_tier={{ $labels.model_tier }} 评估 P99 耗时 {{ $value }}s,阈值 3s。检查模型档位路由(ModelRouter)与 LLM Provider 调用耗时,必要时降档或扩容。"
+
+      # LLM 调用失败率 >10%
+      # status 标签:success / error(openai_provider 重试耗尽记 error)
+      - alert: EmpvalueLlmFailureRateHigh
+        expr: |
+          (
+            sum(rate(agentvalue_llm_requests_total{status="error"}[5m]))
+            /
+            clamp_min(sum(rate(agentvalue_llm_requests_total[5m])), 0.001)
+          ) > 0.10
+        for: 5m
+        labels:
+          severity: critical
+          service: agentvalue
+        annotations:
+          summary: "LLM 调用失败率超过 10%"
+          description: "5 分钟窗口 LLM 调用失败率 {{ $value | humanizePercentage }},阈值 10%。按 model_tier 标签定位故障档位,检查 Provider API Key / 限流 / 网络,必要时切换档位。"

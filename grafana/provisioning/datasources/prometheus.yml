@@ -1,0 +1,16 @@
+# Grafana 数据源 provisioning：启动时自动注册 Prometheus 数据源。
+# 用法：把 grafana/ 目录挂载到 Grafana 容器的 /etc/grafana/provisioning，
+#       或在 docker-compose 中把 ./grafana/provisioning 映射为 provisioning 目录。
+# Prometheus 抓取目标由后端 /metrics 暴露（backend/core/metrics.py setup_metrics）。
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    # compose 网络内 Prometheus 服务名；独立部署改为实际 Prometheus 地址。
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: 15s

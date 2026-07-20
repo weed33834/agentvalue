@@ -1,0 +1,26 @@
+Alembic 数据库迁移目录。
+
+常用命令(从 backend/ 目录执行):
+
+  # 生成新迁移(自动检测 model 变更)
+  alembic revision --autogenerate -m "描述变更"
+
+  # 升级到最新版本
+  alembic upgrade head
+
+  # 回滚一个版本
+  alembic downgrade -1
+
+  # 查看当前版本
+  alembic current
+
+  # 查看迁移历史
+  alembic history
+
+多租户注意事项:
+- tenant_id 字段在 b3c4d5e6f7a8 迁移中添加,新表务必包含 tenant_id 列
+- 迁移脚本中用 op.batch_alter_index 安全创建索引(_maybe_create_index 容错已有索引)
+
+环境变量:
+- DATABASE_URL: 数据库连接字符串(sqlite+aiosqlite:///... 或 postgresql+asyncpg://...)
+- 未设置时默认 sqlite+aiosqlite:///./test.db

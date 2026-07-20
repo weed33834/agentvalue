@@ -1,0 +1,541 @@
+"""
+SQLAlchemy 数据模型定义
+"""
+
+from datetime import datetime, timezone
+from typing import Optional
+
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
+from sqlalchemy.orm import Mapped, mapped_column
+
+from core.database import Base
+from models.constants import EvaluationStatus
+
+# 默认租户标识：单租户兼容，未显式传 tenant_id 时所有数据落 default
+DEFAULT_TENANT_ID = "default"
+
+
+def now_utc() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+class Tenant(Base):
+    """租户：多租户隔离的顶层主体，tenant_id 全局唯一"""
+
+    __tablename__ = "tenants"
+
+    tenant_id: Mapped[str] = mapped_column(String(64), primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    plan: Mapped[str] = mapped_column(String(32), nullable=False, default="free")
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc
+    )
+
+
+class User(Base):
+    """系统用户（员工/主管/HR/管理员）"""
+
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    # 多租户下 user_id 按租户隔离：同一 user_id 可分属不同租户，由 uix_tenant_user 约束
+    user_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    email: Mapped[str] = mapped_column(String(256), index=True, nullable=True)
+    role: Mapped[str] = mapped_column(String(32), nullable=False, default="employee")
+    department: Mapped[str] = mapped_column(String(128), nullable=True)
+    # 员工直属主管 ID，用于 RBAC 团队归属校验，避免主管越权审批非下属评估
+    manager_id: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, index=True
+    )
+    password_hash: Mapped[str] = mapped_column(String(256), nullable=True)
+    # 多租户归属：单租户兼容走 DEFAULT_TENANT_ID
+    tenant_id: Mapped[str] = mapped_column(
+        String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc, onupdate=now_utc
+    )
+
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "user_id", name="uix_tenant_user"),
+        UniqueConstraint("tenant_id", "email", name="uix_tenant_email"),
+        Index("ix_user_tenant_role", "tenant_id", "role"),
+    )
+
+
+class RawInput(Base):
+    """员工原始输入：日报、任务进度、截图、语音等"""
+
+    __tablename__ = "raw_inputs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    input_id: Mapped[str] = mapped_column(
+        String(128), unique=True, index=True, nullable=False
+    )
+    employee_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("users.user_id"), index=True, nullable=False
+    )
+    period: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
+    type: Mapped[str] = mapped_column(
+        String(64), nullable=False, default="daily_report"
+    )
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    attachments: Mapped[dict] = mapped_column(JSON, default=list)
+    tenant_id: Mapped[str] = mapped_column(
+        String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc
+    )
+    # 留存策略标记：到期归档后置 True，缓冲期满后真删
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    archived_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        UniqueConstraint("employee_id", "period", "input_id", name="uix_raw_input"),
+        Index("ix_raw_tenant_employee_period", "tenant_id", "employee_id", "period"),
+    )
+
+
+class Evaluation(Base):
+    """员工评估结果主表"""
+
+    __tablename__ = "evaluations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    evaluation_id: Mapped[str] = mapped_column(
+        String(128), unique=True, index=True, nullable=False
+    )
+    employee_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("users.user_id"), index=True, nullable=False
+    )
+    period: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
+    overall_score: Mapped[float] = mapped_column(Float, nullable=False)
+    employee_view: Mapped[dict] = mapped_column(JSON, nullable=False)
+    manager_view: Mapped[dict] = mapped_column(JSON, nullable=False)
+    audit: Mapped[dict] = mapped_column(JSON, nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        default="ai_drafted",
+    )
+    tenant_id: Mapped[str] = mapped_column(
+        String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc, onupdate=now_utc
+    )
+    approved_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    approver_id: Mapped[str] = mapped_column(String(64), nullable=True)
+    # 留存策略标记：到期归档后置 True，缓冲期满后真删
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    archived_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "overall_score >= 0 AND overall_score <= 100",
+            name="ck_evaluation_score_range",
+        ),
+        CheckConstraint(
+            f"status IN ({', '.join(repr(s) for s in EvaluationStatus.values())})",
+            name="ck_evaluation_status_valid",
+        ),
+        Index("ix_eval_employee_status", "employee_id", "status"),
+        Index("ix_eval_tenant_status", "tenant_id", "status"),
+        Index("ix_eval_tenant_employee", "tenant_id", "employee_id"),
+    )
+
+
+class ApprovalAction(Base):
+    """审批流动作记录"""
+
+    __tablename__ = "approval_actions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    action_id: Mapped[str] = mapped_column(
+        String(128), unique=True, index=True, nullable=False
+    )
+    evaluation_id: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("evaluations.evaluation_id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    actor_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    actor_role: Mapped[str] = mapped_column(String(32), nullable=False)
+    action: Mapped[str] = mapped_column(String(32), nullable=False)
+    comment: Mapped[str] = mapped_column(Text, nullable=True)
+    tenant_id: Mapped[str] = mapped_column(
+        String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc
+    )
+
+    __table_args__ = (
+        Index("ix_approval_eval_created", "evaluation_id", "created_at"),
+        Index("ix_approval_tenant_eval", "tenant_id", "evaluation_id"),
+    )
+
+
+class AuditLog(Base):
+    """审计日志"""
+
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    log_id: Mapped[str] = mapped_column(
+        String(128), unique=True, index=True, nullable=False
+    )
+    evaluation_id: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("evaluations.evaluation_id", ondelete="SET NULL"),
+        index=True,
+        nullable=True,
+    )
+    employee_id: Mapped[str] = mapped_column(String(64), index=True, nullable=True)
+    actor_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    action: Mapped[str] = mapped_column(String(64), nullable=False)
+    details: Mapped[dict] = mapped_column(JSON, default=dict)
+    ip_address: Mapped[str] = mapped_column(String(64), nullable=True)
+    tenant_id: Mapped[str] = mapped_column(
+        String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc
+    )
+
+    __table_args__ = (
+        Index("ix_audit_actor_created", "actor_id", "created_at"),
+        Index("ix_audit_action_created", "action", "created_at"),
+        Index("ix_audit_tenant_action", "tenant_id", "action"),
+    )
+
+
+class Feedback(Base):
+    """员工反馈与申诉"""
+
+    __tablename__ = "feedback"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    feedback_id: Mapped[str] = mapped_column(
+        String(128), unique=True, index=True, nullable=False
+    )
+    evaluation_id: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("evaluations.evaluation_id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    employee_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("users.user_id"), index=True, nullable=False
+    )
+    type: Mapped[str] = mapped_column(String(32), nullable=False, default="feedback")
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    tenant_id: Mapped[str] = mapped_column(
+        String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc
+    )
+
+    __table_args__ = (Index("ix_feedback_tenant_employee", "tenant_id", "employee_id"),)
+
+
+class Memory(Base):
+    """员工长期记忆（可后续对接向量库，当前用关系表兜底）"""
+
+    __tablename__ = "memories"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    employee_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("users.user_id"), index=True, nullable=False
+    )
+    period: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    tenant_id: Mapped[str] = mapped_column(
+        String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc, onupdate=now_utc
+    )
+
+    __table_args__ = (
+        UniqueConstraint("employee_id", "period", name="uix_employee_period_memory"),
+        Index("ix_memory_tenant_employee", "tenant_id", "employee_id"),
+    )
+
+
+class CompanyKB(Base):
+    """公司知识库（评分标准、价值观、培训材料）"""
+
+    __tablename__ = "company_kb"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    kb_id: Mapped[str] = mapped_column(
+        String(128), unique=True, index=True, nullable=False
+    )
+    title: Mapped[str] = mapped_column(String(256), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    metadata_: Mapped[dict] = mapped_column("metadata", JSON, default=dict)
+    tenant_id: Mapped[str] = mapped_column(
+        String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc
+    )
+
+    __table_args__ = (Index("ix_kb_tenant_created", "tenant_id", "created_at"),)
+
+
+class EvaluationPeriod(Base):
+    """评估周期定义（周/月/季/年）"""
+
+    __tablename__ = "evaluation_periods"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    period: Mapped[str] = mapped_column(
+        String(32), unique=True, index=True, nullable=False
+    )
+    period_type: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="weekly"
+    )
+    start_date: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    end_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="open")
+    tenant_id: Mapped[str] = mapped_column(
+        String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc
+    )
+
+    __table_args__ = (Index("ix_period_tenant_status", "tenant_id", "status"),)
+
+
+class DimensionScore(Base):
+    """维度得分明细（从 evaluation.employee_view.growth_areas 拆出，便于横向分析）"""
+
+    __tablename__ = "dimension_scores"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    evaluation_id: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("evaluations.evaluation_id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    employee_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    period: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
+    dimension: Mapped[str] = mapped_column(String(64), nullable=False)
+    score: Mapped[float] = mapped_column(Float, nullable=False)
+    improvement_actions: Mapped[dict] = mapped_column(JSON, default=list)
+    # 多租户隔离字段（与迁移 b3c4d5e6f7a8 对齐，通过 evaluation_id FK 级联也已隔离，
+    # 此字段冗余但便于按租户直接聚合分析，避免每次 join evaluations 表）
+    tenant_id: Mapped[str] = mapped_column(
+        String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc
+    )
+
+
+class EvidenceRef(Base):
+    """证据引用关联（维度得分 → 原始输入片段）"""
+
+    __tablename__ = "evidence_refs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    evaluation_id: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("evaluations.evaluation_id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    dimension: Mapped[str] = mapped_column(String(64), nullable=False)
+    input_id: Mapped[str] = mapped_column(String(128), index=True, nullable=True)
+    evidence_text: Mapped[str] = mapped_column(Text, nullable=False)
+    # 多租户隔离字段（同 DimensionScore，与迁移 b3c4d5e6f7a8 对齐）
+    tenant_id: Mapped[str] = mapped_column(
+        String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc
+    )
+
+
+# ====== P1 Prompt 管理(参考 Langfuse 数据模型) ======
+
+
+class PromptTemplate(Base):
+    """Prompt 模板（逻辑实体，同名多版本，参考 Langfuse Prompt Object）。
+
+    一个 template 对应一个 prompt 名（如 daily_evaluation），
+    其下可以有多个不可变的 PromptVersion，通过 PromptLabel 指针切换生产版本。
+    """
+
+    __tablename__ = "prompt_templates"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(
+        String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
+    )
+    # 同一租户内 name 唯一
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    # text | chat：text 是单字符串，chat 是消息列表
+    type: Mapped[str] = mapped_column(String(16), nullable=False, default="text")
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_by: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc, onupdate=now_utc
+    )
+
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "name", name="uix_tenant_prompt_name"),
+    )
+
+
+class PromptVersion(Base):
+    """Prompt 版本（不可变历史，每次更新新建一行，参考 Langfuse Version）。
+
+    版本号自增（1, 2, 3...），不可修改已创建的版本内容（强制新建版本）。
+    这保证了历史可追溯 + A/B 测试可对比 + 回滚可精确到某版本。
+    """
+
+    __tablename__ = "prompt_versions"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    template_id: Mapped[str] = mapped_column(
+        String(64),
+        ForeignKey("prompt_templates.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    # Prompt 正文（text 模式是字符串，chat 模式是 JSON 消息列表）
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    # 配置：model / temperature / max_tokens 等（参考 Langfuse Config）
+    config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    # 变量 schema：变量名 + 类型 + 默认值 + 描述
+    variables_schema: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    created_by: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc
+    )
+
+    __table_args__ = (
+        UniqueConstraint("template_id", "version", name="uix_prompt_template_version"),
+        Index("ix_prompt_version_template", "template_id", "version"),
+    )
+
+
+class PromptLabel(Base):
+    """Label 指针（指向具体 PromptVersion，参考 Langfuse Label）。
+
+    Label 是版本指针，常见 label：
+    - production: 生产默认（get_prompt 不指定 label 时返回此版本）
+    - latest: 自动指向最新版本
+    - staging / canary-10pct: 灰度
+    - prod-a / prod-b: A/B 测试
+    - <tenant_id>: 按租户隔离
+
+    protected=True 时（参考 Langfuse Protected Labels），
+    viewer/member 角色不能修改此 label，仅 admin 可改。
+    """
+
+    __tablename__ = "prompt_labels"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    template_id: Mapped[str] = mapped_column(
+        String(64),
+        ForeignKey("prompt_templates.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    version_id: Mapped[str] = mapped_column(
+        String(64),
+        ForeignKey("prompt_versions.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    label: Mapped[str] = mapped_column(String(64), nullable=False)
+    protected: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    updated_by: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc, onupdate=now_utc
+    )
+
+    __table_args__ = (
+        # 同一 template 下同一 label 唯一（避免 prod-a 出现两个版本）
+        UniqueConstraint("template_id", "label", name="uix_prompt_template_label"),
+    )
+
+
+class PromptEvalRun(Base):
+    """Prompt 评估运行（关联 Langfuse trace 与指标，便于版本对比）。
+
+    用于评估某版本在测试数据集上的表现：
+    - 跑多少样本、成功率、平均分、p50/p95 延迟、token 成本
+    - 关联 trace_ids 让管理员可跳到 Langfuse 看具体调用
+    """
+
+    __tablename__ = "prompt_eval_runs"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    template_id: Mapped[str] = mapped_column(
+        String(64),
+        ForeignKey("prompt_templates.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    version_id: Mapped[str] = mapped_column(
+        String(64),
+        ForeignKey("prompt_versions.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    dataset_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="pending"
+    )
+    # 评估指标：latency_p50 / latency_p95 / cost / score 等
+    metrics: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    # 关联的 Langfuse trace_id 列表
+    trace_ids: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    created_by: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc
+    )

@@ -1,0 +1,39 @@
+[tool.ruff]
+# P2-8: ruff 配置统一到 pyproject.toml,删除 backend/ruff.toml。
+# - line-length=100 与团队风格一致;超长由 format 处理(ignore E501)
+# - target-version=py310 锁定最低支持版本,避免使用更高版本语法
+# - select 取原 ruff.toml 实际生效的 E/F/W(渐进入口);
+#   更激进的 I/B/UP/SIM/RUF 规则集在历史代码上会产生 4800+ 噪音
+#   (主要是 RUF001/002/003 中文全角标点、UP006/UP045 Optional/List 现代化、
+#   B008 FastAPI Depends 默认参数),留待专项治理 PR 逐步开启,不在此阻断 CI。
+line-length = 100
+target-version = "py310"
+extend-exclude = [
+    "alembic",
+    "chroma_db",
+    "build",
+    ".pytest_cache",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = [
+    "E501",  # 行过长:由 format 处理,不重复约束
+    "F401",  # 未使用导入:测试副作用导入 + 历史遗留,渐进清理
+    "F841",  # 未使用局部变量:现有测试中间变量,后续治理
+    "E741",  # 模糊变量名(l/I):部分历史代码使用,暂不强制
+    "F541",  # 无占位符 f-string:风格问题,不阻断
+    "F402",  # 导入影子:少量历史代码,后续治理
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E402", "E501"]
+"eval/*" = ["E402"]
+
+[tool.mypy]
+# 解决 backend/__init__.py 存在时 mypy 把模块同时识别为 core.x 和 backend.core.x
+# 的 "Source file found twice under different module names" 报错。
+# explicit_package_bases + mypy_path 让 mypy 在 backend/ 目录下稳定以 core.x 命名。
+mypy_path = "."
+explicit_package_bases = true
+ignore_missing_imports = true

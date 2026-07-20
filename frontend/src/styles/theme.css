@@ -1,0 +1,24 @@
+/*
+ * Element Plus 主题色统一覆盖
+ * ----------------------------------------------------------------------------
+ * 主色采用专业蓝 #2563eb，与项目中 skip-link、action 链接等无障碍深蓝保持一致
+ * （Element Plus 默认 #409eff 对白底对比度仅约 2.8:1 不达 WCAG AA；
+ *  #2563eb 对白底约 5.2:1 达到 AA 标准）。
+ * 通过覆盖 CSS 变量全局统一按钮、链接、聚焦态等主色调，避免逐组件改内联颜色。
+ * 必须在 element-plus/dist/index.css 之后引入，同优先级下后引入者生效。
+ */
+:root {
+  /* 主色 */
+  --el-color-primary: #2563eb;
+  /*
+   * 主色派生变量（与 Element Plus 主题生成规则一致：
+   *  light-N 为主色按 N*10% 混入白色，用于 hover/边框/浅色底等；
+   *  dark-2 为主色混入 20% 黑色，用于 active/按下态）。
+   */
+  --el-color-primary-light-3: #6692f1;
+  --el-color-primary-light-5: #92b1f5;
+  --el-color-primary-light-7: #bdd0f9;
+  --el-color-primary-light-8: #d3dffb;
+  --el-color-primary-light-9: #e9effd;
+  --el-color-primary-dark-2: #1d4fbc;
+}

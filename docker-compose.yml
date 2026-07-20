@@ -1,0 +1,73 @@
+services:
+  backend:
+    build: ./backend
+    container_name: agentvalue-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      # 容器内持久化路径，覆盖默认的 ./agentvalue_ai.db
+      - DATABASE_URL=sqlite+aiosqlite:///./dbdata/agentvalue_ai.db
+      - VECTOR_STORE_DIR=/app/chroma_db
+      - ATTACHMENT_DIR=/app/attachments
+      # 安全默认值（生产环境请通过 .env 覆盖 JWT_SECRET_KEY 与 AGENTVALUE_ENV）
+      # JWT_SECRET_KEY 在开发模式下提供占位值,使开箱即用的 docker compose 可正常签发 token;
+      # 生产部署必须通过 ./backend/.env 覆盖为强随机值,并设 AGENTVALUE_ENV=production
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-only-please-change-me-32chars-or-more}
+      - AUTH_DEMO_MODE=false
+      - DEBUG=false
+      # 任务队列后端:启用 Redis 共享任务状态,多实例可水平扩展(见 core/job_queue.py)
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      # 挂载 data 目录（profiles / sample 等可定制数据）
+      - ./backend/data:/app/data
+      # 持久化向量库
+      - agentvalue_chroma_data:/app/chroma_db
+      # 持久化 SQLite 数据库
+      - agentvalue_db_data:/app/dbdata
+      # 持久化本地附件
+      - agentvalue_attachments:/app/attachments
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: agentvalue-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: agentvalue-redis
+    volumes:
+      - agentvalue_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  agentvalue_chroma_data:
+  agentvalue_db_data:
+  agentvalue_redis_data:
+  agentvalue_attachments:

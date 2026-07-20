@@ -1,0 +1,23 @@
+# CODEOWNERS
+# PR 默认 review 规则:匹配路径的 owner 会被 GitHub 自动加为必选 reviewer。
+#
+# 当前项目 maintainer 较少,以下规则可按需启用或扩展。
+# 把下面的占位替换为实际 GitHub 用户名 / 团队名后,取消注释即可生效。
+
+# 默认全局 owner(任何路径变动都需要他点头)
+*           @MS33834
+
+# 后端
+/backend/   @MS33834
+
+# 前端
+/frontend/  @MS33834
+
+# Prompt 与评估(改动会影响 Agent 输出质量,需额外 review)
+/backend/prompts/   @MS33834
+/backend/eval/       @MS33834
+
+# 安全与认证
+/backend/auth/                  @MS33834
+/backend/scripts/check_prod_readiness.py  @MS33834
+/SECURITY.md                    @MS33834

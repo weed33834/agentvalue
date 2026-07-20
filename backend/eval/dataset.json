@@ -1,0 +1,317 @@
+[
+  {
+    "employee_id": "E2001",
+    "period": "2026-W27",
+    "archetype": "star",
+    "raw_inputs": [
+      {
+        "input_id": "daily-2026-W27-E2001",
+        "type": "daily_report",
+        "content": "本周主导完成支付网关 P0 重构，上线后接口 P99 从 950ms 降到 130ms，客户反馈零Bug；同步沉淀 1 篇技术设计文档。"
+      },
+      {
+        "input_id": "code-2026-W27-E2001",
+        "type": "code_review",
+        "content": "本周提交 4 个 PR，code review 一次性通过率 100%，无回滚。"
+      }
+    ],
+    "expected_overall_score_range": [85, 95],
+    "expected_contains": ["主导", "重构"],
+    "expected_view_keys": ["summary", "growth_areas", "next_week_focus"],
+    "expected_employee_view_tone": "建设性、肯定技术贡献与成长方向，避免自满"
+  },
+  {
+    "employee_id": "E2002",
+    "period": "2026-W27",
+    "archetype": "star",
+    "raw_inputs": [
+      {
+        "input_id": "daily-2026-W27-E2002",
+        "type": "daily_report",
+        "content": "本周辅导 2 名实习生完成首次独立 PR 提交，组织 2 次团队技术分享，主题分别是分布式事务与性能调优。"
+      },
+      {
+        "input_id": "peer-2026-W27-E2002",
+        "type": "peer_feedback",
+        "content": "实习生反馈讲解清晰，分享后团队对分布式事务理解明显提升。"
+      }
+    ],
+    "expected_overall_score_range": [83, 93],
+    "expected_contains": ["团队", "辅导"],
+    "expected_view_keys": ["summary", "growth_areas", "next_week_focus"],
+    "expected_employee_view_tone": "建设性、肯定带人能力与团队影响力"
+  },
+  {
+    "employee_id": "E2003",
+    "period": "2026-W27",
+    "archetype": "star",
+    "raw_inputs": [
+      {
+        "input_id": "daily-2026-W27-E2003",
+        "type": "daily_report",
+        "content": "推动跨部门支付对账项目落地，对接外部依赖方 3 个，提前 2 天完成里程碑；本周组织 4 次跨团队同步会议。"
+      },
+      {
+        "input_id": "peer-2026-W27-E2003",
+        "type": "peer_feedback",
+        "content": "外部依赖方反馈沟通效率高，问题闭环及时。"
+      }
+    ],
+    "expected_overall_score_range": [84, 94],
+    "expected_contains": ["跨团队", "推动"],
+    "expected_view_keys": ["summary", "growth_areas", "next_week_focus"],
+    "expected_employee_view_tone": "建设性、肯定协作价值与跨团队推动力"
+  },
+  {
+    "employee_id": "E2004",
+    "period": "2026-W27",
+    "archetype": "slacker",
+    "raw_inputs": [
+      {
+        "input_id": "daily-2026-W27-E2004",
+        "type": "daily_report",
+        "content": "周一到周三参加需求评审，周四整理测试用例，周五补文档。"
+      },
+      {
+        "input_id": "peer-2026-W27-E2004",
+        "type": "peer_feedback",
+        "content": "评审中发言较少，未主动认领具体交付任务。"
+      }
+    ],
+    "expected_overall_score_range": [40, 52],
+    "expected_contains": ["任务", "评审"],
+    "expected_view_keys": ["summary", "growth_areas", "next_week_focus"],
+    "expected_employee_view_tone": "建设性、避免攻击，引导承接可量化交付项"
+  },
+  {
+    "employee_id": "E2005",
+    "period": "2026-W27",
+    "archetype": "slacker",
+    "raw_inputs": [
+      {
+        "input_id": "daily-2026-W27-E2005",
+        "type": "daily_report",
+        "content": "本周任务延期 2 次，日报内容简略，未主动同步阻塞问题；同事多次催促才同步进展。"
+      },
+      {
+        "input_id": "task-2026-W27-E2005",
+        "type": "task_record",
+        "content": "TD-2098 计划周三交付，实际周五才提交；TD-2103 计划周四交付，仍未完成。"
+      }
+    ],
+    "expected_overall_score_range": [42, 54],
+    "expected_contains": ["延期"],
+    "expected_view_keys": ["summary", "growth_areas", "next_week_focus"],
+    "expected_employee_view_tone": "建设性、避免攻击，引导主动同步与里程碑管理"
+  },
+  {
+    "employee_id": "E2006",
+    "period": "2026-W27",
+    "archetype": "slacker",
+    "raw_inputs": [
+      {
+        "input_id": "daily-2026-W27-E2006",
+        "type": "daily_report",
+        "content": "提交的代码未自测，导致测试环境崩溃一次，修复耗时半天；同一模块本周出现 2 次返工。"
+      },
+      {
+        "input_id": "qa-2026-W27-E2006",
+        "type": "qa_record",
+        "content": "本周回归测试发现 3 个 P1 缺陷，均集中在 E2006 负责的模块。"
+      }
+    ],
+    "expected_overall_score_range": [44, 56],
+    "expected_contains": ["自测"],
+    "expected_view_keys": ["summary", "growth_areas", "next_week_focus"],
+    "expected_employee_view_tone": "建设性、避免攻击，引导建立自测清单与质量闭环"
+  },
+  {
+    "employee_id": "E2007",
+    "period": "2026-W27",
+    "archetype": "workaholic",
+    "raw_inputs": [
+      {
+        "input_id": "daily-2026-W27-E2007",
+        "type": "daily_report",
+        "content": "本周完成 3 个 P0、2 个 P1，日均代码量 800 行，周末加班修复线上故障。"
+      },
+      {
+        "input_id": "hr-2026-W27-E2007",
+        "type": "hr_record",
+        "content": "本月累计加班 6 天，已触发健康预警阈值。"
+      }
+    ],
+    "expected_overall_score_range": [78, 88],
+    "expected_contains": ["加班", "完成"],
+    "expected_view_keys": ["summary", "growth_areas", "next_week_focus"],
+    "expected_employee_view_tone": "建设性、肯定贡献但提示可持续性与工作生活平衡"
+  },
+  {
+    "employee_id": "E2008",
+    "period": "2026-W27",
+    "archetype": "workaholic",
+    "raw_inputs": [
+      {
+        "input_id": "daily-2026-W27-E2008",
+        "type": "daily_report",
+        "content": "对细节把控严格，交付质量合格，但大包大揽导致团队依赖；本周独自承担 5 个模块的代码 review。"
+      },
+      {
+        "input_id": "peer-2026-W27-E2008",
+        "type": "peer_feedback",
+        "content": "团队同事反馈较少有机会参与核心模块，成长路径受限。"
+      }
+    ],
+    "expected_overall_score_range": [74, 84],
+    "expected_contains": ["团队", "依赖"],
+    "expected_view_keys": ["summary", "growth_areas", "next_week_focus"],
+    "expected_employee_view_tone": "建设性、肯定贡献但引导任务分流与团队培养"
+  },
+  {
+    "employee_id": "E2009",
+    "period": "2026-W27",
+    "archetype": "workaholic",
+    "raw_inputs": [
+      {
+        "input_id": "daily-2026-W27-E2009",
+        "type": "daily_report",
+        "content": "周日主动响应线上 P0 故障，连续处理 6 小时修复完成；本周白天还交付了 2 个 P1 需求。"
+      },
+      {
+        "input_id": "oncall-2026-W27-E2009",
+        "type": "oncall_record",
+        "content": "本周值班响应 4 次，平均响应时长 8 分钟，故障复盘报告已提交。"
+      }
+    ],
+    "expected_overall_score_range": [80, 90],
+    "expected_contains": ["故障", "修复"],
+    "expected_view_keys": ["summary", "growth_areas", "next_week_focus"],
+    "expected_employee_view_tone": "建设性、肯定主动性与责任意识，提示排班可持续性"
+  },
+  {
+    "employee_id": "E2010",
+    "period": "2026-W27",
+    "archetype": "bottleneck",
+    "raw_inputs": [
+      {
+        "input_id": "daily-2026-W27-E2010",
+        "type": "daily_report",
+        "content": "工作投入度高，经常加班，但产出低于预期，关键路径多次被阻塞。"
+      },
+      {
+        "input_id": "task-2026-W27-E2010",
+        "type": "task_record",
+        "content": "TD-2077 已分配 5 天未推进，阻塞下游 3 个任务；同事反馈等待时间长。"
+      }
+    ],
+    "expected_overall_score_range": [58, 70],
+    "expected_contains": ["阻塞", "加班"],
+    "expected_view_keys": ["summary", "growth_areas", "next_week_focus"],
+    "expected_employee_view_tone": "建设性、避免攻击，引导拆解任务与早期风险升级"
+  },
+  {
+    "employee_id": "E2011",
+    "period": "2026-W27",
+    "archetype": "bottleneck",
+    "raw_inputs": [
+      {
+        "input_id": "daily-2026-W27-E2011",
+        "type": "daily_report",
+        "content": "负责模块复杂度评估不足，导致排期延误，需加强技术拆解能力。"
+      },
+      {
+        "input_id": "task-2026-W27-E2011",
+        "type": "task_record",
+        "content": "TD-2080 评估 3 人天，实际已投入 8 人天仍未完成；排期偏差超过 100%。"
+      }
+    ],
+    "expected_overall_score_range": [55, 68],
+    "expected_contains": ["排期", "拆解"],
+    "expected_view_keys": ["summary", "growth_areas", "next_week_focus"],
+    "expected_employee_view_tone": "建设性、避免攻击，引导技术拆解与排期复盘"
+  },
+  {
+    "employee_id": "E2012",
+    "period": "2026-W27",
+    "archetype": "bottleneck",
+    "raw_inputs": [
+      {
+        "input_id": "daily-2026-W27-E2012",
+        "type": "daily_report",
+        "content": "沟通响应及时，但代码质量波动大，重构债务累积；本周提交 3 次返工。"
+      },
+      {
+        "input_id": "qa-2026-W27-E2012",
+        "type": "qa_record",
+        "content": "本模块历史技术债务约 12 处，本周新增 1 处紧急修复。"
+      }
+    ],
+    "expected_overall_score_range": [56, 68],
+    "expected_contains": ["质量", "债务"],
+    "expected_view_keys": ["summary", "growth_areas", "next_week_focus"],
+    "expected_employee_view_tone": "建设性、避免攻击，引导债务清理计划与质量基线"
+  },
+  {
+    "employee_id": "E2013",
+    "period": "2026-W27",
+    "archetype": "newcomer",
+    "raw_inputs": [
+      {
+        "input_id": "daily-2026-W27-E2013",
+        "type": "daily_report",
+        "content": "入职第二周，已完成环境搭建并独立完成 2 个简单 Bug 修复，学习主动性强。"
+      },
+      {
+        "input_id": "mentor-2026-W27-E2013",
+        "type": "mentor_feedback",
+        "content": "学习能力突出，文档阅读速度快，已能独立定位常见问题。"
+      }
+    ],
+    "expected_overall_score_range": [68, 80],
+    "expected_contains": ["学习"],
+    "expected_view_keys": ["summary", "growth_areas", "next_week_focus"],
+    "expected_employee_view_tone": "建设性、肯定成长节奏，引导承接稍复杂任务"
+  },
+  {
+    "employee_id": "E2014",
+    "period": "2026-W27",
+    "archetype": "newcomer",
+    "raw_inputs": [
+      {
+        "input_id": "daily-2026-W27-E2014",
+        "type": "daily_report",
+        "content": "对业务逻辑理解较快，但技术栈熟练度不足，需继续积累；本周完成 1 个简单需求。"
+      },
+      {
+        "input_id": "mentor-2026-W27-E2014",
+        "type": "mentor_feedback",
+        "content": "业务理解到位，但代码风格与团队规范存在差距，需加强 code review。"
+      }
+    ],
+    "expected_overall_score_range": [62, 74],
+    "expected_contains": ["业务"],
+    "expected_view_keys": ["summary", "growth_areas", "next_week_focus"],
+    "expected_employee_view_tone": "建设性、肯定业务理解，引导技术栈与代码规范提升"
+  },
+  {
+    "employee_id": "E2015",
+    "period": "2026-W27",
+    "archetype": "newcomer",
+    "raw_inputs": [
+      {
+        "input_id": "daily-2026-W27-E2015",
+        "type": "daily_report",
+        "content": "积极参与团队分享，日报记录详细，成长速度符合预期；本周完成 1 次内部分享。"
+      },
+      {
+        "input_id": "peer-2026-W27-E2015",
+        "type": "peer_feedback",
+        "content": "团队融入良好，主动承担会议纪要，协作意识强。"
+      }
+    ],
+    "expected_overall_score_range": [66, 78],
+    "expected_contains": ["成长"],
+    "expected_view_keys": ["summary", "growth_areas", "next_week_focus"],
+    "expected_employee_view_tone": "建设性、肯定融入与成长节奏，引导承接独立交付项"
+  }
+]

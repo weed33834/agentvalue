@@ -1,0 +1,35 @@
+# 避免将本地敏感配置、数据与构建产物打包进镜像
+.env
+.env.local
+.env.production
+
+# 示例文件可以保留在镜像中（仅作参考，不用于运行）
+# .env.example
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# 本地数据库与向量库（运行时通过 volume 持久化）
+*.db
+*.db-shm
+*.db-wal
+chroma_db/
+attachments/
+
+# 日志与测试产物
+*.log
+logs/
+tests/
+
+# 生成的安全审计导出（不进镜像,避免泄漏攻击面）
+data/security-audit-*.zip
+data/**/security-audit-*.zip
+
+# 编辑器/系统文件
+.vscode/
+.idea/
+.DS_Store

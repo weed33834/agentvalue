@@ -1,0 +1,14 @@
+title = "AgentValue-AI gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "历史 commit 中 test_business_flow.py 注入 demo LLM 配置用的假密钥,文件已删除但 git 历史仍保留,gitleaks 扫描历史时会命中故需豁免"
+regexes = [
+  '''sk-uUHMKfiMchX93n8jL5688JyDj845xyz20TEZB2VdS9Y1Ps88''',
+]
+paths = [
+  '''test_business_flow\.py''',
+  '''test_config_mgmt\.py''',
+]

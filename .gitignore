@@ -1,0 +1,68 @@
+# Tokens and secrets
+*.token
+*.key
+*.pem
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+id_ecdsa*
+.env
+.env.*
+!**/.env.example
+!**/*.env.example
+secrets/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.ruff_cache/
+.mypy_cache/
+
+# Virtual environments
+venv/
+.venv/
+
+# IDEs / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.bak
+
+# Node.js
+node_modules/
+dist/
+frontend/dist/
+*.log
+npm-debug.log*
+.yarn/
+
+# Local databases & vector store
+*.db
+*.db-shm
+*.db-wal
+chroma_db/
+
+# Generated artifacts (security audit exports, etc.)
+backend/data/security-audit-*.zip
+backend/data/**/security-audit-*.zip
+
+# Local pilot run outputs (allowed under data/pilot as fixtures, but exclude ad-hoc runs)
+backend/data/runs/
+
+# Pilot 可再生产物(由 pilot_data_generator.py / run_fairness_monthly.py / sla_monitor.py 生成,
+# 测试用 tmp_path 自行生成,不加载仓库提交的文件)
+backend/data/pilot/*/employees.json
+backend/data/pilot/*/weekly_reports_week*.json
+backend/data/pilot/fairness-monthly-report.json
+backend/data/pilot/sla-report.json

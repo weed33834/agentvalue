@@ -1,0 +1,56 @@
+{
+  "scales": [
+    {
+      "scale": "startup",
+      "label": "初创型",
+      "employees_in_file": 15,
+      "weekly_records": 60,
+      "daily_reports": 300,
+      "features": []
+    },
+    {
+      "scale": "growth",
+      "label": "成长型",
+      "employees_in_file": 80,
+      "weekly_records": 320,
+      "daily_reports": 1600,
+      "features": []
+    },
+    {
+      "scale": "medium",
+      "label": "中型",
+      "employees_in_file": 100,
+      "weekly_records": 400,
+      "daily_reports": 2000,
+      "features": [
+        "cross_location"
+      ]
+    },
+    {
+      "scale": "large",
+      "label": "大型",
+      "employees_in_file": 150,
+      "weekly_records": 600,
+      "daily_reports": 3000,
+      "features": [
+        "cross_location",
+        "matrix_secondment",
+        "bureaucratic_layer"
+      ]
+    },
+    {
+      "scale": "huge",
+      "label": "超大型",
+      "employees_in_file": 200,
+      "weekly_records": 800,
+      "daily_reports": 4000,
+      "features": [
+        "cross_location",
+        "matrix_secondment",
+        "bureaucratic_layer",
+        "dual_line_reporting",
+        "force_361"
+      ]
+    }
+  ]
+}

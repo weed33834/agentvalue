@@ -1,0 +1,314 @@
+{
+  "profiles": [
+    {
+      "employee_id": "E1001",
+      "name": "劳模型",
+      "archetype": "workhorse",
+      "description": "勤勤恳恳、交付稳定但缺乏突破性创新",
+      "inputs": [
+        {
+          "period": "2026-W21",
+          "raw_inputs": [
+            {
+              "input_id": "daily-001",
+              "type": "daily_report",
+              "content": "本周处理了 23 个客户反馈工单，全部在 SLA 内完成。整理了 FAQ 文档 2 篇，帮助团队减少重复问题。"
+            },
+            {
+              "input_id": "task-001",
+              "type": "task_progress",
+              "content": "JIRA-2001 进度 100%，JIRA-2002 进度 100%，JIRA-2003 进度 100%。"
+            }
+          ]
+        },
+        {
+          "period": "2026-W22",
+          "raw_inputs": [
+            {
+              "input_id": "daily-002",
+              "type": "daily_report",
+              "content": "完成季度数据核对，修复 5 个历史数据异常。主动加班完成月末报表。"
+            },
+            {
+              "input_id": "task-002",
+              "type": "task_progress",
+              "content": "JIRA-2010 进度 100%，JIRA-2011 进度 100%。"
+            }
+          ]
+        },
+        {
+          "period": "2026-W23",
+          "raw_inputs": [
+            {
+              "input_id": "daily-003",
+              "type": "daily_report",
+              "content": "本周继续处理日常工单 18 个，完成知识库更新 3 篇。没有参与新项目。"
+            }
+          ]
+        },
+        {
+          "period": "2026-W24",
+          "raw_inputs": [
+            {
+              "input_id": "daily-004",
+              "type": "daily_report",
+              "content": "完成所有既定任务，协助同事处理紧急问题 4 次。工作内容以维护性为主。"
+            }
+          ]
+        },
+        {
+          "period": "2026-W25",
+          "raw_inputs": [
+            {
+              "input_id": "daily-005",
+              "type": "daily_report",
+              "content": "本周完成工单 20 个，更新操作手册 1 份。工作认真但技术挑战较少。"
+            },
+            {
+              "input_id": "task-005",
+              "type": "task_progress",
+              "content": "JIRA-2045 进度 100%，JIRA-2046 进度 100%。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "employee_id": "E1002",
+      "name": "摸鱼型",
+      "archetype": "slacker",
+      "description": "产出低、参与度弱、成长停滞",
+      "inputs": [
+        {
+          "period": "2026-W21",
+          "raw_inputs": [
+            {
+              "input_id": "daily-006",
+              "type": "daily_report",
+              "content": "本周处理了 3 个简单工单，其他时间在做文档整理。"
+            }
+          ]
+        },
+        {
+          "period": "2026-W22",
+          "raw_inputs": [
+            {
+              "input_id": "daily-007",
+              "type": "daily_report",
+              "content": "完成 2 个低优先级任务，未参加团队会议，日报简短。"
+            }
+          ]
+        },
+        {
+          "period": "2026-W23",
+          "raw_inputs": [
+            {
+              "input_id": "daily-008",
+              "type": "daily_report",
+              "content": "本周工作较少，处理了部分日常事务，没有主动学习。"
+            }
+          ]
+        },
+        {
+          "period": "2026-W24",
+          "raw_inputs": [
+            {
+              "input_id": "daily-009",
+              "type": "daily_report",
+              "content": "处理了 4 个工单，进度一般，未提出改进建议。"
+            }
+          ]
+        },
+        {
+          "period": "2026-W25",
+          "raw_inputs": [
+            {
+              "input_id": "daily-010",
+              "type": "daily_report",
+              "content": "本周主要处理日常工单，完成了 5 个低优先级任务，没有参与团队技术讨论，日报内容较为简短。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "employee_id": "E1003",
+      "name": "明星型",
+      "archetype": "star",
+      "description": "高产出、高影响、持续创新",
+      "inputs": [
+        {
+          "period": "2026-W21",
+          "raw_inputs": [
+            {
+              "input_id": "daily-011",
+              "type": "daily_report",
+              "content": "本周完成了推荐算法 v3 的核心改造，线上 A/B 测试 CTR 提升 12%。组织技术分享 1 次。"
+            },
+            {
+              "input_id": "task-011",
+              "type": "task_progress",
+              "content": "JIRA-2020 进度 100%，JIRA-2021 进度 80%。"
+            }
+          ]
+        },
+        {
+          "period": "2026-W22",
+          "raw_inputs": [
+            {
+              "input_id": "daily-012",
+              "type": "daily_report",
+              "content": "主导跨部门项目启动会，输出架构方案 1 份，带领 2 名新同学完成模块设计。"
+            }
+          ]
+        },
+        {
+          "period": "2026-W23",
+          "raw_inputs": [
+            {
+              "input_id": "daily-013",
+              "type": "daily_report",
+              "content": "优化核心接口响应时间，P99 从 800ms 降至 200ms。发表内部技术博客 1 篇。"
+            }
+          ]
+        },
+        {
+          "period": "2026-W24",
+          "raw_inputs": [
+            {
+              "input_id": "daily-014",
+              "type": "daily_report",
+              "content": "推进推荐算法全量上线，监控指标稳定。参与公司级技术委员会讨论。"
+            }
+          ]
+        },
+        {
+          "period": "2026-W25",
+          "raw_inputs": [
+            {
+              "input_id": "daily-015",
+              "type": "daily_report",
+              "content": "主导了推荐引擎 v2 的架构设计，提出了基于向量缓存的优化方案，预计下周落地。本周输出技术方案文档 2 份，组织评审会 1 次。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "employee_id": "E1004",
+      "name": "新人型",
+      "archetype": "newbie",
+      "description": "积极学习、快速成长、仍在适应",
+      "inputs": [
+        {
+          "period": "2026-W21",
+          "raw_inputs": [
+            {
+              "input_id": "daily-016",
+              "type": "daily_report",
+              "content": "本周完成入职培训，熟悉项目代码结构，在导师指导下修复 2 个简单 Bug。"
+            }
+          ]
+        },
+        {
+          "period": "2026-W22",
+          "raw_inputs": [
+            {
+              "input_id": "daily-017",
+              "type": "daily_report",
+              "content": "独立完成了一个前端小需求，学习了内部组件库的使用，主动请教同事问题。"
+            }
+          ]
+        },
+        {
+          "period": "2026-W23",
+          "raw_inputs": [
+            {
+              "input_id": "daily-018",
+              "type": "daily_report",
+              "content": "参与需求评审，理解业务逻辑。完成一个中等复杂度的后端接口开发。"
+            }
+          ]
+        },
+        {
+          "period": "2026-W24",
+          "raw_inputs": [
+            {
+              "input_id": "daily-019",
+              "type": "daily_report",
+              "content": "本周完成 2 个需求开发，代码评审通过率 85%。继续学习系统设计课程。"
+            }
+          ]
+        },
+        {
+          "period": "2026-W25",
+          "raw_inputs": [
+            {
+              "input_id": "daily-020",
+              "type": "daily_report",
+              "content": "独立负责一个小模块，完成接口开发与单元测试。主动总结踩坑文档 1 篇。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "employee_id": "E1005",
+      "name": "瓶颈期",
+      "archetype": "stuck",
+      "description": "曾经优秀但近期成长停滞、积极性下降",
+      "inputs": [
+        {
+          "period": "2026-W21",
+          "raw_inputs": [
+            {
+              "input_id": "daily-021",
+              "type": "daily_report",
+              "content": "完成核心模块开发，质量较高。主动承担了一个有挑战的任务。"
+            }
+          ]
+        },
+        {
+          "period": "2026-W22",
+          "raw_inputs": [
+            {
+              "input_id": "daily-022",
+              "type": "daily_report",
+              "content": "处理日常任务，没有主动申请新项目。工作完成但缺乏亮点。"
+            }
+          ]
+        },
+        {
+          "period": "2026-W23",
+          "raw_inputs": [
+            {
+              "input_id": "daily-023",
+              "type": "daily_report",
+              "content": "本周以维护性工作为主，没有参与技术讨论，日报较为敷衍。"
+            }
+          ]
+        },
+        {
+          "period": "2026-W24",
+          "raw_inputs": [
+            {
+              "input_id": "daily-024",
+              "type": "daily_report",
+              "content": "延迟交付一个中等优先级任务，未说明原因。团队会议中较少发言。"
+            }
+          ]
+        },
+        {
+          "period": "2026-W25",
+          "raw_inputs": [
+            {
+              "input_id": "daily-025",
+              "type": "daily_report",
+              "content": "完成了分配的任务，但没有主动思考优化方案。近期产出质量有下降趋势。"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

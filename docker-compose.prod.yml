@@ -1,0 +1,133 @@
+# AgentValue-AI 生产环境 Compose Override
+#
+# 用法:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# 配合基础 docker-compose.yml 叠加使用,补齐生产环境扩展:
+#   - PostgreSQL 替代默认 SQLite
+#   - MinIO 提供对象存储(替代/补充本地附件目录)
+#   - NVIDIA GPU 加速本地模型推理
+# 详见 docs/deployment-guide.md 第 3.6 节(与第四章"生产环境增强"呼应)。
+
+services:
+  backend:
+    # 生产环境追加 PostgreSQL / MinIO 依赖(redis 依赖由基础 compose 提供,此处按 map 合并保留)
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      # 生产模式守护:auth_demo_mode 必须为 false,JWT_SECRET_KEY 必须为强随机值
+      - AGENTVALUE_ENV=production
+      # JWT_SECRET_KEY 必须通过 .env 注入,占位值会被 check_prod_readiness 拦截
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:?JWT_SECRET_KEY must be set in production}
+      # 切换为 PostgreSQL(覆盖基础 compose 中的 SQLite 连接串);凭据必须通过 .env 注入
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:?POSTGRES_USER must be set}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB must be set}
+      # 附件存储：S3 兼容客户端(core/storage.py S3Storage)已就绪,
+      # 配置 S3_ENDPOINT 后附件自动走 MinIO 对象存储,未配置则降级到本地 ATTACHMENT_DIR。
+      # 启用对象存储时取消下方注释并填入 MinIO 凭据:
+      # - S3_ENDPOINT=minio:9000
+      # - S3_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
+      # - S3_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
+      # - S3_BUCKET=agentvalue-attachments
+      # - S3_SECURE=false
+      - ATTACHMENT_DIR=/app/attachments
+      # 任务队列后端:显式声明,确保多副本共享任务状态(基础 compose 已设,此处冗余保险)
+      - REDIS_URL=redis://redis:6379/0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            # NVIDIA GPU 加速本地模型推理。
+            # 前置依赖:宿主机需先安装 NVIDIA Container Toolkit。
+            # 安装文档: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
+            # 若部署环境无 GPU,可注释掉以下设备块或移除整个 deploy 段。
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # PostgreSQL 生产数据库(替代 SQLite)
+  postgres:
+    image: postgres:15-alpine
+    container_name: agentvalue-postgres
+    environment:
+      # 凭据必须通过 .env 注入,无默认值,避免忘改弱密码
+      - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER must be set}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      - POSTGRES_DB=${POSTGRES_DB:?POSTGRES_DB must be set}
+    volumes:
+      - agentvalue_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agentvalue} -d ${POSTGRES_DB:-agentvalue}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # MinIO 对象存储(S3 兼容,用于原始附件:截图/语音/PDF)
+  minio:
+    image: minio/minio:latest
+    container_name: agentvalue-minio
+    command: server /data --console-address ":9001"
+    environment:
+      # 凭据必须通过 .env 注入,无默认值,避免忘改弱密码
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set}
+    volumes:
+      - agentvalue_minio_data:/data
+    ports:
+      - "9000:9000"   # S3 API 端口
+      - "9001:9001"   # Web Console 端口
+    healthcheck:
+      # MinIO 内置健康端点;官方 minio/minio:latest 镜像已内置 curl
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  # Prometheus 指标采集(抓 backend /metrics,评估 alerts.yml 告警规则)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: agentvalue-prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - agentvalue_prom_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+  # Grafana 可视化(provisioning 自动加载 Prometheus 数据源 + AgentValue-AI 看板)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: agentvalue-grafana
+    depends_on:
+      - prometheus
+    environment:
+      # 凭据必须通过 .env 注入,无默认值,避免忘改弱密码
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER must be set}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      # provisioning:数据源(Prometheus)+ 看板自动加载配置
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      # 看板 JSON(provisioning/dashboards/agentvalue.yml 指向此目录)
+      - ./grafana/dashboard.json:/var/lib/grafana/dashboards/dashboard.json:ro
+      - agentvalue_grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+volumes:
+  agentvalue_pg_data:
+  agentvalue_minio_data:
+  agentvalue_prom_data:
+  agentvalue_grafana_data:

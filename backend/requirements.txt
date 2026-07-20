@@ -1,0 +1,59 @@
+pydantic>=2.13.4
+pydantic-settings>=2.0
+email-validator>=2.3.0
+fastapi>=0.139.0
+uvicorn[standard]>=0.50.2
+langgraph>=1.2.8
+# P1 工具管理: LangChain @tool 装饰器 + bind_tools + ToolNode + ReAct agent
+langchain>=0.3.0
+# P1 工具管理: LangChain OpenAI Chat (ReAct Agent 用 ChatOpenAI.bind_tools)
+# langchain 0.3+ 已不再自动带 langchain-openai,需独立安装
+langchain-openai>=0.2.0
+# P1 工具管理: MCP (Model Context Protocol) 适配器,接入外部 MCP 服务器工具
+langchain-mcp-adapters>=0.2.0
+openai>=2.44.0
+chromadb>=1.5.9
+sqlalchemy>=2.0.51
+aiosqlite>=0.19
+alembic>=1.18.5
+asyncpg>=0.29
+pytest>=9.1.1
+pytest-asyncio>=1.4.0
+pytest-cov>=7.1.0
+httpx>=0.24
+python-dotenv>=1.2.2
+psutil>=7.2.2
+langfuse>=4.13.1
+pyjwt>=2.13.0
+bcrypt>=4.0.0
+prometheus_client>=0.25.0
+redis>=5.0
+fakeredis>=2.20
+# Lua 脚本支持: fakeredis 跑 RedisJobQueue.update 的 Lua 原子脚本需要 lupa 解释器
+# 生产环境用真实 Redis(原生支持 Lua),lupa 仅测试环境需要
+lupa>=2.0
+# arq 任务队列(P3 规模化就绪):生产环境部署独立 worker 进程,启用自动重投 + 死信队列
+# 未启用 USE_ARQ_QUEUE=true 时,自动降级到 RedisJobQueue(裸 redis.asyncio 共享存储)
+arq>=0.26.0
+# LangGraph Postgres checkpointer(P3 规模化就绪):interrupt 状态持久化,解除单实例约束
+# 未启用 DATABASE_URL=postgresql://... 时,自动降级到 MemorySaver
+langgraph-checkpoint-postgres>=2.0.0
+# 字段级加密（manager_view/audit 字段 AES-GCM 加密）
+cryptography>=42.0.0
+# 多模态抽取（Phase 7.1）：pypdf 纯 Python 无系统依赖；pytesseract 需系统安装 tesseract-ocr
+pypdf>=6.14.2
+pytesseract>=0.3.13
+minio>=7.2
+python-multipart>=0.0.6
+# P1-7：API 限流（slowapi 进程级 Limiter，路由装饰器按端点配置限速）
+slowapi>=0.1.9
+# P2 深水区: Playground SSE 流式响应（sse-starlette 提供 EventSourceResponse + ping 心跳 + send_timeout）
+sse-starlette>=2.0.0
+# H5 KMS / Vault 集成: Vault Transit Engine Envelope Encryption (可选,启用 field_encryption_backend=vault 时需要)
+# 未配置时降级到本地 AES-GCM (field_encryption_backend=env 默认)
+hvac>=2.4.0
+# H5 KMS / Vault 集成: AWS KMS Envelope Encryption (可选,启用 field_encryption_backend=aws 时需要)
+# aioboto3 原生 async,基于 aiobotocore + aiohttp
+aioboto3>=15.5.0
+# H5 KMS / Vault 集成: moto 用于 AWS KMS 单测 mock (无需生产部署)
+moto>=5.2.0
