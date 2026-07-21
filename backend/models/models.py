@@ -424,6 +424,12 @@ class PromptTemplate(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=now_utc, onupdate=now_utc
     )
+    # 对标 LobeChat/Open WebUI 模板库: 分类/内容/变量/内置/公开
+    category: Mapped[str] = mapped_column(String(64), nullable=False, default="general")
+    content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    variables: Mapped[Optional[list]] = mapped_column(JSON, default=list)
+    is_builtin: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_public: Mapped[bool] = mapped_column(Boolean, default=True)
 
     __table_args__ = (
         UniqueConstraint("tenant_id", "name", name="uix_tenant_prompt_name"),

@@ -23,7 +23,7 @@ class Skill(Base):
     input_schema = Column(JSON, default=dict, comment="输入参数schema")
     output_schema = Column(JSON, default=dict, comment="输出格式schema")
     required_tools = Column(JSON, default=list, comment="需要的工具列表")
-    model_tier = Column(String(10), default="L1", comment="推荐模型层级")
+    model_tier = Column(String(10), default="L0", comment="推荐模型层级 L0=云端 L1-L3=本地")
     temperature = Column(Integer, default=70, comment="温度0-100")
     is_builtin = Column(Boolean, default=False, comment="是否内置")
     is_public = Column(Boolean, default=True, comment="是否公开")

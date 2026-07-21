@@ -60,7 +60,7 @@ class ChatSession(Base):
         String(256), nullable=False, default="新对话"
     )
     model_name: Mapped[str] = mapped_column(
-        String(128), nullable=False, default="gpt-4o-mini"
+        String(128), nullable=False, default="glm-4.7"
     )
     provider: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     agent_name: Mapped[str] = mapped_column(

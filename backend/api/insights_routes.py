@@ -238,11 +238,11 @@ def _validate_sql(sql: str) -> str:
 async def _get_llm_provider(app_state: AppState):
     """获取 LLM Provider。
 
-    优先使用 L1 档位 (本地边缘小模型, 纯文本摘要),
+    优先使用 L0 档位 (云端模型, 稳定可用),
     若不可用则降级到 get_provider_with_fallback 自动选择可用档位。
     """
     try:
-        return app_state.model_router.get_provider("L1")
+        return app_state.model_router.get_provider("L0")
     except Exception:
         try:
             provider, _ = await app_state.model_router.get_provider_with_fallback()
@@ -281,7 +281,6 @@ async def _generate_sql(
     ]
     completion = await provider.chat_completion(
         messages=messages,
-        response_format={"type": "json_object"},
     )
     content = completion.content or ""
 
@@ -310,6 +309,12 @@ async def _generate_sql(
                     .replace("\\t", "\t")
                     .strip()
                 )
+
+    # 仍然没有 SQL, 尝试直接从文本中提取 SELECT 语句
+    if not sql:
+        match = re.search(r"(SELECT\s+.*?)(?:;|$)", content, re.DOTALL | re.IGNORECASE)
+        if match:
+            sql = match.group(1).strip()
 
     if not sql:
         raise ValueError(f"LLM 未生成有效的 SQL, 原始返回: {content[:300]}")
@@ -376,7 +381,6 @@ async def _generate_answer(
     messages = [ChatMessage(role="system", content=prompt)]
     completion = await provider.chat_completion(
         messages=messages,
-        response_format={"type": "json_object"},
     )
     content = completion.content or ""
 

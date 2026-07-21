@@ -63,7 +63,7 @@ _BUILTIN_SKILLS: List[Dict[str, Any]] = [
             },
         },
         "required_tools": ["grep_tool", "read_file"],
-        "model_tier": "L2",
+        "model_tier": "L0",
         "temperature": 30,
         "tags": ["代码", "审查", "quality"],
     },
@@ -100,7 +100,7 @@ _BUILTIN_SKILLS: List[Dict[str, Any]] = [
             },
         },
         "required_tools": ["employee_history", "company_kb"],
-        "model_tier": "L2",
+        "model_tier": "L0",
         "temperature": 40,
         "tags": ["绩效", "HR", "分析"],
     },
@@ -133,7 +133,7 @@ _BUILTIN_SKILLS: List[Dict[str, Any]] = [
             },
         },
         "required_tools": ["write_file"],
-        "model_tier": "L1",
+        "model_tier": "L0",
         "temperature": 30,
         "tags": ["文档", "技术写作", "API"],
     },
@@ -167,7 +167,7 @@ _BUILTIN_SKILLS: List[Dict[str, Any]] = [
             },
         },
         "required_tools": ["code_interpreter", "web_search"],
-        "model_tier": "L2",
+        "model_tier": "L0",
         "temperature": 40,
         "tags": ["数据分析", "统计", "洞察"],
     },
@@ -258,8 +258,11 @@ class SkillExecutor:
                 ChatMessage(role="user", content=user_message),
             ]
 
-            # 2. 获取 LLM provider (按 Skill 指定的档位)
-            provider = self.model_router.get_provider(skill.model_tier)
+            # 2. 获取 LLM provider (按 Skill 指定的档位, 降级到 L0 云端)
+            try:
+                provider = self.model_router.get_provider(skill.model_tier)
+            except Exception:
+                provider, _ = await self.model_router.get_provider_with_fallback()
 
             # 3. 注入 Skill 温度(0-100 -> 0.0-1.0), 仅当 skill.temperature 有效时覆盖
             try:
@@ -271,15 +274,9 @@ class SkillExecutor:
             except Exception as e:
                 logger.debug("注入 skill temperature 失败, 使用 provider 默认: %s", e)
 
-            # 4. 若声明了 output_schema, 请求 JSON 输出格式(OpenAI 兼容 response_format)
-            response_format = None
-            if skill.output_schema:
-                response_format = {"type": "json_object"}
-
-            # 5. 调用 LLM 生成
+            # 4. 调用 LLM 生成 (不使用 response_format, 某些 API 代理不支持)
             completion = await provider.chat_completion(
                 messages=messages,
-                response_format=response_format,
             )
 
             output_text = completion.content or ""
@@ -392,7 +389,7 @@ class SkillExecutor:
                         input_schema=skill_data.get("input_schema", {}),
                         output_schema=skill_data.get("output_schema", {}),
                         required_tools=skill_data.get("required_tools", []),
-                        model_tier=skill_data.get("model_tier", "L1"),
+                        model_tier=skill_data.get("model_tier", "L0"),
                         temperature=skill_data.get("temperature", 70),
                         is_builtin=True,
                         is_public=True,

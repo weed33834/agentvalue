@@ -67,7 +67,7 @@ except ImportError:  # pragma: no cover
 
 class CreateSessionRequest(BaseModel):
     title: str = Field(default="新对话", max_length=256)
-    model_name: str = Field(default="DeepSeek-V4-Flash", max_length=128)
+    model_name: str = Field(default="glm-4.7", max_length=128)
     agent_name: str = Field(default="assistant", max_length=64)
 
 

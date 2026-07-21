@@ -184,44 +184,56 @@ class OpenAICompatibleProvider(BaseProvider):
         if tools:
             payload["tools"] = tools
 
-        try:
-            stream = await self.client.chat.completions.create(**payload)
-            async for chunk in stream:
-                if not chunk.choices:
-                    # 最后一个 chunk 可能只有 usage 没有 choices
-                    if hasattr(chunk, "usage") and chunk.usage:
-                        yield StreamChunk(
-                            usage={
-                                "prompt_tokens": chunk.usage.prompt_tokens,
-                                "completion_tokens": chunk.usage.completion_tokens,
-                                "total_tokens": chunk.usage.total_tokens,
-                            }
-                        )
+        # 重试逻辑: API 代理可能返回 429 (rate limit / authorization failed)
+        max_retries = 3
+        for attempt in range(max_retries + 1):
+            try:
+                stream = await self.client.chat.completions.create(**payload)
+                async for chunk in stream:
+                    if not chunk.choices:
+                        # 最后一个 chunk 可能只有 usage 没有 choices
+                        if hasattr(chunk, "usage") and chunk.usage:
+                            yield StreamChunk(
+                                usage={
+                                    "prompt_tokens": chunk.usage.prompt_tokens,
+                                    "completion_tokens": chunk.usage.completion_tokens,
+                                    "total_tokens": chunk.usage.total_tokens,
+                                }
+                            )
+                        continue
+                    delta = chunk.choices[0].delta
+                    content = delta.content if hasattr(delta, "content") else None
+                    tool_calls = None
+                    if delta.tool_calls:
+                        tool_calls = [
+                            ToolCallDelta(
+                                index=tc.index,
+                                name=tc.function.name if tc.function and tc.function.name else None,
+                                id=tc.id,
+                                arguments=tc.function.arguments if tc.function else None,
+                            )
+                            for tc in delta.tool_calls
+                        ]
+                    finish = chunk.choices[0].finish_reason
+                    yield StreamChunk(
+                        content=content,
+                        tool_calls=tool_calls,
+                        finish_reason=finish,
+                    )
+                self._safe_metric(record_llm_request, self._tier, "success")
+                return  # 成功则退出重试循环
+            except Exception as e:
+                err_str = str(e)
+                is_rate_limit = "429" in err_str or "rate" in err_str.lower()
+                if is_rate_limit and attempt < max_retries:
+                    wait = 2 ** attempt  # 1s, 2s, 4s
+                    logger.warning("LLM 请求被限流(429), %ds 后重试 (attempt %d/%d): %s",
+                                   wait, attempt + 1, max_retries, err_str[:100])
+                    await asyncio.sleep(wait)
                     continue
-                delta = chunk.choices[0].delta
-                content = delta.content if hasattr(delta, "content") else None
-                tool_calls = None
-                if delta.tool_calls:
-                    tool_calls = [
-                        ToolCallDelta(
-                            index=tc.index,
-                            name=tc.function.name if tc.function and tc.function.name else None,
-                            id=tc.id,
-                            arguments=tc.function.arguments if tc.function else None,
-                        )
-                        for tc in delta.tool_calls
-                    ]
-                finish = chunk.choices[0].finish_reason
-                yield StreamChunk(
-                    content=content,
-                    tool_calls=tool_calls,
-                    finish_reason=finish,
-                )
-            self._safe_metric(record_llm_request, self._tier, "success")
-        except Exception as e:
-            self._safe_metric(record_llm_request, self._tier, "error")
-            logger.warning("stream_chat_completion 失败: %s", e)
-            raise
+                self._safe_metric(record_llm_request, self._tier, "error")
+                logger.warning("stream_chat_completion 失败: %s", e)
+                raise
 
     @staticmethod
     def _strip_markdown_json(content: str) -> str:

@@ -34,7 +34,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.rbac import Role, get_current_user_id, require_role
 from core.database import get_db, get_db_session
-from models.prompt_template import AgentPreset, PromptTemplate
+from models.prompt_template import AgentPreset
+from models.models import PromptTemplate
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +103,7 @@ class CreateAgentPresetPayload(BaseModel):
     system_prompt: str = Field(min_length=1, max_length=_MAX_TEXT_LENGTH)
     category: str = Field(default="general", max_length=_MAX_CATEGORY_LENGTH)
     tags: List[str] = Field(default_factory=list, max_length=20)
-    model_tier: str = Field(default="L1", max_length=10)
+    model_tier: str = Field(default="L0", max_length=10)
     enabled_tools: List[str] = Field(default_factory=list, max_length=50)
     temperature: int = Field(default=70, ge=0, le=100)
     is_public: bool = True
@@ -306,7 +307,7 @@ def _builtin_presets() -> List[Dict[str, Any]]:
             ),
             "category": "coding",
             "tags": ["编程", "调试", "代码审查"],
-            "model_tier": "L2",
+            "model_tier": "L0",
             "enabled_tools": ["code_interpreter", "calculator"],
             "temperature": 30,
         },
@@ -321,7 +322,7 @@ def _builtin_presets() -> List[Dict[str, Any]]:
             ),
             "category": "hr",
             "tags": ["HR", "绩效", "招聘", "员工发展"],
-            "model_tier": "L2",
+            "model_tier": "L0",
             "enabled_tools": ["calculator"],
             "temperature": 50,
         },
@@ -336,7 +337,7 @@ def _builtin_presets() -> List[Dict[str, Any]]:
             ),
             "category": "analysis",
             "tags": ["数据分析", "统计", "可视化"],
-            "model_tier": "L2",
+            "model_tier": "L0",
             "enabled_tools": ["code_interpreter", "calculator"],
             "temperature": 40,
         },
@@ -351,7 +352,7 @@ def _builtin_presets() -> List[Dict[str, Any]]:
             ),
             "category": "writing",
             "tags": ["文案", "营销", "创意"],
-            "model_tier": "L1",
+            "model_tier": "L0",
             "enabled_tools": [],
             "temperature": 80,
         },
@@ -366,7 +367,7 @@ def _builtin_presets() -> List[Dict[str, Any]]:
             ),
             "category": "writing",
             "tags": ["技术文档", "API", "手册"],
-            "model_tier": "L1",
+            "model_tier": "L0",
             "enabled_tools": [],
             "temperature": 30,
         },
@@ -394,14 +395,17 @@ async def _ensure_seed() -> None:
                 )
             ).scalars().all()
             if len(existing_templates) == 0:
+                import uuid
                 for tpl_data in _builtin_templates():
                     tpl = PromptTemplate(
+                        id=uuid.uuid4().hex,
                         name=tpl_data["name"],
                         category=tpl_data["category"],
                         content=tpl_data["content"],
                         variables=tpl_data["variables"],
                         is_builtin=True,
                         is_public=True,
+                        type="text",
                     )
                     session.add(tpl)
                 await session.commit()
@@ -468,14 +472,17 @@ async def create_template(
     session: AsyncSession = Depends(get_db),
 ):
     """创建提示词模板(需认证)"""
+    import uuid
     tpl = PromptTemplate(
+        id=uuid.uuid4().hex,
         name=payload.name,
+        type="text",
         category=payload.category,
         content=payload.content,
         variables=[v.model_dump() for v in payload.variables],
         is_builtin=False,
         is_public=payload.is_public,
-        created_by=int(user_id) if user_id.isdigit() else None,
+        created_by=user_id,
     )
     session.add(tpl)
     await session.commit()
@@ -485,7 +492,7 @@ async def create_template(
 
 @router.put("/templates/{template_id}")
 async def update_template(
-    template_id: int,
+    template_id: str,
     payload: UpdateTemplatePayload,
     user_id: str = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_db),
@@ -527,7 +534,7 @@ async def update_template(
 
 @router.delete("/templates/{template_id}")
 async def delete_template(
-    template_id: int,
+    template_id: str,
     user_id: str = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_db),
 ):
@@ -555,7 +562,7 @@ async def delete_template(
 
 @router.post("/templates/{template_id}/instantiate")
 async def instantiate_template(
-    template_id: int,
+    template_id: str,
     payload: InstantiateTemplatePayload,
     session: AsyncSession = Depends(get_db),
 ):

@@ -44,7 +44,8 @@ from models.calibration import (
     CalibrationSession,
 )
 # 提示词模板库 + Agent预设 (对标 LobeChat/Open WebUI 模板 + ChatGPT GPTs)
-from models.prompt_template import AgentPreset, PromptTemplate
+# PromptTemplate 已合并到 models.models 中 (扩展了 category/content/variables 等列)
+from models.prompt_template import AgentPreset
 # Artifacts 可视化 (对标 Claude Artifacts / ChatGPT Canvas)
 from models.artifact import Artifact
 # Skills 系统 (对标 Claude Skills / Trae Skills)
