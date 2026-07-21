@@ -117,132 +117,8 @@ def _build_builtin_tools(enabled_csv: Optional[str] = None) -> List[Any]:
 
         tools.append(get_current_datetime)
 
-    if _is_tool_enabled("bash", enabled_csv):
-
-        @tool
-        async def bash(command: str, timeout: int = 30) -> str:
-            """Execute a shell command and return its output.
-
-            Use this for running scripts, checking system state, file operations, etc.
-
-            Args:
-                command: The shell command to execute
-                timeout: Timeout in seconds (default 30)
-            """
-            import asyncio
-
-            try:
-                proc = await asyncio.create_subprocess_shell(
-                    command,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                )
-                stdout, stderr = await asyncio.wait_for(
-                    proc.communicate(), timeout=timeout
-                )
-                result = ""
-                if stdout:
-                    result += stdout.decode("utf-8", errors="replace")
-                if stderr:
-                    result += "\n[STDERR]\n" + stderr.decode("utf-8", errors="replace")
-                result += f"\n[exit code: {proc.returncode}]"
-                return _truncate_result(result, max_chars=8000)
-            except asyncio.TimeoutError:
-                return f"Command timed out after {timeout}s"
-            except Exception as e:
-                return f"Command failed: {e}"
-
-        tools.append(bash)
-
-    if _is_tool_enabled("read_file", enabled_csv):
-
-        @tool
-        async def read_file(file_path: str, offset: int = 0, limit: int = 2000) -> str:
-            """Read the contents of a file.
-
-            Args:
-                file_path: Absolute or relative path to the file
-                offset: Line number to start reading from (1-based, default 1)
-                limit: Maximum number of lines to read (default 2000)
-            """
-            try:
-                import os
-
-                if not os.path.exists(file_path):
-                    return f"File not found: {file_path}"
-                if os.path.getsize(file_path) > 10 * 1024 * 1024:
-                    return f"File too large (>10MB): {file_path}"
-                with open(file_path, "r", encoding="utf-8", errors="replace") as f:
-                    lines = f.readlines()
-                start = max(0, (offset - 1) if offset > 0 else 0)
-                end = start + limit
-                result = "".join(lines[start:end])
-                if end < len(lines):
-                    result += f"\n... [{len(lines) - end} more lines]"
-                return _truncate_result(result, max_chars=8000)
-            except Exception as e:
-                return f"Read failed: {e}"
-
-        tools.append(read_file)
-
-    if _is_tool_enabled("write_file", enabled_csv):
-
-        @tool
-        async def write_file(file_path: str, content: str, append: bool = False) -> str:
-            """Write content to a file (create or overwrite).
-
-            Args:
-                file_path: Path to the file to write
-                content: The content to write
-                append: If true, append to file instead of overwriting (default false)
-            """
-            try:
-                import os
-
-                os.makedirs(
-                    os.path.dirname(file_path) if os.path.dirname(file_path) else ".",
-                    exist_ok=True,
-                )
-                mode = "a" if append else "w"
-                with open(file_path, mode, encoding="utf-8") as f:
-                    f.write(content)
-                return f"Successfully wrote {len(content)} chars to {file_path}"
-            except Exception as e:
-                return f"Write failed: {e}"
-
-        tools.append(write_file)
-
-    if _is_tool_enabled("list_directory", enabled_csv):
-
-        @tool
-        async def list_directory(path: str = ".", pattern: str = "*") -> str:
-            """List files and directories in a given path.
-
-            Args:
-                path: Directory path (default current directory)
-                pattern: Glob pattern to filter (default "*" for all)
-            """
-            import glob as glob_module
-
-            try:
-                full_pattern = f"{path}/{pattern}" if path != "." else pattern
-                entries = sorted(glob_module.glob(full_pattern, recursive=False))
-                if not entries:
-                    return f"No entries found in {path} matching {pattern}"
-                result_lines = []
-                for entry in entries[:500]:
-                    import os
-
-                    if os.path.isdir(entry):
-                        result_lines.append(f"[DIR]  {entry}/")
-                    else:
-                        size = os.path.getsize(entry)
-                        result_lines.append(f"[FILE] {entry} ({size} bytes)")
-                return _truncate_result("\n".join(result_lines), max_chars=8000)
-            except Exception as e:
-                return f"List directory failed: {e}"
-
-        tools.append(list_directory)
+    # NOTE: bash/read_file/write_file/list_directory 已迁移到 file_tools.py
+    # 新版本提供路径穿越防护、二进制检测、ripgrep集成等增强功能
 
     if _is_tool_enabled("web_fetch", enabled_csv):
 
@@ -304,6 +180,42 @@ def _build_builtin_tools(enabled_csv: Optional[str] = None) -> List[Any]:
                 return f"Code execution failed: {e}"
 
         tools.append(code_interpreter)
+
+    # ====== 文件操作工具 (移植自 opencode + Aider) ======
+    if _is_tool_enabled("read_file", enabled_csv):
+        from agent.file_tools import read_file as _read_file
+
+        tools.append(_read_file)
+
+    if _is_tool_enabled("write_file", enabled_csv):
+        from agent.file_tools import write_file as _write_file
+
+        tools.append(_write_file)
+
+    if _is_tool_enabled("edit_file", enabled_csv):
+        from agent.file_tools import edit_file as _edit_file
+
+        tools.append(_edit_file)
+
+    if _is_tool_enabled("list_directory", enabled_csv):
+        from agent.file_tools import list_directory as _list_directory
+
+        tools.append(_list_directory)
+
+    if _is_tool_enabled("search_files", enabled_csv):
+        from agent.file_tools import search_files as _search_files
+
+        tools.append(_search_files)
+
+    if _is_tool_enabled("run_command", enabled_csv):
+        from agent.file_tools import run_command as _run_command
+
+        tools.append(_run_command)
+
+    if _is_tool_enabled("apply_patch", enabled_csv):
+        from agent.file_tools import apply_patch as _apply_patch
+
+        tools.append(_apply_patch)
 
     return tools
 

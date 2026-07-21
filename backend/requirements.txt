@@ -57,3 +57,11 @@ hvac>=2.4.0
 aioboto3>=15.5.0
 # H5 KMS / Vault 集成: moto 用于 AWS KMS 单测 mock (无需生产部署)
 moto>=5.2.0
+# ====== 移植自 Aider (Apache 2.0) 的代码编辑/分析能力 ======
+# RepoMap: Tree-sitter 代码地图 (PageRank 排序的符号引用图)
+grep-ast>=0.9.0
+tree-sitter-languages>=1.2.0
+# Git 集成: commit/undo/diff 自动化
+GitPython>=3.1.0
+# Linter: tree-sitter 语法检查 + flake8 致命错误检测
+flake8>=7.0.0
