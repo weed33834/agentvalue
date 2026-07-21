@@ -1,7 +1,7 @@
 pydantic>=2.13.4
 pydantic-settings>=2.0
 email-validator>=2.3.0
-fastapi>=0.139.0
+fastapi>=0.139.2
 uvicorn[standard]>=0.50.2
 langgraph>=1.2.8
 # P1 工具管理: LangChain @tool 装饰器 + bind_tools + ToolNode + ReAct agent
