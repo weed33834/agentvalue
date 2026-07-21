@@ -11,6 +11,8 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-CNCL%20v1.0-red.svg" alt="License" /></a>
+  <a href="https://github.com/weed33834/agentvalue/actions/workflows/ci.yml"><img src="https://github.com/weed33834/agentvalue/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/weed33834/agentvalue/actions/workflows/security.yml"><img src="https://github.com/weed33834/agentvalue/actions/workflows/security.yml/badge.svg" alt="Security" /></a>
   <img src="https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white" alt="Python" />
   <img src="https://img.shields.io/badge/Node-20+-339933?logo=node.js&logoColor=white" alt="Node" />
   <img src="https://img.shields.io/badge/FastAPI-0.139+-009688?logo=fastapi&logoColor=white" alt="FastAPI" />

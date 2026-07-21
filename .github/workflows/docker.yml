@@ -1,0 +1,57 @@
+# Docker 镜像构建验证
+# 仅验证 Dockerfile 能成功构建, 不推送镜像、不自动部署
+name: Docker Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/Dockerfile"
+      - "frontend/Dockerfile"
+      - "docker-compose.yml"
+      - "docker-compose.prod.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/Dockerfile"
+      - "frontend/Dockerfile"
+      - "docker-compose.yml"
+      - "docker-compose.prod.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-backend:
+    name: Build Backend Image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: false
+          tags: agentvalue-backend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-frontend:
+    name: Build Frontend Image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: false
+          tags: agentvalue-frontend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

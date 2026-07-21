@@ -1,0 +1,117 @@
+# 安全扫描 CI: 密钥泄露 + 依赖漏洞 + 代码静态分析 + 容器扫描
+# 仅扫描报警, 不自动修复、不自动合并
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # 每周一 UTC 02:00 定时全量扫描
+    - cron: "0 2 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # ────────────────── 1. 密钥泄露扫描 ──────────────────
+  gitleaks:
+    name: Secrets Scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          config-path: .gitleaks.toml
+
+  # ────────────────── 2. Python 依赖漏洞 ──────────────────
+  pip-audit:
+    name: Python Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install pip-audit
+        run: pip install pip-audit
+      - name: Audit Python dependencies
+        working-directory: backend
+        run: |
+          pip-audit -r requirements.txt \
+            --ignore-vuln GHSA-xxxx-ignore-placeholder \
+            $(cat pip-audit-ignore.txt 2>/dev/null || true) \
+            || true
+      - name: Summary
+        if: always()
+        run: echo "pip-audit scan complete (warnings do not fail CI)"
+
+  # ────────────────── 3. NPM 依赖漏洞 ──────────────────
+  npm-audit:
+    name: NPM Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: npm audit
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high || true
+      - name: Summary
+        if: always()
+        run: echo "npm audit complete (warnings do not fail CI)"
+
+  # ────────────────── 4. CodeQL 静态分析 ──────────────────
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python, javascript]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  # ────────────────── 5. 容器镜像扫描 ──────────────────
+  trivy:
+    name: Container Scan (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend image
+        working-directory: backend
+        run: docker build -t agentvalue-backend:ci .
+      - name: Run Trivy on backend image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: agentvalue-backend:ci
+          format: table
+          exit-code: "0"
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
