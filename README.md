@@ -19,7 +19,7 @@
   <img src="https://img.shields.io/badge/Vue-3-4FC08D?logo=vue.js&logoColor=white" alt="Vue 3" />
   <img src="https://img.shields.io/badge/LangGraph-agent-FF6B6B" alt="LangGraph" />
   <img src="https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white" alt="Docker" />
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.0.0-blue.svg" alt="Version" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.1.0-blue.svg" alt="Version" /></a>
   <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome" /></a>
 </p>
 
@@ -94,6 +94,26 @@ AgentValue-AI 把三件事拼到了一个平台里:
 | 多 Agent 协作 | `/admin/multi-agent` | LangGraph Supervisor |
 | 工作流编排 | `/admin/workflows` | Dify Workflow |
 | 自定义工具 | `/admin/tools` | Dify Custom Tool |
+| 模型 Fallback | `/admin/model-fallback` | 阿里百炼 AI 网关 |
+| 会话分析 | `/admin/analytics-v2` | Langfuse Dashboard |
+| API 健康 | `/admin/api-health` | Langfuse 延迟监控 |
+| 数据集管理 | `/admin/datasets` | Langfuse 数据集 |
+| LLM 评测 | `/admin/llm-judge` | Langfuse LLM-as-a-Judge |
+| RAG 评测 | `/admin/rag-eval` | RagFlow 检索测试 |
+| 人工标注 | `/admin/annotations` | Langfuse HITL |
+| SSO 配置 | `/admin/sso` | Dify SSO |
+| 模板市场 | `/admin/agent-templates` | Coze 插件市场 |
+| NL2SQL | `/admin/nl2sql` | RagFlow NL2SQL |
+| 文档解析 | `/admin/doc-parsing` | RagFlow DeepDoc |
+| 配额管理 | `/admin/quota` | 阿里百炼 Token Plan |
+| 预算告警 | `/admin/budgets` | Langfuse 预算 |
+| 计费账单 | `/admin/billing` | 阿里百炼统一计量 |
+| Agent 版本 | `/admin/agent-versions` | Langfuse 版本 |
+| 多渠道发布 | `/admin/publish` | Coze 全域分发 |
+| 敏感词管理 | `/admin/sensitive-words` | 腾讯混元内容安全 |
+| 告警通知 | `/admin/alerts` | Grafana Alerting |
+| 工具配置 | `/admin/tool-config` | Dify 工具管理 |
+| 混合检索 | `/admin/search` | Dify 检索 |
 
 ---
 
@@ -140,8 +160,9 @@ AgentValue-AI 把三件事拼到了一个平台里:
 | 可观测性 | Prometheus + Langfuse + Grafana |
 | 工作流引擎 | 自研 DAG 执行器 (Kahn 拓扑排序 + 7 种节点 + 代码沙箱) |
 | Feature Flag | 自研 5 级规则 (sha256 稳定哈希 + 60s LRU 缓存) |
-| 测试 | pytest + locust (1517 passing) |
+| 测试 | pytest + locust (1517 + 111 enterprise = 1628 passing) |
 | 部署 | Docker Compose |
+| 安全围栏 | InputGuard + OutputGuard (PII脱敏/越狱防护/偏见检测/幻觉标记) |
 
 ---
 
@@ -358,7 +379,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 │   ├── core/             # 配置 / 模型路由 / 护栏 / 工作流引擎 / Feature Flag
 │   ├── models/           # SQLAlchemy 数据模型
 │   ├── services/          # 业务服务
-│   ├── tests/             # 1517 passing
+│   ├── tests/             # 1517 + 111 enterprise = 1628 passing
 │   └── ...
 ├── frontend/
 │   ├── src/components/chat/   # 对话组件
@@ -401,6 +422,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 - v1.3 — arq 任务队列 + Postgres 持久化 + 测试补全 + CI 加固 + 飞书/GitLab 集成骨架
 - v1.4 — 知识库 UI / 链路追踪 / Token 趋势 / Rerank / 自定义工具 / Feature Flag / Multi-Agent / 工作流编排
 - v1.5 — AI 对话系统 (10 项功能) + Agent 工具层 (5 个工具)
+- v2.1 — 深度对标大厂完善管理功能矩阵: 模型Fallback/会话分析/API健康/数据集/LLM评测/RAG评测/人工标注/SSO/模板市场/NL2SQL/文档解析 + 19项安全加固
 
 **后续方向:**
 

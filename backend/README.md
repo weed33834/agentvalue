@@ -240,6 +240,61 @@ python scripts/migrate.py revision -m "描述本次变更" --autogenerate
 | GET | `/api/v1/evaluations-interrupt/{thread_id}/state` | 查询中断状态 |
 | POST | `/api/v1/evaluations-interrupt/{thread_id}/resume` | 恢复并提交审批决策 |
 
+### 企业管理功能 (v2.1.0)
+
+基于对 Coze、Dify、百度千帆、阿里百炼、腾讯混元、FastGPT、RagFlow、MaxKB、Bisheng、Langfuse、LobeChat 等 12 个平台 × 14 个维度的深度调研,两轮补齐 22 个功能模块、65+ 文件、20 张数据库表、200+ API 端点,并完成 19 项安全加固。以下为各模块 API 基路径(端点 CRUD/查询/操作均在对应前缀下)。
+
+**第一轮: 企业管理功能 (11 项)**
+
+| 模块 | API 基路径 | 说明 |
+|---|---|---|
+| 混合检索 | `/api/v1/admin/search` | BM25 + 向量 RRF 融合 + 元数据过滤 + 增量更新 |
+| 配额管理 | `/api/v1/admin/quota` | 按 tenant 日请求/token 配额 + 用量统计 + 重置 |
+| 成本预算告警 | `/api/v1/admin/budgets` | 月度/日度预算 + 阈值告警通知 |
+| API 计费账单 | `/api/v1/admin/billing` | 汇总 + 按用户/端点聚合 + CSV/JSON 导出 |
+| Agent 版本管理 | `/api/v1/admin/agents` | 版本 CRUD + 发布 + 回滚 + 对比 + 归档 |
+| 多渠道发布 | `/api/v1/admin/publish` | 飞书/微信/钉钉/Web/API |
+| 工具执行超时 | `/api/v1/admin/tool-config` | 通用工具超时管理 + per-tool 配置 |
+| 敏感词管理 | `/api/v1/admin/sensitive-words` | AC 自动机 + 文本审核 + 导入导出 |
+| 告警通知通道 | `/api/v1/admin/alerts` | 飞书交互卡片/邮件 HTML/Webhook POST |
+| 工作流增强 | `/api/v1/admin/workflows` | loop 循环节点 + parallel 并行节点 |
+| 按 user_id 限流 | (限流中间件) | x-user-id header 识别用户级限流 |
+
+**第二轮: 评测/安全/集成 (11 项)**
+
+| 模块 | API 基路径 | 说明 |
+|---|---|---|
+| 模型 Fallback 策略 | `/api/v1/admin/model-fallback` | 故障自动切换备用模型,降级链配置 (对标阿里百炼秒级容灾) |
+| 会话分析看板 | `/api/v1/admin/analytics-v2` | Token 趋势/P50/P95/P99 延迟/错误率/成本分解/异常检测 (对标 Langfuse) |
+| API 健康监控 + SLO | `/api/v1/admin/api-health` | 端点健康/SLO 定义与达成监控 |
+| 数据集管理 | `/api/v1/admin/datasets` | 测试集/训练集/评测集 CRUD + 批量导入/导出 (对标 Langfuse/阿里百炼) |
+| LLM-as-a-Judge 自动评测 | `/api/v1/admin/llm-judge` | LLM 裁判多维度评分 + 异步后台执行 (对标 Langfuse) |
+| RAG 质量评测 | `/api/v1/admin/rag-eval` | Precision/Recall/MRR/NDCG + 答案溯源 (对标 RagFlow) |
+| 人工标注工具 | `/api/v1/admin/annotations` | HITL 分配/标注/统计,评测闭环 (对标 Langfuse) |
+| SSO 单点登录 | `/api/v1/admin/sso` | OAuth2/SAML/LDAP 三协议支持 (对标 Dify/Bisheng) |
+| Agent 模板市场 | `/api/v1/admin/agent-templates` | 分类/搜索/评价/安装/公开市场 (对标 Coze/LobeChat) |
+| NL2SQL 自然语言转 SQL | `/api/v1/admin/nl2sql` | 表白名单 + SQL 注入防护 + tenant_id 自动注入 (对标 RagFlow) |
+| 深度文档解析 | `/api/v1/admin/doc-parsing` | PDF/DOCX/XLSX/PPTX 解析 + 表格提取 + 版面分析 (对标 RagFlow DeepDoc) |
+
+**安全加固 (19 项)**
+
+- C1-C3: 多租户隔离 (tenant_id 添加到所有新模型)
+- C4: API Key 不明文持久化 (hash + prefix 存储)
+- C5: 代码沙箱移除 getattr/hasattr/isinstance
+- C1+H3 (v2): NL2SQL 跨租户数据泄露 (表白名单 + tenant_id 自动注入)
+- C2 (v2): 文档解析文件路径遍历 (realpath + 白名单目录)
+- H1-H4: IDOR 越权修复 (budget/quota/billing 路由)
+- H1 (v2): OAuth2 state 服务端校验 (存储 + 验证 + 过期)
+- H2 (v2): LDAP 搜索过滤器注入 (RFC 4515 转义)
+- H4 (v2): SSO 认证端点权限修复 (认证流程端点公开)
+- H5: 检索 collection 跨租户访问修复
+- H5 (v2): 异步任务竞态条件 (原子状态更新)
+- H7: 工作流 HTTP 节点 SSRF 防护
+- H8: 循环节点迭代上限 + 执行超时
+- M1-M2: 文档解析租户上下文 + 查询过滤
+
+> 端到端测试: 111 个用例全部通过 (37 第一轮 + 74 第二轮);安全验证覆盖 SQL 注入/DROP/路径遍历/SSO 密钥脱敏,全部拦截。
+
 ---
 
 ## 角色与权限

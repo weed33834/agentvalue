@@ -71,3 +71,18 @@ aiosmtplib>=3.0.0
 # 混合检索 BM25 全文检索: rank-bm25 库提供 BM25Okapi 实现
 # 未安装时 HybridSearchService 自动降级为纯 Python BM25 实现,无需强制安装
 rank-bm25>=0.2.2
+# ====== v2.1 企业管理功能 ======
+# 敏感词管理: pyahocorasick AC 自动机 (Aho-Corasick)
+# 未安装时 SensitiveWordService 自动降级为简单字符串匹配
+pyahocorasick>=1.4.4
+# 深度文档解析 (可选, 未安装时对应文件类型解析自动降级)
+# PDF 解析 (表格提取 + 版面分析)
+pdfplumber>=0.11.0
+# DOCX 解析
+python-docx>=1.1.0
+# XLSX 解析
+openpyxl>=3.1.0
+# PPTX 解析
+python-pptx>=0.6.23
+# SSO LDAP 认证 (可选, 未安装时 LDAP 登录返回错误提示)
+ldap3>=2.9
