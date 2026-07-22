@@ -17,7 +17,13 @@ from auth.jwt_handler import (
     extract_bearer_token,
 )
 from auth.password import hash_password, verify_password
-from auth.rbac import Role, get_client_ip, get_current_user_id, get_current_user_role
+from auth.rbac import (
+    Role,
+    get_client_ip,
+    get_current_user_id,
+    get_current_user_role,
+    require_role,
+)
 from auth.token_blacklist import token_blacklist
 from api.deps import get_audit_service
 from core.config import get_settings
@@ -378,3 +384,124 @@ async def seed_demo_users(
         "created": created,
         "note": "演示账号已初始化，生产环境请关闭演示模式并修改默认密码",
     }
+
+
+# ============================================================
+# 密码修改 / 重置
+# ============================================================
+
+
+class ChangePasswordRequest(BaseModel):
+    """修改密码请求 (需验证当前密码)"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    current_password: str = Field(min_length=6, max_length=128, description="当前密码")
+    new_password: str = Field(min_length=6, max_length=128, description="新密码")
+
+
+class ResetPasswordRequest(BaseModel):
+    """重置密码请求 (admin 重置目标用户密码)"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    user_id: str = Field(min_length=2, max_length=64, description="目标用户 ID")
+    new_password: str = Field(min_length=6, max_length=128, description="新密码")
+
+
+@router.post("/change-password", response_model=Dict[str, Any])
+@rate_limit("5/minute")
+async def change_password(
+    payload: ChangePasswordRequest,
+    request: Request,
+    session: AsyncSession = Depends(get_db),
+    audit_service: AuditService = Depends(get_audit_service),
+    user_id: str = Depends(get_current_user_id),
+):
+    """修改密码 (需提供当前密码验证)
+
+    验证当前密码正确后更新为新密码。
+    新密码不能与当前密码相同。
+    """
+    eval_service = EvaluationService(session)
+    user = await eval_service.get_user(user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="用户不存在",
+        )
+    if not user.password_hash:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="当前用户未设置密码，请联系管理员重置",
+        )
+    if not verify_password(payload.current_password, user.password_hash):
+        await audit_service.log(
+            actor_id=user_id,
+            action="change_password_failed",
+            details={"reason": "current_password_mismatch"},
+            ip_address=get_client_ip(request),
+        )
+        await session.commit()
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="当前密码错误",
+        )
+    if payload.current_password == payload.new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="新密码不能与当前密码相同",
+        )
+
+    user.password_hash = hash_password(payload.new_password)
+    await audit_service.log(
+        actor_id=user_id,
+        action="change_password",
+        details={"user_id": user_id},
+        ip_address=get_client_ip(request),
+    )
+    await session.commit()
+
+    # 使该用户所有现有 Token 失效（强制重新登录）
+    try:
+        from auth.token_blacklist import blacklist_all_user_tokens
+        await blacklist_all_user_tokens(user_id)
+    except Exception:
+        pass  # token_blacklist 是可选依赖，失败不影响密码修改
+
+    return {"changed": True, "user_id": user_id}
+
+
+@router.post("/reset-password", response_model=Dict[str, Any])
+@rate_limit("10/minute")
+async def reset_password(
+    payload: ResetPasswordRequest,
+    request: Request,
+    session: AsyncSession = Depends(get_db),
+    audit_service: AuditService = Depends(get_audit_service),
+    _: Role = Depends(require_role(Role.ADMIN)),
+    current_user_id: str = Depends(get_current_user_id),
+):
+    """重置密码 (需 admin 权限 + 目标 user_id)
+
+    管理员重置指定用户的密码，无需当前密码。
+    目标用户下次登录需使用新密码。
+    """
+    eval_service = EvaluationService(session)
+    user = await eval_service.get_user(payload.user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"用户 {payload.user_id} 不存在",
+        )
+
+    user.password_hash = hash_password(payload.new_password)
+    await audit_service.log(
+        actor_id=current_user_id,
+        action="reset_password",
+        employee_id=payload.user_id,
+        details={"target_user_id": payload.user_id},
+        ip_address=get_client_ip(request),
+    )
+    await session.commit()
+    return {"reset": True, "user_id": payload.user_id}

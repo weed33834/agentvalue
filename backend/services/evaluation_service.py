@@ -650,3 +650,139 @@ class EvaluationService:
         period_obj.status = "closed"
         await self.session.flush()
         return period_obj
+
+    # ---------------- 用户管理 CRUD ----------------
+
+    async def list_users(
+        self,
+        tenant_id: str,
+        role: Optional[str] = None,
+        department: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> Dict:
+        """列出用户（分页，支持按 role / department 过滤）
+
+        返回 {items, total, page, page_size}。
+        tenant_id 显式传入，admin 端可跨租户查询（传入目标 tenant_id）。
+        """
+        if page < 1:
+            page = 1
+        if page_size < 1 or page_size > 500:
+            page_size = 20
+
+        base = select(User).where(User.tenant_id == tenant_id)
+        if role:
+            base = base.where(User.role == role)
+        if department:
+            base = base.where(User.department == department)
+
+        count_stmt = select(func.count()).select_from(base.subquery())
+        total = (await self.session.execute(count_stmt)).scalar() or 0
+
+        offset = (page - 1) * page_size
+        stmt = base.order_by(User.created_at.desc()).offset(offset).limit(page_size)
+        rows = (await self.session.execute(stmt)).scalars().all()
+        return {
+            "items": rows,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+        }
+
+    async def update_user(
+        self, tenant_id: str, user_id: str, **kwargs: Any
+    ) -> Optional[User]:
+        """更新用户信息（name / role / department / manager_id）
+
+        仅更新 kwargs 中提供的字段，不 commit（由调用方控制事务）。
+        用户不存在返回 None。
+        """
+        result = await self.session.execute(
+            select(User).where(
+                User.user_id == user_id,
+                User.tenant_id == tenant_id,
+            )
+        )
+        user = result.scalar_one_or_none()
+        if user is None:
+            return None
+
+        allowed_fields = {"name", "role", "department", "manager_id"}
+        for key, value in kwargs.items():
+            if key in allowed_fields and value is not None:
+                setattr(user, key, value)
+        await self.session.flush()
+        return user
+
+    async def disable_user(self, tenant_id: str, user_id: str) -> bool:
+        """禁用用户（设置 role 为 disabled）
+
+        禁用后用户无法登录，但记录保留可查（soft disable）。
+        不 commit（由调用方控制事务）。用户不存在返回 False。
+        """
+        result = await self.session.execute(
+            select(User).where(
+                User.user_id == user_id,
+                User.tenant_id == tenant_id,
+            )
+        )
+        user = result.scalar_one_or_none()
+        if user is None:
+            return False
+        user.role = "disabled"
+        await self.session.flush()
+        return True
+
+    async def delete_user(self, tenant_id: str, user_id: str) -> bool:
+        """删除用户（hard delete）
+
+        物理删除用户记录，不可恢复。不 commit（由调用方控制事务）。
+        用户不存在返回 False。
+        """
+        result = await self.session.execute(
+            select(User).where(
+                User.user_id == user_id,
+                User.tenant_id == tenant_id,
+            )
+        )
+        user = result.scalar_one_or_none()
+        if user is None:
+            return False
+        await self.session.delete(user)
+        await self.session.flush()
+        return True
+
+    async def batch_create_users(
+        self, tenant_id: str, users: List[Dict]
+    ) -> List[User]:
+        """批量创建用户（不 commit，由调用方控制事务）
+
+        每个用户 dict 需包含 user_id + name，其余字段可选。
+        已存在的 user_id（同租户内）跳过，不报错。
+        """
+        created: List[User] = []
+        for data in users:
+            # 查重：同租户内 user_id 已存在则跳过
+            existing = await self.session.execute(
+                select(User).where(
+                    User.user_id == data["user_id"],
+                    User.tenant_id == tenant_id,
+                )
+            )
+            if existing.scalar_one_or_none() is not None:
+                continue
+            user = User(
+                user_id=data["user_id"],
+                name=data["name"],
+                email=data.get("email"),
+                role=data.get("role", "employee"),
+                department=data.get("department"),
+                manager_id=data.get("manager_id"),
+                password_hash=data.get("password_hash"),
+                tenant_id=tenant_id,
+            )
+            self.session.add(user)
+            created.append(user)
+        await self.session.flush()
+        return created

@@ -28,16 +28,22 @@ from api.admin.rerank import router as admin_rerank_router  # noqa: E402
 from api.admin.custom_tools import router as admin_custom_tools_router  # noqa: E402
 # P3-2: Feature Flag 系统(应用级功能开关,对标 Langfuse Feature Flag)
 from api.admin.feature_flags import router as admin_feature_flags_router  # noqa: E402
+# API Key 管理(外部调用方鉴权, CRUD + 轮换 + 用量统计)
+from api.admin.api_keys import router as admin_api_keys_router  # noqa: E402
+# 用户管理 CRUD(列表/详情/更新/禁用/删除/批量导入)
+from api.admin.users import router as admin_users_router  # noqa: E402
 # P4-1: 多 Agent 协作(supervisor 模式,对标 Coze Multi-Agent)
 from api.admin.multi_agent import router as admin_multi_agent_router  # noqa: E402
 # P4-2: 工作流可视化编排(对标 Dify Workflow / Coze Bot 编排)
 from api.admin.workflows import router as admin_workflows_router  # noqa: E402
 # P2-1: Token/成本趋势看板(Prometheus 时序聚合 + DB 评估统计)
 from api.admin import analytics as admin_analytics  # noqa: E402
+# 定时任务调度管理 (APScheduler, 增删改查 + 手动触发 + 执行历史)
+from api.admin.scheduler import router as admin_scheduler_router  # noqa: E402
 from api.deps import AppState  # noqa: E402
 from api.auth_routes import router as auth_router  # noqa: E402
 from api.analytics_routes import router as analytics_router  # noqa: E402
-from api.middleware import TenantMiddleware  # noqa: E402
+from api.middleware import ApiKeyMiddleware, TenantMiddleware  # noqa: E402
 from api.routes import router  # noqa: E402
 # HR 评估增强: 360° 环评 + 校准会
 from api.review_routes import router as review_router  # noqa: E402
@@ -56,6 +62,12 @@ from api.skill_routes import router as skill_router  # noqa: E402
 from api.chat import router as chat_router  # noqa: E402
 # Evidence 引用 API（暴露 EvidenceRef 查询）
 from api.evidence import router as evidence_router  # noqa: E402
+# Webhook 接收路由（飞书/GitLab/自定义,无需 JWT,用签名/token 验证）
+from api.webhook_routes import router as webhook_router  # noqa: E402
+# 站内通知系统（列表/未读数/已读/删除）
+from api.notification_routes import router as notification_router  # noqa: E402
+# 数据导出 (评估/审计/分析/通知, CSV/Excel/JSON)
+from api.export_routes import router as export_router  # noqa: E402
 from core.config import get_settings  # noqa: E402
 from core.database import close_db, init_db  # noqa: E402
 from core.metrics import setup_metrics  # noqa: E402
@@ -83,9 +95,28 @@ async def lifespan(app: FastAPI):
         set_app_state_for_graph(app.state.app_state)
     except Exception:
         pass
+    # 启动定时任务调度器（APScheduler, 降级容错：启动失败不影响应用）
+    try:
+        from core.scheduler import TaskScheduler, set_scheduler
+
+        _task_scheduler = TaskScheduler()
+        await _task_scheduler.start()
+        set_scheduler(_task_scheduler)
+    except Exception:
+        pass
     try:
         yield
     finally:
+        # 停止定时任务调度器
+        try:
+            from core.scheduler import get_scheduler, set_scheduler
+
+            _sched = get_scheduler()
+            if _sched is not None:
+                await _sched.stop()
+                set_scheduler(None)
+        except Exception:
+            pass
         await app.state.app_state.close()
         try:
             tracer.close()
@@ -141,6 +172,8 @@ app.add_middleware(
 
 # 租户上下文中间件最后注册即最外层，确保请求进入业务层前已写入 contextvar
 app.add_middleware(TenantMiddleware)
+# API Key 认证中间件：从 X-API-Key header 校验外部调用方身份
+app.add_middleware(ApiKeyMiddleware)
 
 app.include_router(auth_router)
 app.include_router(router)
@@ -190,6 +223,16 @@ app.include_router(
     admin_feature_flags_router,
     tags=["admin-feature-flags"],
 )
+# API Key 管理(外部调用方鉴权, CRUD + 轮换 + 用量统计)
+app.include_router(
+    admin_api_keys_router,
+    tags=["admin-api-keys"],
+)
+# 用户管理 CRUD(列表/详情/更新/禁用/删除/批量导入)
+app.include_router(
+    admin_users_router,
+    tags=["admin-users"],
+)
 # P4-1: 多 Agent 协作(supervisor 模式,对标 Coze Multi-Agent)
 app.include_router(
     admin_multi_agent_router,
@@ -206,6 +249,20 @@ app.include_router(
     prefix="/api/v1/admin/analytics",
     tags=["admin-analytics"],
 )
+# 定时任务调度管理 (APScheduler, 增删改查 + 手动触发 + 执行历史)
+app.include_router(
+    admin_scheduler_router,
+    tags=["admin-scheduler"],
+)
+# 数据导出 (评估/审计/分析/通知, CSV/Excel/JSON)
+app.include_router(
+    export_router,
+    tags=["export"],
+)
+# Webhook 接收路由(飞书/GitLab/自定义,无需 JWT,用签名/token 验证)
+app.include_router(webhook_router)
+# 站内通知系统(列表/未读数/已读/删除)
+app.include_router(notification_router)
 
 # 挂载 Prometheus 指标端点（/metrics，无需鉴权，供 Prometheus 抓取）
 setup_metrics(app)

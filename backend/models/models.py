@@ -545,3 +545,215 @@ class PromptEvalRun(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=now_utc
     )
+
+
+# ====== Webhook 事件记录 (P7 外部集成) ======
+
+
+class WebhookEvent(Base):
+    """Webhook 事件记录
+
+    所有外部系统(飞书/GitLab/自定义)的 webhook 回调落库,便于重放与排查。
+    处理状态机:pending → processed / failed。
+    """
+
+    __tablename__ = "webhook_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    # 来源:feishu / gitlab / custom
+    source: Mapped[str] = mapped_column(String(32), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    payload: Mapped[str] = mapped_column(Text, nullable=False)  # JSON 字符串
+    # pending / processed / failed
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="pending"
+    )
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    tenant_id: Mapped[str] = mapped_column(
+        String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
+    )
+    received_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc
+    )
+    processed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_webhook_event_source_status", "source", "status"),
+        Index("ix_webhook_event_tenant_received", "tenant_id", "received_at"),
+    )
+
+
+# ====== 定时任务调度 ======
+
+
+class ScheduledTask(Base):
+    """定时任务配置
+
+    持久化 APScheduler 的任务配置，支持动态增删改查与手动触发。
+    task_type 标识任务来源：retention / sla / fairness / api_key / notification / custom。
+    """
+
+    __tablename__ = "scheduled_tasks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    task_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    cron_expression: Mapped[str] = mapped_column(String(128), nullable=False)
+    # retention/sla/fairness/api_key/notification/custom
+    task_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    config: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    last_run_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # success / failed
+    last_run_status: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    last_run_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    tenant_id: Mapped[str] = mapped_column(
+        String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc, onupdate=now_utc
+    )
+
+    __table_args__ = (
+        Index("ix_scheduled_task_tenant_type", "tenant_id", "task_type"),
+    )
+
+
+class ScheduledTaskRun(Base):
+    """定时任务执行历史
+
+    每次任务执行（含手动触发）记录一条，供 history 端点查询。
+    """
+
+    __tablename__ = "scheduled_task_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    task_id: Mapped[str] = mapped_column(
+        String(64), index=True, nullable=False
+    )
+    status: Mapped[str] = mapped_column(String(16), nullable=False)  # success/failed
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=now_utc
+    )
+    finished_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    duration_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    result: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    triggered_by: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="scheduler"
+    )  # scheduler / manual
+    tenant_id: Mapped[str] = mapped_column(
+        String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
+    )
+
+    __table_args__ = (
+        Index("ix_task_run_task_started", "task_id", "started_at"),
+    )
+
+
+# ====== 通知 ======
+
+
+class Notification(Base):
+    """站内通知
+
+    记录面向用户的通知消息（审批提醒、申诉进度、系统公告等），
+    支持已读/未读状态与定时清理（30 天前已读通知自动归档删除）。
+    type 标识通知大类:evaluation / approval / system / webhook,
+    link 为点击跳转 URL,content 可空(纯标题通知)。
+    """
+
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    notification_id: Mapped[str] = mapped_column(
+        String(64), unique=True, index=True, nullable=False
+    )
+    user_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    # 通知大类:evaluation / approval / system / webhook
+    type: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="system"
+    )
+    title: Mapped[str] = mapped_column(String(256), nullable=False)
+    content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # 点击通知跳转的 URL
+    link: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    # 兼容旧字段:细分类别 approval/appeal/system/reminder
+    category: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="system"
+    )
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    read_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    tenant_id: Mapped[str] = mapped_column(
+        String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc
+    )
+
+    __table_args__ = (
+        Index("ix_notif_tenant_user_read", "tenant_id", "user_id", "is_read"),
+    )
+
+
+# ====== API Key 管理（外部调用方鉴权） ======
+
+
+class ApiKey(Base):
+    """外部调用方 API Key 管理
+
+    用于服务间调用或第三方集成的 API Key 鉴权。
+    明文 key 仅在创建时返回一次，库中仅存 sha256 哈希；
+    key_prefix 保存明文前 12 位，供 UI 展示识别。
+    """
+
+    __tablename__ = "api_keys"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    # 前缀标识 ak_xxx，全局唯一
+    key_id: Mapped[str] = mapped_column(
+        String(64), unique=True, index=True, nullable=False
+    )
+    # sha256 哈希，验证时比对
+    key_hash: Mapped[str] = mapped_column(String(256), nullable=False)
+    # 明文前 12 位，用于 UI 展示识别
+    key_prefix: Mapped[str] = mapped_column(String(16), index=True)
+    # 描述名称
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    # JSON 字符串：["chat","evaluation","insights"]
+    scopes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # 每分钟请求限制
+    rate_limit: Mapped[int] = mapped_column(Integer, default=60)
+    tenant_id: Mapped[str] = mapped_column(
+        String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
+    )
+    created_by: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    last_used_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    expires_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc
+    )
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_apikey_tenant_active", "tenant_id", "is_active"),
+    )

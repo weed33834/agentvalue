@@ -8,6 +8,9 @@ P1 管理功能拆分到独立模块,避免 routes.py 过度膨胀:
 - rerank: Rerank Provider 测试台 (P2-2, 对标 Dify Rerank)
 - custom_tools: 自定义工具上传 (P3-1, OpenAPI Schema 导入, 对标 Dify Custom Tool)
 - feature_flags: 功能开关 (P3-2, 对标 Langfuse Feature Flag)
+- api_keys: API Key 管理 (外部调用方鉴权, CRUD + 轮换 + 用量统计)
+- users: 用户管理 CRUD (列表/详情/更新/禁用/删除/批量导入)
+- scheduler: 定时任务调度管理 (APScheduler, 增删改查 + 手动触发 + 执行历史)
 
 后续 models / datasets 等可继续在此扩展。
 """
@@ -19,6 +22,9 @@ from api.admin.kb import router as kb_router
 from api.admin.rerank import router as rerank_router
 from api.admin.custom_tools import router as custom_tools_router
 from api.admin.feature_flags import router as feature_flags_router
+from api.admin.api_keys import router as api_keys_router
+from api.admin.users import router as users_router
+from api.admin.scheduler import router as scheduler_router
 
 __all__ = [
     "prompts_router",
@@ -28,4 +34,7 @@ __all__ = [
     "rerank_router",
     "custom_tools_router",
     "feature_flags_router",
+    "api_keys_router",
+    "users_router",
+    "scheduler_router",
 ]

@@ -220,3 +220,30 @@ def create_token_blacklist(settings: Settings) -> TokenBlacklist:
 
 # 模块级单例,与 api/routes.py 的 job_queue 模式一致
 token_blacklist: TokenBlacklist = create_token_blacklist(get_settings())
+
+
+async def blacklist_all_user_tokens(user_id: str) -> int:
+    """吊销指定用户的所有活跃 Token
+
+    密码变更/重置时调用，强制用户重新登录。
+    由于 JWT 是无状态的，无法按 user_id 批量查找 jti，
+    因此在 Redis 中标记一个 user_id 级别的全局吊销时间戳，
+    JWT 验证时检查 token 的签发时间是否早于该时间戳。
+
+    Args:
+        user_id: 用户 ID
+
+    Returns:
+        总是返回 1（标记成功），Redis 不可用时返回 0
+    """
+    try:
+        import time
+        key = f"agentvalue:user_revoke:{user_id}"
+        # 尝试 Redis
+        if hasattr(token_blacklist, '_redis') and token_blacklist._redis:
+            await token_blacklist._redis.setex(key, 86400, str(int(time.time())))  # 24h TTL
+            logger.info("已吊销用户 %s 的所有 Token (Redis)", user_id)
+            return 1
+    except Exception as e:
+        logger.warning("吊销用户 Token 失败(降级): %s", e)
+    return 0

@@ -4,10 +4,15 @@ HTTP 中间件
 TenantMiddleware：纯 ASGI 实现（不继承 BaseHTTPMiddleware，规避 contextvar 跨任务传播问题），
 从 JWT claims 或 x-tenant-id header 提取 tenant_id 写入请求上下文，供 service 层做数据级过滤。
 未携带时回退 default，单租户兼容。
+
+ApiKeyMiddleware：纯 ASGI 实现，从 X-API-Key header 提取 API Key 并校验，
+验证通过后注入 request.state.api_key_id 供下游使用，并异步更新 last_used_at。
 """
 
+import hashlib
 import logging
 import time
+from datetime import datetime, timezone
 
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -173,3 +178,138 @@ class TenantMiddleware:
         finally:
             reset_audit_context(audit_token)
             reset_current_tenant(tenant_token)
+
+
+# ====== API Key 认证中间件 ======
+
+# 进程级 API Key 哈希缓存：key_hash -> (key_id, tenant_id, expiry_ts)
+# 30 秒 TTL，避免每个请求查库；admin 吊销 key 后最长 30s 后生效
+_APIKEY_CACHE_TTL_SECONDS = 30.0
+_apikey_cache: dict[str, tuple[str, str, float]] = {}
+
+
+def invalidate_apikey_cache(key_hash: str | None = None) -> None:
+    """使 API Key 缓存失效，供 admin 吊销/轮换 key 后立即生效调用。"""
+    if key_hash is None:
+        _apikey_cache.clear()
+    else:
+        _apikey_cache.pop(key_hash, None)
+
+
+async def _verify_api_key(plain_key: str) -> tuple[str, str] | None:
+    """校验明文 API Key，返回 (key_id, tenant_id) 或 None。
+
+    流程：
+    1. sha256(plain_key) 得到 key_hash
+    2. 命中进程缓存直接返回（30s TTL）
+    3. 未命中则查库比对 key_hash，校验 is_active / expires_at
+    4. 命中后异步更新 last_used_at（不阻塞请求）
+    """
+    key_hash = hashlib.sha256(plain_key.encode("utf-8")).hexdigest()
+
+    # 1. 进程缓存
+    now = time.monotonic()
+    cached = _apikey_cache.get(key_hash)
+    if cached and cached[2] > now:
+        return cached[0], cached[1]
+
+    # 2. 查库
+    try:
+        from sqlalchemy import select
+
+        from core.database import AsyncSessionLocal
+        from models.models import ApiKey
+
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(ApiKey).where(
+                    ApiKey.key_hash == key_hash,
+                    ApiKey.is_active == True,  # noqa: E712
+                )
+            )
+            api_key = result.scalar_one_or_none()
+            if api_key is None:
+                return None
+            # 校验过期时间
+            if api_key.expires_at is not None:
+                if api_key.expires_at <= datetime.now(timezone.utc):
+                    return None
+            key_id = api_key.key_id
+            tenant_id = api_key.tenant_id
+    except Exception:
+        logger.exception("校验 API Key 失败,降级放行(视为无 key)")
+        return None
+
+    # 3. 写缓存
+    _apikey_cache[key_hash] = (key_id, tenant_id, now + _APIKEY_CACHE_TTL_SECONDS)
+
+    # 4. 异步更新 last_used_at（best-effort，不阻塞请求，不因失败中断）
+    try:
+        from sqlalchemy import update
+
+        from core.database import AsyncSessionLocal as _SessionLocal
+        from models.models import ApiKey as _ApiKey
+
+        async with _SessionLocal() as session:
+            await session.execute(
+                update(_ApiKey)
+                .where(_ApiKey.key_hash == key_hash)
+                .values(last_used_at=datetime.now(timezone.utc))
+            )
+            await session.commit()
+    except Exception:
+        logger.debug("更新 API Key last_used_at 失败", exc_info=True)
+
+    return key_id, tenant_id
+
+
+class ApiKeyMiddleware:
+    """纯 ASGI API Key 认证中间件
+
+    从 X-API-Key header 提取 API Key 并校验。
+    - 验证通过：注入 scope["state"]["api_key_id"] 供下游读取
+    - 验证失败：不阻断请求（仅记录日志），由具体端点的鉴权层决定是否拒绝
+    - 未携带 X-API-Key：直接放行（走 JWT 鉴权路径）
+
+    说明：本中间件不强制要求所有请求都携带 API Key，
+    仅在有 X-API-Key header 时做校验并注入身份。
+    是否需要 API Key 鉴权由具体路由的 dependencies 决定。
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope.get("type") != "http":
+            await self.app(scope, receive, send)
+            return
+
+        headers = _extract_headers(scope)
+        api_key_header = headers.get("x-api-key")
+
+        if api_key_header:
+            result = await _verify_api_key(api_key_header)
+            if result is not None:
+                key_id, tenant_id = result
+                # 注入到 scope["state"]，下游可通过 request.state.api_key_id 读取
+                state = scope.setdefault("state", {})
+                state["api_key_id"] = key_id
+                # 用 API Key 的 tenant_id 设置租户上下文
+                # 若 JWT 中间件后续也设置租户，JWT 的优先级更高（因为 TenantMiddleware 在内层）
+                token = set_current_tenant(tenant_id)
+                try:
+                    await self.app(scope, receive, send)
+                finally:
+                    reset_current_tenant(token)
+                return
+            else:
+                logger.warning("API Key 校验失败,可能已吊销或无效")
+                # 返回 401，明确拒绝无效 API Key
+                response = JSONResponse(
+                    status_code=401,
+                    content={"detail": "API Key 无效或已吊销"},
+                )
+                await response(scope, receive, send)
+                return
+
+        await self.app(scope, receive, send)

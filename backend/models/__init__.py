@@ -6,6 +6,7 @@ from models.constants import EvaluationStatus
 from models.custom_tool import CustomTool
 from models.feature_flag import FeatureFlag
 from models.models import (
+    ApiKey,
     ApprovalAction,
     AuditLog,
     CompanyKB,
@@ -15,9 +16,13 @@ from models.models import (
     EvidenceRef,
     Feedback,
     Memory,
+    Notification,
     RawInput,
+    ScheduledTask,
+    ScheduledTaskRun,
     Tenant,
     User,
+    WebhookEvent,
 )
 # P4-2: 工作流可视化编排 (对标 Dify Workflow / Coze Bot 编排)
 from models.workflow import Workflow, WorkflowRun
@@ -54,6 +59,7 @@ from models.skill import Skill
 __all__ = [
     "Tenant",
     "User",
+    "ApiKey",
     "RawInput",
     "Evaluation",
     "ApprovalAction",
@@ -96,4 +102,11 @@ __all__ = [
     "Artifact",
     # Skills
     "Skill",
+    # 定时任务调度
+    "ScheduledTask",
+    "ScheduledTaskRun",
+    # 通知
+    "Notification",
+    # Webhook 事件
+    "WebhookEvent",
 ]
