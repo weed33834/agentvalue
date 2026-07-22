@@ -757,3 +757,43 @@ class ApiKey(Base):
     __table_args__ = (
         Index("ix_apikey_tenant_active", "tenant_id", "is_active"),
     )
+
+
+# ====== 混合检索配置（向量 + BM25 全文检索） ======
+
+
+class SearchConfig(Base):
+    """检索配置（混合检索 alpha 默认值、BM25 开关、RRF 参数等）
+
+    采用 key-value 结构存储检索相关配置，便于灵活扩展新参数而无需迁移表结构。
+    常见 config_key：
+    - default_alpha: 混合检索默认权重（0=纯BM25, 1=纯向量, 0.5=等权混合）
+    - bm25_enabled: 是否启用 BM25 全文检索
+    - rrf_k: RRF (Reciprocal Rank Fusion) 常数 k，默认 60
+    - bm25_k1: BM25 参数 k1（词频饱和度），默认 1.5
+    - bm25_b: BM25 参数 b（文档长度归一化），默认 0.75
+    """
+
+    __tablename__ = "search_configs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    # 配置键名，同一租户内唯一
+    config_key: Mapped[str] = mapped_column(
+        String(64), nullable=False, index=True
+    )
+    # 配置值（字符串存储，使用时按 config_key 约定的类型转换）
+    config_value: Mapped[str] = mapped_column(Text, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    tenant_id: Mapped[str] = mapped_column(
+        String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc, onupdate=now_utc
+    )
+
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "config_key", name="uix_tenant_search_config_key"),
+    )

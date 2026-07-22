@@ -4,6 +4,7 @@ HTTP 中间件
 TenantMiddleware：纯 ASGI 实现（不继承 BaseHTTPMiddleware，规避 contextvar 跨任务传播问题），
 从 JWT claims 或 x-tenant-id header 提取 tenant_id 写入请求上下文，供 service 层做数据级过滤。
 未携带时回退 default，单租户兼容。
+在租户状态校验通过后，额外执行配额检查（check_quota），超限时返回 429。
 
 ApiKeyMiddleware：纯 ASGI 实现，从 X-API-Key header 提取 API Key 并校验，
 验证通过后注入 request.state.api_key_id 供下游使用，并异步更新 last_used_at。
@@ -131,6 +132,105 @@ def invalidate_tenant_cache(tenant_id: str | None = None) -> None:
         _tenant_cache.pop(tenant_id, None)
 
 
+# ====== 租户配额检查 ======
+
+# 进程级配额缓存：tenant_id -> (quota_allowed, quota_info, expiry_ts)
+# 5 秒 TTL，超限请求不会频繁查库；admin 调整配额后最长 5s 生效
+_QUOTA_CACHE_TTL_SECONDS = 5.0
+_quota_cache: dict[str, tuple[bool, dict, float]] = {}
+
+# 跳过配额检查的路径前缀（健康检查、admin 管理端点自身不应被配额拦截）
+_QUOTA_SKIP_PATH_PREFIXES = (
+    "/health",
+    "/livez",
+    "/readyz",
+    "/healthz",
+    "/metrics",
+    "/docs",
+    "/openapi.json",
+    "/redoc",
+    # admin 端点允许在超限状态下管理配额（否则无法自助恢复）
+    "/api/v1/admin/quota",
+    "/api/v1/admin/budgets",
+)
+
+
+def invalidate_quota_cache(tenant_id: str | None = None) -> None:
+    """使配额缓存失效，供 admin 更新配额后立即生效调用。"""
+    if tenant_id is None:
+        _quota_cache.clear()
+    else:
+        _quota_cache.pop(tenant_id, None)
+
+
+def _get_request_path(scope: Scope) -> str:
+    """从 ASGI scope 提取请求路径"""
+    return scope.get("path", "")
+
+
+def _should_skip_quota_check(path: str) -> bool:
+    """判断该路径是否跳过配额检查（健康检查 / admin 管理端点）"""
+    for prefix in _QUOTA_SKIP_PATH_PREFIXES:
+        if path.startswith(prefix):
+            return True
+    return False
+
+
+async def _check_tenant_quota(tenant_id: str) -> tuple[bool, dict]:
+    """检查租户配额是否允许当前请求
+
+    返回 (allowed, quota_info)：
+    - allowed=True: 配额充足或配额未启用
+    - allowed=False: 配额已用尽，quota_info 包含详细用量
+
+    缓存策略：5 秒 TTL，避免每个请求查库。demo 模式直接放行。
+    """
+    settings = get_settings()
+    if settings.auth_demo_mode:
+        return True, {}
+
+    now = time.monotonic()
+    cached = _quota_cache.get(tenant_id)
+    if cached and cached[2] > now:
+        return cached[0], cached[1]
+
+    allowed = True
+    quota_info: dict = {}
+    try:
+        from services.quota_service import QuotaService
+
+        service = QuotaService()
+        quota_data = await service.get_quota(tenant_id)
+
+        if not quota_data.get("enabled", True):
+            # 配额未启用，直接放行
+            allowed = True
+        else:
+            max_requests = quota_data.get("max_requests_per_day", 0)
+            max_tokens = quota_data.get("max_tokens_per_day", 0)
+            current_requests = quota_data.get("current_requests_today", 0)
+            current_tokens = quota_data.get("current_tokens_today", 0)
+
+            if max_requests > 0 and current_requests >= max_requests:
+                allowed = False
+            elif max_tokens > 0 and current_tokens >= max_tokens:
+                allowed = False
+
+            quota_info = {
+                "max_requests_per_day": max_requests,
+                "max_tokens_per_day": max_tokens,
+                "current_requests_today": current_requests,
+                "current_tokens_today": current_tokens,
+            }
+    except Exception:
+        # 配额检查失败时降级放行，避免 DB 故障阻断全部请求
+        logger.exception("配额检查失败 tenant_id=%s, 降级放行", tenant_id)
+        allowed = True
+
+    _quota_cache[tenant_id] = (allowed, quota_info, now + _QUOTA_CACHE_TTL_SECONDS)
+    return allowed, quota_info
+
+
 class TenantMiddleware:
     """纯 ASGI 租户中间件，仅拦截 http 类型请求"""
 
@@ -157,6 +257,22 @@ class TenantMiddleware:
             )
             await response(scope, receive, send)
             return
+
+        # 配额检查：跳过健康检查与 admin 管理端点（允许在超限状态下自助恢复）
+        # 超出配额时返回 429，包含当前用量详情供客户端展示
+        request_path = _get_request_path(scope)
+        if not _should_skip_quota_check(request_path):
+            quota_allowed, quota_info = await _check_tenant_quota(tenant_id)
+            if not quota_allowed:
+                response = JSONResponse(
+                    status_code=429,
+                    content={
+                        "detail": "配额已用尽",
+                        "quota": quota_info,
+                    },
+                )
+                await response(scope, receive, send)
+                return
 
         # P1-3 修复: 注入 audit context(actor_id + ip), 供 service 层 audit_action 装饰器读取
         # 未携带 JWT 时 actor_id=None, 装饰器兜底为 "system"

@@ -80,6 +80,8 @@ class AppState:
         from core.database import AsyncSessionLocal
 
         self.feature_flag_service = FeatureFlagService(AsyncSessionLocal)
+        # 全局 ToolRegistry 实例 (供 admin 工具配置 API 管理超时, 懒加载)
+        self.tool_registry = None
 
     def _build_vision_callable(self):
         """构造 vision_callable,封装 ModelRouter 的 vision_completion 调用。

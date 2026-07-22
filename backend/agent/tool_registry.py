@@ -12,6 +12,7 @@ Tool Registry
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -20,6 +21,13 @@ from agent.tools import AgentToolkit
 from core.config import Settings
 
 logger = logging.getLogger(__name__)
+
+# 默认工具超时 (秒)
+DEFAULT_TOOL_TIMEOUT = 60
+# bash / command 类工具的默认超时 (秒, 更短以防止长时间运行)
+COMMAND_TOOL_TIMEOUT = 30
+# 匹配 bash / command 类工具名称的关键词
+_COMMAND_TOOL_KEYWORDS = {"bash", "command", "shell", "exec", "terminal", "cmd"}
 
 
 class ToolRegistry:
@@ -31,6 +39,9 @@ class ToolRegistry:
         self._tools: List[Any] = []
         self._tools_by_name: Dict[str, Any] = {}
         self._loaded: bool = False
+        # 工具超时配置: {tool_name: timeout_seconds}
+        # 默认 60 秒, bash/command 类工具 30 秒
+        self.tool_timeouts: Dict[str, int] = {}
 
     async def resolve(self) -> List[Any]:
         """加载所有工具（内置 + toolkit + MCP + CustomTool），返回 LangChain BaseTool 列表。"""
@@ -62,19 +73,76 @@ class ToolRegistry:
 
         对齐 opencode processor.ts 的 tool 执行逻辑：
         - 找不到工具 → error
+        - 执行超时 → 返回超时错误 (asyncio.wait_for 控制)
         - 执行成功 → output（字符串）
         - 执行异常 → error
         """
         tool = self.get_tool_by_name(name)
         if tool is None:
             return {"output": None, "error": f"工具 '{name}' 不存在"}
+
+        # 获取该工具的超时时间
+        timeout = self.get_tool_timeout(name)
         try:
-            result = await tool.ainvoke(args)
+            # 使用 asyncio.wait_for 做超时控制
+            result = await asyncio.wait_for(tool.ainvoke(args), timeout=timeout)
             output = result if isinstance(result, str) else str(result)
             return {"output": output, "error": None}
+        except asyncio.TimeoutError:
+            logger.warning("工具 %s 执行超时 (超时 %ss)", name, timeout)
+            return {
+                "output": None,
+                "error": "工具执行超时",
+                "tool": name,
+                "timeout": timeout,
+            }
         except Exception as e:
             logger.warning("工具 %s 执行失败: %s", name, e, exc_info=True)
             return {"output": None, "error": str(e)}
+
+    def set_tool_timeout(self, tool_name: str, timeout_seconds: int) -> None:
+        """设置工具执行超时时间
+
+        Args:
+            tool_name: 工具名称。
+            timeout_seconds: 超时秒数 (必须 > 0)。
+        """
+        if timeout_seconds <= 0:
+            raise ValueError("超时时间必须大于 0 秒")
+        self.tool_timeouts[tool_name] = timeout_seconds
+        logger.info("设置工具 %s 超时为 %ss", tool_name, timeout_seconds)
+
+    def get_tool_timeout(self, tool_name: str) -> int:
+        """获取工具执行超时时间
+
+        优先级: 自定义配置 > bash/command 类工具默认 30s > 全局默认 60s。
+
+        Args:
+            tool_name: 工具名称。
+
+        Returns:
+            超时秒数。
+        """
+        # 1. 自定义配置优先
+        if tool_name in self.tool_timeouts:
+            return self.tool_timeouts[tool_name]
+        # 2. bash / command 类工具默认 30s
+        name_lower = tool_name.lower()
+        if any(kw in name_lower for kw in _COMMAND_TOOL_KEYWORDS):
+            return COMMAND_TOOL_TIMEOUT
+        # 3. 全局默认 60s
+        return DEFAULT_TOOL_TIMEOUT
+
+    def get_all_timeouts(self) -> Dict[str, int]:
+        """获取所有已加载工具的超时配置
+
+        Returns:
+            {tool_name: timeout_seconds}
+        """
+        result: Dict[str, int] = {}
+        for name in self._tools_by_name:
+            result[name] = self.get_tool_timeout(name)
+        return result
 
 
 def _convert_tool_to_openai_schema(tool: Any) -> Optional[Dict[str, Any]]:

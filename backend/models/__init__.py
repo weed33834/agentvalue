@@ -20,6 +20,7 @@ from models.models import (
     RawInput,
     ScheduledTask,
     ScheduledTaskRun,
+    SearchConfig,
     Tenant,
     User,
     WebhookEvent,
@@ -55,6 +56,41 @@ from models.prompt_template import AgentPreset
 from models.artifact import Artifact
 # Skills 系统 (对标 Claude Skills / Trae Skills)
 from models.skill import Skill
+# 配额 / 预算 / 计费模型 (按租户配额管理 + 成本预算告警 + API 计费账单)
+from models.quota_models import (
+    BillingRecord,
+    BudgetAlert,
+    QuotaUsageLog,
+    TenantQuota,
+)
+# Agent 版本管理 + 多渠道发布 (AgentVersion / AgentPublishTarget)
+from models.agent_version import AgentPublishTarget, AgentVersion
+# 敏感词字典管理 (SensitiveWord / SensitiveWordCategory)
+from models.sensitive_word import SensitiveWord, SensitiveWordCategory
+# 告警通知通道 (Alert)
+from models.alert_model import Alert
+# 模型 Fallback 策略 (对标阿里百炼 AI 网关秒级容灾)
+from models.model_fallback import FallbackChain
+# 会话分析看板 (对标 Langfuse Token 分析 / Dashboard)
+from models.conversation_analytics import ConversationMetrics
+# API 健康监控 (对标 Langfuse 延迟监控 / 告警系统)
+from models.api_health import ApiHealthMetric, SloDefinition
+# 数据集管理 (对标 Langfuse 数据集管理 + 阿里百炼训练集/评测集)
+from models.dataset_models import DatasetItem, EvaluationDataset
+# LLM-as-a-Judge 自动评测 (对标 Langfuse LLM-as-a-Judge + Dify 日志回放)
+from models.evaluation_models import EvaluationResult, EvaluationTask
+# RAG 质量评测 (对标 RagFlow 检索测试 + 压力测试)
+from models.rag_eval_models import RagEvalResult, RagEvalTask
+# 人工标注工具 (对标 Langfuse Human-in-the-loop)
+from models.annotation_models import Annotation, AnnotationTask
+# SSO 单点登录 (对标 Dify SSO / Bisheng SSO, OAuth2/SAML/LDAP)
+from models.sso_models import SSOConfig, SSOSession
+# Agent 模板市场 (对标 Coze 插件市场 / LobeChat 助手市场)
+from models.agent_template_models import AgentTemplate, TemplateReview
+# NL2SQL 自然语言转 SQL (对标 RagFlow NL2SQL)
+from models.nl2sql_models import NL2SQLQuery, NL2SQLSchema
+# 深度文档解析 (对标 RagFlow DeepDoc, 表格提取 + 版面分析)
+from models.doc_parsing_models import DocParsingResult, DocParsingTask
 
 __all__ = [
     "Tenant",
@@ -109,4 +145,50 @@ __all__ = [
     "Notification",
     # Webhook 事件
     "WebhookEvent",
+    # 混合检索配置
+    "SearchConfig",
+    # 配额 / 预算 / 计费
+    "TenantQuota",
+    "QuotaUsageLog",
+    "BudgetAlert",
+    "BillingRecord",
+    # Agent 版本管理 + 多渠道发布
+    "AgentVersion",
+    "AgentPublishTarget",
+    # 敏感词字典管理
+    "SensitiveWord",
+    "SensitiveWordCategory",
+    # 告警通知通道
+    "Alert",
+    # 模型 Fallback 策略
+    "FallbackChain",
+    # 会话分析看板
+    "ConversationMetrics",
+    # API 健康监控
+    "ApiHealthMetric",
+    "SloDefinition",
+    # 数据集管理
+    "EvaluationDataset",
+    "DatasetItem",
+    # LLM-as-a-Judge 自动评测
+    "EvaluationTask",
+    "EvaluationResult",
+    # RAG 质量评测
+    "RagEvalTask",
+    "RagEvalResult",
+    # 人工标注工具
+    "AnnotationTask",
+    "Annotation",
+    # SSO 单点登录
+    "SSOConfig",
+    "SSOSession",
+    # Agent 模板市场
+    "AgentTemplate",
+    "TemplateReview",
+    # NL2SQL 自然语言转 SQL
+    "NL2SQLQuery",
+    "NL2SQLSchema",
+    # 深度文档解析
+    "DocParsingTask",
+    "DocParsingResult",
 ]

@@ -68,3 +68,6 @@ flake8>=7.0.0
 # 异步邮件发送 (P7 通知系统): SMTP 未配置时降级为仅日志,不阻塞主流程
 # 未安装时 EmailService 自动降级为 no-op
 aiosmtplib>=3.0.0
+# 混合检索 BM25 全文检索: rank-bm25 库提供 BM25Okapi 实现
+# 未安装时 HybridSearchService 自动降级为纯 Python BM25 实现,无需强制安装
+rank-bm25>=0.2.2

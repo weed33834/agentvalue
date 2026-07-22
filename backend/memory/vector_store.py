@@ -226,12 +226,27 @@ class ChromaCompanyKB(CompanyKB):
             embedding_function=self.embedding,
         )
 
-    async def query(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
-        """向量检索公司知识库"""
+    async def query(
+        self,
+        query: str,
+        top_k: int = 5,
+        where: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """向量检索公司知识库
+
+        Args:
+            query: 查询文本
+            top_k: 返回结果数
+            where: ChromaDB metadata 过滤条件（如 {"source": "hr_manual"}），
+                   多条件需用 {"$and": [...]} 组合，与 ChromaDB 1.x where 语法一致。
+        """
         query_kwargs: Dict[str, Any] = {
             "n_results": top_k,
             "include": ["metadatas", "documents", "distances"],
         }
+        # 元数据过滤：通过 ChromaDB where 参数实现向量检索结果过滤
+        if where:
+            query_kwargs["where"] = where
         if self.embedding and hasattr(self.embedding, "embed_query"):
             query_kwargs["query_embeddings"] = [await self.embedding.embed_query(query)]
         else:

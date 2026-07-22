@@ -40,6 +40,46 @@ from api.admin.workflows import router as admin_workflows_router  # noqa: E402
 from api.admin import analytics as admin_analytics  # noqa: E402
 # 定时任务调度管理 (APScheduler, 增删改查 + 手动触发 + 执行历史)
 from api.admin.scheduler import router as admin_scheduler_router  # noqa: E402
+# 混合检索管理 (向量 + BM25 全文检索 + RRF 融合 + 增量更新 + 检索配置)
+from api.admin.search_routes import router as admin_search_router  # noqa: E402
+# 租户配额管理 (日请求/token 配额 + 用量统计 + 重置)
+from api.admin.quota_routes import router as admin_quota_router  # noqa: E402
+# 成本预算告警 (月度/日度预算 + 阈值告警通知)
+from api.admin.budget_routes import router as admin_budget_router  # noqa: E402
+# API 计费账单 (汇总 + 按用户/端点聚合 + CSV/JSON 导出)
+from api.admin.billing_routes import router as admin_billing_router  # noqa: E402
+# Agent 版本管理 (版本 CRUD + 发布 + 回滚 + 对比 + 归档)
+from api.admin.agent_version_routes import router as admin_agent_version_router  # noqa: E402
+# 多渠道发布 (飞书/微信/钉钉/Web/API)
+from api.admin.publish_routes import router as admin_publish_router  # noqa: E402
+# 工具配置 (超时管理)
+from api.admin.tool_config_routes import router as admin_tool_config_router  # noqa: E402
+# 敏感词字典管理 (增删改查 + 文本审核 + 导入导出)
+from api.admin.sensitive_word_routes import router as admin_sensitive_word_router  # noqa: E402
+# 告警通知通道 (创建/通知/确认/解决/统计)
+from api.admin.alert_routes import router as admin_alert_router  # noqa: E402
+# 模型 Fallback 策略 (对标阿里百炼 AI 网关秒级容灾)
+from api.admin.model_fallback_routes import router as admin_model_fallback_router  # noqa: E402
+# 会话分析看板 (对标 Langfuse Token 分析 / Dashboard)
+from api.admin.analytics_v2_routes import router as admin_analytics_v2_router  # noqa: E402
+# API 健康监控 (对标 Langfuse 延迟监控 / 告警系统)
+from api.admin.api_health_routes import router as admin_api_health_router  # noqa: E402
+# 数据集管理 (对标 Langfuse 数据集管理 + 阿里百炼训练集/评测集)
+from api.admin.dataset_routes import router as admin_dataset_router  # noqa: E402
+# LLM-as-a-Judge 自动评测 (对标 Langfuse LLM-as-a-Judge + Dify 日志回放)
+from api.admin.llm_judge_routes import router as admin_llm_judge_router  # noqa: E402
+# RAG 质量评测 (对标 RagFlow 检索测试 + 压力测试)
+from api.admin.rag_eval_routes import router as admin_rag_eval_router  # noqa: E402
+# 人工标注工具 (对标 Langfuse Human-in-the-loop)
+from api.admin.annotation_routes import router as admin_annotation_router  # noqa: E402
+# SSO 单点登录 (对标 Dify SSO / Bisheng SSO, OAuth2/SAML/LDAP)
+from api.admin.sso_routes import router as admin_sso_router  # noqa: E402
+# Agent 模板市场 (对标 Coze 插件市场 / LobeChat 助手市场)
+from api.admin.agent_template_routes import router as admin_agent_template_router  # noqa: E402
+# NL2SQL 自然语言转 SQL (对标 RagFlow NL2SQL)
+from api.admin.nl2sql_routes import router as admin_nl2sql_router  # noqa: E402
+# 深度文档解析 (对标 RagFlow DeepDoc, 表格提取 + 版面分析)
+from api.admin.doc_parsing_routes import router as admin_doc_parsing_router  # noqa: E402
 from api.deps import AppState  # noqa: E402
 from api.auth_routes import router as auth_router  # noqa: E402
 from api.analytics_routes import router as analytics_router  # noqa: E402
@@ -88,6 +128,15 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     await init_db()
     app.state.app_state = AppState(settings)
+    # 初始化全局 ToolRegistry (供 admin 工具配置 API 管理超时)
+    try:
+        from agent.tool_registry import ToolRegistry
+
+        app.state.app_state.tool_registry = ToolRegistry(
+            toolkit=app.state.app_state.toolkit, settings=settings
+        )
+    except Exception:
+        pass
     # review 修复: 让 graph 节点复用 app_state 的 rerank_provider / feature_flag_service,
     # 避免每次 retrieve_context 都 new 新实例(导致 60s LRU 缓存失效 + 双实例并存)
     try:
@@ -253,6 +302,106 @@ app.include_router(
 app.include_router(
     admin_scheduler_router,
     tags=["admin-scheduler"],
+)
+# 混合检索管理 (向量 + BM25 全文检索 + RRF 融合 + 增量更新 + 检索配置)
+app.include_router(
+    admin_search_router,
+    tags=["admin-search"],
+)
+# 租户配额管理 (日请求/token 配额 + 用量统计 + 重置)
+app.include_router(
+    admin_quota_router,
+    tags=["admin-quota"],
+)
+# 成本预算告警 (月度/日度预算 + 阈值告警通知)
+app.include_router(
+    admin_budget_router,
+    tags=["admin-budgets"],
+)
+# API 计费账单 (汇总 + 按用户/端点聚合 + CSV/JSON 导出)
+app.include_router(
+    admin_billing_router,
+    tags=["admin-billing"],
+)
+# Agent 版本管理 (版本 CRUD + 发布 + 回滚 + 对比 + 归档)
+app.include_router(
+    admin_agent_version_router,
+    tags=["admin-agent-version"],
+)
+# 多渠道发布 (飞书/微信/钉钉/Web/API)
+app.include_router(
+    admin_publish_router,
+    tags=["admin-publish"],
+)
+# 工具配置 (超时管理)
+app.include_router(
+    admin_tool_config_router,
+    tags=["admin-tool-config"],
+)
+# 敏感词字典管理 (增删改查 + 文本审核 + 导入导出)
+app.include_router(
+    admin_sensitive_word_router,
+    tags=["admin-sensitive-words"],
+)
+# 告警通知通道 (创建/通知/确认/解决/统计)
+app.include_router(
+    admin_alert_router,
+    tags=["admin-alerts"],
+)
+# 模型 Fallback 策略 (对标阿里百炼 AI 网关秒级容灾)
+app.include_router(
+    admin_model_fallback_router,
+    tags=["admin-model-fallback"],
+)
+# 会话分析看板 (对标 Langfuse Token 分析 / Dashboard)
+app.include_router(
+    admin_analytics_v2_router,
+    tags=["admin-analytics-v2"],
+)
+# API 健康监控 (对标 Langfuse 延迟监控 / 告警系统)
+app.include_router(
+    admin_api_health_router,
+    tags=["admin-api-health"],
+)
+# 数据集管理 (对标 Langfuse 数据集管理 + 阿里百炼训练集/评测集)
+app.include_router(
+    admin_dataset_router,
+    tags=["admin-datasets"],
+)
+# LLM-as-a-Judge 自动评测 (对标 Langfuse LLM-as-a-Judge + Dify 日志回放)
+app.include_router(
+    admin_llm_judge_router,
+    tags=["admin-llm-judge"],
+)
+# RAG 质量评测 (对标 RagFlow 检索测试 + 压力测试)
+app.include_router(
+    admin_rag_eval_router,
+    tags=["admin-rag-eval"],
+)
+# 人工标注工具 (对标 Langfuse Human-in-the-loop)
+app.include_router(
+    admin_annotation_router,
+    tags=["admin-annotations"],
+)
+# SSO 单点登录 (对标 Dify SSO / Bisheng SSO, OAuth2/SAML/LDAP)
+app.include_router(
+    admin_sso_router,
+    tags=["admin-sso"],
+)
+# Agent 模板市场 (对标 Coze 插件市场 / LobeChat 助手市场)
+app.include_router(
+    admin_agent_template_router,
+    tags=["admin-agent-templates"],
+)
+# NL2SQL 自然语言转 SQL (对标 RagFlow NL2SQL)
+app.include_router(
+    admin_nl2sql_router,
+    tags=["admin-nl2sql"],
+)
+# 深度文档解析 (对标 RagFlow DeepDoc, 表格提取 + 版面分析)
+app.include_router(
+    admin_doc_parsing_router,
+    tags=["admin-doc-parsing"],
 )
 # 数据导出 (评估/审计/分析/通知, CSV/Excel/JSON)
 app.include_router(
