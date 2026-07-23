@@ -190,9 +190,7 @@ async function loadTemplates() {
   try {
     const res = await templateApi.list(templateCategory.value)
     // 兼容多种返回结构：数组 / {items} / {templates} / {data}
-    templates.value = Array.isArray(res)
-      ? res
-      : res?.items || res?.templates || res?.data || []
+    templates.value = Array.isArray(res) ? res : res?.items || res?.templates || res?.data || []
   } catch (e) {
     console.error('加载模板失败:', e)
     templates.value = []
@@ -326,11 +324,7 @@ defineExpose({
       >
         <template #reference>
           <el-tooltip content="提示词模板" placement="top">
-            <button
-              class="icon-action-btn"
-              type="button"
-              @click="openTemplatePicker"
-            >
+            <button class="icon-action-btn" type="button" @click="openTemplatePicker">
               <el-icon><Document /></el-icon>
             </button>
           </el-tooltip>
@@ -343,19 +337,12 @@ defineExpose({
             class="category-group"
             @change="onCategoryChange"
           >
-            <el-radio-button
-              v-for="c in categories"
-              :key="c.value"
-              :value="c.value"
-            >{{ c.label }}</el-radio-button>
+            <el-radio-button v-for="c in categories" :key="c.value" :value="c.value">
+              {{ c.label }}
+            </el-radio-button>
           </el-radio-group>
           <div v-loading="templateLoading" class="template-list">
-            <div
-              v-if="!templateLoading && templates.length === 0"
-              class="empty-tip"
-            >
-              暂无模板
-            </div>
+            <div v-if="!templateLoading && templates.length === 0" class="empty-tip">暂无模板</div>
             <div
               v-for="tpl in templates"
               :key="tpl.id || tpl.name"
@@ -388,12 +375,7 @@ defineExpose({
       <!-- 降级：浏览器不支持 Web Speech API，上传音频文件走后端 STT -->
       <el-tooltip v-else content="上传语音文件识别" placement="top">
         <label class="upload-btn">
-          <input
-            type="file"
-            accept="audio/*"
-            @change="onVoiceFileSelect"
-            style="display: none"
-          />
+          <input type="file" accept="audio/*" @change="onVoiceFileSelect" style="display: none" />
           <el-icon><Microphone /></el-icon>
         </label>
       </el-tooltip>
@@ -411,38 +393,20 @@ defineExpose({
       </div>
 
       <!-- 功能4: 发送 / 停止生成按钮 -->
-      <el-button
-        v-if="isStreaming"
-        type="danger"
-        @click="onStop"
-      >
+      <el-button v-if="isStreaming" type="danger" @click="onStop">
         <el-icon><VideoPause /></el-icon>
         停止
       </el-button>
-      <el-button
-        v-else
-        type="primary"
-        :disabled="!canSend"
-        @click="onSend"
-      >
+      <el-button v-else type="primary" :disabled="!canSend" @click="onSend">
         <el-icon><Promotion /></el-icon>
         发送
       </el-button>
     </div>
 
     <!-- 模板变量填写对话框 -->
-    <el-dialog
-      v-model="variableDialogVisible"
-      title="填写模板变量"
-      width="480px"
-      append-to-body
-    >
+    <el-dialog v-model="variableDialogVisible" title="填写模板变量" width="480px" append-to-body>
       <el-form v-if="currentTemplate" label-position="top">
-        <el-form-item
-          v-for="(_, key) in variableValues"
-          :key="key"
-          :label="key"
-        >
+        <el-form-item v-for="(_, key) in variableValues" :key="key" :label="key">
           <el-input v-model="variableValues[key]" :placeholder="`请输入 ${key}`" />
         </el-form-item>
       </el-form>

@@ -3,8 +3,8 @@
     <!-- 顶部说明 -->
     <el-alert type="info" :closable="false" show-icon class="mb-16">
       <template #title>
-        知识库管理 —— 文档 CRUD、向量索引重建、RAG 检索测试台、分块配置。
-        所有操作仅 admin 可访问,向后兼容现有 /api/v1/kb 路由。
+        知识库管理 —— 文档 CRUD、向量索引重建、RAG 检索测试台、分块配置。 所有操作仅 admin
+        可访问,向后兼容现有 /api/v1/kb 路由。
       </template>
     </el-alert>
 
@@ -50,7 +50,9 @@
         @keyup.enter="loadDocs(1)"
         @clear="loadDocs(1)"
       >
-        <template #prefix><el-icon><Search /></el-icon></template>
+        <template #prefix
+          ><el-icon><Search /></el-icon
+        ></template>
       </el-input>
       <el-button :loading="loading" @click="loadDocs(1)">
         <el-icon><Search /></el-icon>搜索
@@ -72,7 +74,12 @@
     <el-table :data="docs" v-loading="loading" border stripe>
       <el-table-column prop="kb_id" label="kb_id" min-width="140" show-overflow-tooltip />
       <el-table-column prop="title" label="标题" min-width="160" show-overflow-tooltip />
-      <el-table-column prop="content_snippet" label="内容片段" min-width="240" show-overflow-tooltip />
+      <el-table-column
+        prop="content_snippet"
+        label="内容片段"
+        min-width="240"
+        show-overflow-tooltip
+      />
       <el-table-column prop="created_at" label="创建时间" min-width="160">
         <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
       </el-table-column>
@@ -137,7 +144,7 @@
             v-model="form.metadataRaw"
             type="textarea"
             :rows="4"
-            placeholder="可选 JSON,如 {&quot;tag&quot;:&quot;demo&quot;}"
+            placeholder='可选 JSON,如 {"tag":"demo"}'
           />
           <div class="form-tip">
             可选,JSON 格式;创建时可在元信息中携带 chunk_size / chunk_overlap
@@ -146,9 +153,7 @@
       </el-form>
       <template #footer>
         <el-button @click="formDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">
-          保存
-        </el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit"> 保存 </el-button>
       </template>
     </el-dialog>
 
@@ -156,23 +161,11 @@
     <el-dialog v-model="configDialogVisible" title="分块配置" width="540px">
       <el-form label-width="120px">
         <el-form-item label="chunk_size">
-          <el-slider
-            v-model="configForm.chunk_size"
-            :min="100"
-            :max="2000"
-            :step="50"
-            show-input
-          />
+          <el-slider v-model="configForm.chunk_size" :min="100" :max="2000" :step="50" show-input />
           <div class="form-tip">单块字符数(100-2000)</div>
         </el-form-item>
         <el-form-item label="chunk_overlap">
-          <el-slider
-            v-model="configForm.chunk_overlap"
-            :min="0"
-            :max="500"
-            :step="10"
-            show-input
-          />
+          <el-slider v-model="configForm.chunk_overlap" :min="0" :max="500" :step="10" show-input />
           <div class="form-tip">相邻块重叠字符数(0-500)</div>
         </el-form-item>
         <el-form-item label="Embedding 模型">
@@ -184,23 +177,14 @@
             placeholder="选择或输入模型名"
             style="width: 100%"
           >
-            <el-option
-              v-for="m in embeddingModelOptions"
-              :key="m"
-              :label="m"
-              :value="m"
-            />
+            <el-option v-for="m in embeddingModelOptions" :key="m" :label="m" :value="m" />
           </el-select>
-          <div class="form-tip">
-            选项来自 default-models(embedding 类型),亦可手动输入
-          </div>
+          <div class="form-tip">选项来自 default-models(embedding 类型),亦可手动输入</div>
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="configDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSaveConfig">
-          保存
-        </el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSaveConfig"> 保存 </el-button>
       </template>
     </el-dialog>
 
@@ -219,11 +203,7 @@
           <el-input-number v-model="retrievalForm.top_k" :min="1" :max="50" />
         </el-form-item>
         <el-form-item>
-          <el-button
-            type="primary"
-            :loading="retrieving"
-            @click="handleTestRetrieval"
-          >
+          <el-button type="primary" :loading="retrieving" @click="handleTestRetrieval">
             <el-icon><Aim /></el-icon>测试
           </el-button>
           <el-button @click="retrievalMatches = []">清空结果</el-button>
@@ -349,9 +329,7 @@ async function loadEmbeddingModels() {
       .map((m) => m.model_name)
       .filter(Boolean)
     // 合并去重
-    embeddingModelOptions.value = Array.from(
-      new Set([...embeddingModelOptions.value, ...list]),
-    )
+    embeddingModelOptions.value = Array.from(new Set([...embeddingModelOptions.value, ...list]))
   } catch {
     // 静默失败,使用默认列表
   }
@@ -442,11 +420,9 @@ async function handleReindex(row) {
 
 async function handleDelete(row) {
   try {
-    await ElMessageBox.confirm(
-      `确认删除文档 "${row.title}" (${row.kb_id})?`,
-      '提示',
-      { type: 'warning' },
-    )
+    await ElMessageBox.confirm(`确认删除文档 "${row.title}" (${row.kb_id})?`, '提示', {
+      type: 'warning',
+    })
   } catch {
     return
   }

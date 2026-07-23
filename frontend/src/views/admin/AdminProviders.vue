@@ -3,8 +3,8 @@
     <!-- 顶部说明 -->
     <el-alert type="info" :closable="false" show-icon class="mb-16">
       <template #title>
-        模型供应商管理 —— 对标 Dify model-providers。支持 OpenAI / Anthropic / Gemini / Ollama
-        多 Provider 接入,凭证加密存储(AES-256-GCM)、多凭证负载均衡、被动健康检查与冷却。
+        模型供应商管理 —— 对标 Dify model-providers。支持 OpenAI / Anthropic / Gemini / Ollama 多
+        Provider 接入,凭证加密存储(AES-256-GCM)、多凭证负载均衡、被动健康检查与冷却。
       </template>
     </el-alert>
 
@@ -22,13 +22,7 @@
 
     <!-- 卡片网格 -->
     <el-row :gutter="16" v-loading="loading">
-      <el-col
-        v-for="p in providers"
-        :key="p.provider"
-        :xs="24"
-        :md="12"
-        :lg="8"
-      >
+      <el-col v-for="p in providers" :key="p.provider" :xs="24" :md="12" :lg="8">
         <el-card class="provider-card">
           <template #header>
             <div class="card-header">
@@ -59,24 +53,33 @@
                 >
                   {{ t }}
                 </el-tag>
-                <span v-if="!(p.supported_model_types && p.supported_model_types.length)" class="meta-empty">—</span>
+                <span
+                  v-if="!(p.supported_model_types && p.supported_model_types.length)"
+                  class="meta-empty"
+                  >—</span
+                >
               </span>
             </div>
 
             <div class="meta-row">
               <span class="meta-label">凭证</span>
-              <span class="meta-value">{{ p.credentials && p.credentials.length || 0 }} 个</span>
+              <span class="meta-value">{{ (p.credentials && p.credentials.length) || 0 }} 个</span>
               <el-tag v-if="getActiveCredential(p)" type="success" size="small" class="meta-tag">
                 活跃: {{ getActiveCredential(p).name || getActiveCredential(p).id }}
               </el-tag>
-              <el-tag v-else-if="(p.credentials && p.credentials.length)" type="info" size="small" class="meta-tag">
+              <el-tag
+                v-else-if="p.credentials && p.credentials.length"
+                type="info"
+                size="small"
+                class="meta-tag"
+              >
                 无活跃凭证
               </el-tag>
             </div>
 
             <div class="meta-row">
               <span class="meta-label">模型</span>
-              <span class="meta-value">{{ p.models && p.models.length || 0 }} 个</span>
+              <span class="meta-value">{{ (p.models && p.models.length) || 0 }} 个</span>
               <el-tag v-if="getDefaultModelName(p)" type="warning" size="small" class="meta-tag">
                 默认: {{ getDefaultModelName(p) }}
               </el-tag>
@@ -101,7 +104,11 @@
               <el-icon><CircleCheck /></el-icon>
               健康检查
             </el-button>
-            <el-button size="small" :loading="testingProvider === p.provider" @click="testConnection(p)">
+            <el-button
+              size="small"
+              :loading="testingProvider === p.provider"
+              @click="testConnection(p)"
+            >
               <el-icon><Connection /></el-icon>
               测试连接
             </el-button>
@@ -114,7 +121,11 @@
     </el-row>
 
     <!-- 凭证管理 Dialog -->
-    <el-dialog v-model="credDialogVisible" :title="`${currentProviderLabel} 凭证管理`" width="800px">
+    <el-dialog
+      v-model="credDialogVisible"
+      :title="`${currentProviderLabel} 凭证管理`"
+      width="800px"
+    >
       <div class="dialog-toolbar mb-16">
         <el-button type="primary" size="small" @click="openCredFormDialog(null)">
           <el-icon><Plus /></el-icon>
@@ -134,11 +145,7 @@
         <el-table-column label="凭证值(脱敏)" min-width="220">
           <template #default="{ row }">
             <span v-if="row.masked_credentials">
-              <span
-                v-for="(val, key) in row.masked_credentials"
-                :key="key"
-                class="credential-code"
-              >
+              <span v-for="(val, key) in row.masked_credentials" :key="key" class="credential-code">
                 {{ key }}: {{ val }}
               </span>
             </span>
@@ -168,12 +175,7 @@
               激活
             </el-button>
             <el-button size="small" link @click="openCredFormDialog(row)">编辑</el-button>
-            <el-button
-              size="small"
-              type="danger"
-              link
-              @click="removeCredential(row)"
-            >
+            <el-button size="small" type="danger" link @click="removeCredential(row)">
               删除
             </el-button>
           </template>
@@ -182,12 +184,7 @@
     </el-dialog>
 
     <!-- 凭证表单子 Dialog(动态 schema) -->
-    <el-dialog
-      v-model="credFormDialogVisible"
-      :title="credFormTitle"
-      width="600px"
-      append-to-body
-    >
+    <el-dialog v-model="credFormDialogVisible" :title="credFormTitle" width="600px" append-to-body>
       <el-form
         ref="credFormRef"
         :model="credForm"
@@ -203,7 +200,11 @@
           :label="schema.label"
           :required="schema.required"
           :prop="'credentials.' + schema.variable"
-          :rules="schema.required ? [{ required: true, message: `${schema.label}必填`, trigger: 'blur' }] : []"
+          :rules="
+            schema.required
+              ? [{ required: true, message: `${schema.label}必填`, trigger: 'blur' }]
+              : []
+          "
         >
           <el-select
             v-if="schema.type === 'select'"
@@ -234,12 +235,18 @@
       </el-form>
       <template #footer>
         <el-button @click="credFormDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="credFormSubmitting" @click="submitCredForm">保存</el-button>
+        <el-button type="primary" :loading="credFormSubmitting" @click="submitCredForm"
+          >保存</el-button
+        >
       </template>
     </el-dialog>
 
     <!-- 模型管理 Dialog -->
-    <el-dialog v-model="modelDialogVisible" :title="`${currentProviderLabel} 模型管理`" width="900px">
+    <el-dialog
+      v-model="modelDialogVisible"
+      :title="`${currentProviderLabel} 模型管理`"
+      width="900px"
+    >
       <div class="dialog-toolbar mb-16">
         <el-button type="primary" size="small" @click="openModelFormDialog">
           <el-icon><Plus /></el-icon>
@@ -252,13 +259,7 @@
       </div>
 
       <!-- 默认模型展示 -->
-      <el-alert
-        v-if="defaultModelSummary"
-        type="success"
-        :closable="false"
-        show-icon
-        class="mb-16"
-      >
+      <el-alert v-if="defaultModelSummary" type="success" :closable="false" show-icon class="mb-16">
         <template #title>
           当前默认模型:
           <el-tag
@@ -307,7 +308,7 @@
         </el-table-column>
         <el-table-column label="凭证数" width="90" align="center">
           <template #default="{ row }">
-            {{ row.credentials && row.credentials.length || 0 }}
+            {{ (row.credentials && row.credentials.length) || 0 }}
           </template>
         </el-table-column>
         <el-table-column label="操作" width="240" fixed="right">
@@ -320,9 +321,7 @@
               <el-icon><Setting /></el-icon>
               参数规则
             </el-button>
-            <el-button size="small" type="danger" link @click="removeModel(row)">
-              删除
-            </el-button>
+            <el-button size="small" type="danger" link @click="removeModel(row)"> 删除 </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -336,17 +335,22 @@
         label-position="top"
         v-loading="modelFormSubmitting"
       >
-        <el-form-item label="模型名" required prop="model_name" :rules="[{ required: true, message: '模型名必填', trigger: 'blur' }]">
+        <el-form-item
+          label="模型名"
+          required
+          prop="model_name"
+          :rules="[{ required: true, message: '模型名必填', trigger: 'blur' }]"
+        >
           <el-input v-model="modelForm.model_name" placeholder="如:gpt-4o" />
         </el-form-item>
-        <el-form-item label="模型类型" required prop="model_type" :rules="[{ required: true, message: '请选择类型', trigger: 'change' }]">
+        <el-form-item
+          label="模型类型"
+          required
+          prop="model_type"
+          :rules="[{ required: true, message: '请选择类型', trigger: 'change' }]"
+        >
           <el-select v-model="modelForm.model_type" placeholder="请选择" style="width: 100%">
-            <el-option
-              v-for="t in currentModelTypeOptions"
-              :key="t"
-              :label="t"
-              :value="t"
-            />
+            <el-option v-for="t in currentModelTypeOptions" :key="t" :label="t" :value="t" />
           </el-select>
         </el-form-item>
         <el-form-item label="凭证选择">
@@ -356,12 +360,7 @@
             style="width: 100%"
             clearable
           >
-            <el-option
-              v-for="c in credentials"
-              :key="c.id"
-              :label="c.name || c.id"
-              :value="c.id"
-            />
+            <el-option v-for="c in credentials" :key="c.id" :label="c.name || c.id" :value="c.id" />
           </el-select>
           <span class="field-hint">不选则使用 Provider 默认活跃凭证</span>
         </el-form-item>
@@ -376,7 +375,9 @@
       </el-form>
       <template #footer>
         <el-button @click="modelFormDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="modelFormSubmitting" @click="submitModelForm">创建</el-button>
+        <el-button type="primary" :loading="modelFormSubmitting" @click="submitModelForm"
+          >创建</el-button
+        >
       </template>
     </el-dialog>
 
@@ -406,11 +407,7 @@
         <el-table-column label="凭证值(脱敏)" min-width="220">
           <template #default="{ row }">
             <span v-if="row.masked_credentials">
-              <span
-                v-for="(val, key) in row.masked_credentials"
-                :key="key"
-                class="credential-code"
-              >
+              <span v-for="(val, key) in row.masked_credentials" :key="key" class="credential-code">
                 {{ key }}: {{ val }}
               </span>
             </span>
@@ -434,12 +431,7 @@
             >
               激活
             </el-button>
-            <el-button
-              size="small"
-              type="danger"
-              link
-              @click="removeModelCredential(row)"
-            >
+            <el-button size="small" type="danger" link @click="removeModelCredential(row)">
               删除
             </el-button>
           </template>
@@ -493,7 +485,9 @@
       </el-form>
       <template #footer>
         <el-button @click="modelCredFormDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="modelCredFormSubmitting" @click="submitModelCredForm">保存</el-button>
+        <el-button type="primary" :loading="modelCredFormSubmitting" @click="submitModelCredForm"
+          >保存</el-button
+        >
       </template>
     </el-dialog>
 
@@ -511,9 +505,18 @@
     </el-dialog>
 
     <!-- 健康检查 Dialog -->
-    <el-dialog v-model="healthDialogVisible" :title="`${currentProviderLabel} 健康检查`" width="700px">
+    <el-dialog
+      v-model="healthDialogVisible"
+      :title="`${currentProviderLabel} 健康检查`"
+      width="700px"
+    >
       <div class="dialog-toolbar mb-16">
-        <el-button type="primary" size="small" :loading="healthTriggering" @click="triggerHealthCheck">
+        <el-button
+          type="primary"
+          size="small"
+          :loading="healthTriggering"
+          @click="triggerHealthCheck"
+        >
           <el-icon><VideoPlay /></el-icon>
           手动触发
         </el-button>
@@ -530,14 +533,17 @@
         </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'success' || row.healthy ? 'success' : 'danger'" size="small">
-              {{ row.status === 'success' || row.healthy ? 'success' : (row.status || 'failed') }}
+            <el-tag
+              :type="row.status === 'success' || row.healthy ? 'success' : 'danger'"
+              size="small"
+            >
+              {{ row.status === 'success' || row.healthy ? 'success' : row.status || 'failed' }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="延迟(ms)" width="110" align="center">
           <template #default="{ row }">
-            {{ row.latency_ms != null ? row.latency_ms : (row.latency != null ? row.latency : '—') }}
+            {{ row.latency_ms != null ? row.latency_ms : row.latency != null ? row.latency : '—' }}
           </template>
         </el-table-column>
         <el-table-column label="错误信息" min-width="220" show-overflow-tooltip>
@@ -647,11 +653,22 @@ const currentProviderLabel = computed(() => {
 })
 const currentModelTypeOptions = computed(() => {
   const p = currentProvider.value
-  return (p && p.supported_model_types) || ['llm', 'text-embedding', 'speech2text', 'moderation', 'rerank']
+  return (
+    (p && p.supported_model_types) || [
+      'llm',
+      'text-embedding',
+      'speech2text',
+      'moderation',
+      'rerank',
+    ]
+  )
 })
 const credentialFormSchemas = computed(() => {
   const p = currentProvider.value
-  return (p && p.provider_credential_schema && p.provider_credential_schema.credential_form_schemas) || []
+  return (
+    (p && p.provider_credential_schema && p.provider_credential_schema.credential_form_schemas) ||
+    []
+  )
 })
 
 // ====== 凭证管理 ======
@@ -948,11 +965,9 @@ async function removeModel(model) {
   const p = currentProvider.value
   if (!p) return
   try {
-    await ElMessageBox.confirm(
-      `确认删除模型 "${model.model_name}"?该操作不可恢复。`,
-      '删除确认',
-      { type: 'warning' },
-    )
+    await ElMessageBox.confirm(`确认删除模型 "${model.model_name}"?该操作不可恢复。`, '删除确认', {
+      type: 'warning',
+    })
   } catch {
     return
   }
@@ -993,7 +1008,10 @@ function isDefaultModel(model) {
   const p = currentProvider.value
   if (!p) return false
   return defaultModels.value.some(
-    (d) => d.model_type === model.model_type && d.model_name === model.model_name && d.provider === p.provider,
+    (d) =>
+      d.model_type === model.model_type &&
+      d.model_name === model.model_name &&
+      d.provider === p.provider,
   )
 }
 
@@ -1114,11 +1132,9 @@ async function removeModelCredential(cred) {
   const m = currentModel.value
   if (!p || !m) return
   try {
-    await ElMessageBox.confirm(
-      `确认删除模型凭证 "${cred.name || cred.id}"?`,
-      '删除确认',
-      { type: 'warning' },
-    )
+    await ElMessageBox.confirm(`确认删除模型凭证 "${cred.name || cred.id}"?`, '删除确认', {
+      type: 'warning',
+    })
   } catch {
     return
   }

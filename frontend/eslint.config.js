@@ -1,6 +1,7 @@
 import js from '@eslint/js'
 import pluginVue from 'eslint-plugin-vue'
 import globals from 'globals'
+import eslintConfigPrettier from 'eslint-config-prettier'
 
 export default [
   {
@@ -29,4 +30,5 @@ export default [
       'vue/singleline-html-element-content-newline': 'off',
     },
   },
+  eslintConfigPrettier,
 ]

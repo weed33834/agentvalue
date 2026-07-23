@@ -12,7 +12,12 @@
                 placeholder="请输入被评估的评估ID, 例如 EVAL-XXXX"
                 style="width: 360px"
               />
-              <el-button link type="primary" style="margin-left: 8px" @click="loadReviewsForRequest">
+              <el-button
+                link
+                type="primary"
+                style="margin-left: 8px"
+                @click="loadReviewsForRequest"
+              >
                 查看现有邀请
               </el-button>
             </el-form-item>
@@ -26,7 +31,11 @@
               placeholder="评估人员工ID, 例如 E1002"
               style="width: 220px"
             />
-            <el-select v-model="r.reviewer_role" placeholder="角色" style="width: 160px; margin-left: 12px">
+            <el-select
+              v-model="r.reviewer_role"
+              placeholder="角色"
+              style="width: 160px; margin-left: 12px"
+            >
               <el-option label="同事 (Peer)" value="peer" />
               <el-option label="上级 (Manager)" value="manager" />
               <el-option label="下属 (Subordinate)" value="subordinate" />
@@ -42,13 +51,7 @@
             />
           </div>
 
-          <el-button
-            type="primary"
-            link
-            icon="Plus"
-            @click="addReviewer"
-            style="margin-top: 8px"
-          >
+          <el-button type="primary" link icon="Plus" @click="addReviewer" style="margin-top: 8px">
             添加评估人
           </el-button>
 
@@ -192,7 +195,11 @@
               >
                 提交评分
               </el-button>
-              <span v-if="reviewState.status === 'submitted'" class="muted" style="margin-left: 12px; font-size: 12px">
+              <span
+                v-if="reviewState.status === 'submitted'"
+                class="muted"
+                style="margin-left: 12px; font-size: 12px"
+              >
                 该环评已提交, 不可重复提交
               </span>
             </div>
@@ -282,7 +289,7 @@
               <el-table-column label="各维度评分" min-width="280">
                 <template #default="{ row }">
                   <el-tag
-                    v-for="(score, dim) in (row.scores || {})"
+                    v-for="(score, dim) in row.scores || {}"
                     :key="dim"
                     size="small"
                     class="dim-tag"
@@ -294,7 +301,10 @@
               </el-table-column>
               <el-table-column label="文字反馈" min-width="220">
                 <template #default="{ row }">
-                  <span class="muted">{{ (row.feedback_text || '').slice(0, 60) }}{{ (row.feedback_text || '').length > 60 ? '...' : '' }}</span>
+                  <span class="muted"
+                    >{{ (row.feedback_text || '').slice(0, 60)
+                    }}{{ (row.feedback_text || '').length > 60 ? '...' : '' }}</span
+                  >
                 </template>
               </el-table-column>
               <el-table-column prop="submitted_at" label="提交时间" width="160">
@@ -338,9 +348,7 @@ const requestReviews = ref({}) // 现有邀请列表
 
 const canSubmitRequest = computed(() => {
   if (!requestForm.value.evaluationId.trim()) return false
-  const valid = requestForm.value.reviewers.filter(
-    (r) => r.reviewer_id.trim() && r.reviewer_role
-  )
+  const valid = requestForm.value.reviewers.filter((r) => r.reviewer_id.trim() && r.reviewer_role)
   return valid.length > 0
 })
 
@@ -405,7 +413,7 @@ async function loadReviewState() {
     // 如果已有评分, 预填表单
     if (reviewState.value.scores && Object.keys(reviewState.value.scores).length) {
       submitForm.value.dimensions = Object.entries(reviewState.value.scores).map(
-        ([name, score]) => ({ name, score })
+        ([name, score]) => ({ name, score }),
       )
     }
     if (reviewState.value.overall_score != null) {
@@ -503,21 +511,25 @@ function onTabChange() {
 }
 
 function roleLabel(role) {
-  return {
-    peer: '同事',
-    manager: '上级',
-    subordinate: '下属',
-    external: '跨部门/外部',
-  }[role] || role
+  return (
+    {
+      peer: '同事',
+      manager: '上级',
+      subordinate: '下属',
+      external: '跨部门/外部',
+    }[role] || role
+  )
 }
 
 function roleTagType(role) {
-  return {
-    peer: 'primary',
-    manager: 'success',
-    subordinate: 'warning',
-    external: 'info',
-  }[role] || 'info'
+  return (
+    {
+      peer: 'primary',
+      manager: 'success',
+      subordinate: 'warning',
+      external: 'info',
+    }[role] || 'info'
+  )
 }
 
 function statusLabel(s) {

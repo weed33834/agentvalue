@@ -79,7 +79,7 @@ api.interceptors.response.use(
           localStorage.setItem('agentvalue_token', newToken)
         }
         return api(originalRequest)
-      } catch (refreshErr) {
+      } catch {
         redirectToLogin()
         return Promise.reject(new Error('登录已过期，请重新登录'))
       }
@@ -145,12 +145,9 @@ export const analyticsApi = {
 export const reviewApi = {
   requestReviews: (evaluationId, reviewers) =>
     api.post(`/evaluations/${evaluationId}/reviews/request`, { reviewers }),
-  listReviews: (evaluationId) =>
-    api.get(`/evaluations/${evaluationId}/reviews`),
-  submitReview: (reviewId, payload) =>
-    api.post(`/reviews/${reviewId}/submit`, payload),
-  getReviewState: (reviewId) =>
-    api.get(`/reviews/${reviewId}/state`),
+  listReviews: (evaluationId) => api.get(`/evaluations/${evaluationId}/reviews`),
+  submitReview: (reviewId, payload) => api.post(`/reviews/${reviewId}/submit`, payload),
+  getReviewState: (reviewId) => api.get(`/reviews/${reviewId}/state`),
 }
 
 // 校准会 API
@@ -323,20 +320,36 @@ export const providerAdminApi = {
     api.get(`/admin/model-providers/workspaces/current/providers/${provider}`),
   // 启用/禁用 Provider
   setPreferredType: (provider, payload) =>
-    api.post(`/admin/model-providers/workspaces/current/providers/${provider}/preferred-type`, payload),
+    api.post(
+      `/admin/model-providers/workspaces/current/providers/${provider}/preferred-type`,
+      payload,
+    ),
   // 凭证 CRUD
   listCredentials: (provider) =>
     api.get(`/admin/model-providers/workspaces/current/providers/${provider}/credentials`),
   createCredential: (provider, payload) =>
-    api.post(`/admin/model-providers/workspaces/current/providers/${provider}/credentials`, payload),
+    api.post(
+      `/admin/model-providers/workspaces/current/providers/${provider}/credentials`,
+      payload,
+    ),
   updateCredential: (provider, credentialId, payload) =>
-    api.put(`/admin/model-providers/workspaces/current/providers/${provider}/credentials/${credentialId}`, payload),
+    api.put(
+      `/admin/model-providers/workspaces/current/providers/${provider}/credentials/${credentialId}`,
+      payload,
+    ),
   deleteCredential: (provider, credentialId) =>
-    api.delete(`/admin/model-providers/workspaces/current/providers/${provider}/credentials/${credentialId}`),
+    api.delete(
+      `/admin/model-providers/workspaces/current/providers/${provider}/credentials/${credentialId}`,
+    ),
   activateCredential: (provider, credentialId) =>
-    api.post(`/admin/model-providers/workspaces/current/providers/${provider}/credentials/${credentialId}/activate`),
+    api.post(
+      `/admin/model-providers/workspaces/current/providers/${provider}/credentials/${credentialId}/activate`,
+    ),
   validateCredentials: (provider, payload) =>
-    api.post(`/admin/model-providers/workspaces/current/providers/${provider}/credentials/validate`, payload),
+    api.post(
+      `/admin/model-providers/workspaces/current/providers/${provider}/credentials/validate`,
+      payload,
+    ),
   // 模型管理
   listModels: (provider) =>
     api.get(`/admin/model-providers/workspaces/current/providers/${provider}/models`),
@@ -345,25 +358,44 @@ export const providerAdminApi = {
   deleteModel: (provider, modelId) =>
     api.delete(`/admin/model-providers/workspaces/current/providers/${provider}/models/${modelId}`),
   toggleModel: (provider, modelId, payload) =>
-    api.post(`/admin/model-providers/workspaces/current/providers/${provider}/models/${modelId}/toggle`, payload),
+    api.post(
+      `/admin/model-providers/workspaces/current/providers/${provider}/models/${modelId}/toggle`,
+      payload,
+    ),
   toggleModelLoadBalancing: (provider, modelId, payload) =>
-    api.post(`/admin/model-providers/workspaces/current/providers/${provider}/models/${modelId}/load-balancing/toggle`, payload),
+    api.post(
+      `/admin/model-providers/workspaces/current/providers/${provider}/models/${modelId}/load-balancing/toggle`,
+      payload,
+    ),
   // 模型凭证
   listModelCredentials: (provider, modelId) =>
-    api.get(`/admin/model-providers/workspaces/current/providers/${provider}/models/${modelId}/credentials`),
+    api.get(
+      `/admin/model-providers/workspaces/current/providers/${provider}/models/${modelId}/credentials`,
+    ),
   addModelCredential: (provider, modelId, payload) =>
-    api.post(`/admin/model-providers/workspaces/current/providers/${provider}/models/${modelId}/credentials`, payload),
+    api.post(
+      `/admin/model-providers/workspaces/current/providers/${provider}/models/${modelId}/credentials`,
+      payload,
+    ),
   deleteModelCredential: (provider, modelId, credentialId) =>
-    api.delete(`/admin/model-providers/workspaces/current/providers/${provider}/models/${modelId}/credentials/${credentialId}`),
+    api.delete(
+      `/admin/model-providers/workspaces/current/providers/${provider}/models/${modelId}/credentials/${credentialId}`,
+    ),
   activateModelCredential: (provider, modelId, credentialId) =>
-    api.post(`/admin/model-providers/workspaces/current/providers/${provider}/models/${modelId}/credentials/${credentialId}/activate`),
+    api.post(
+      `/admin/model-providers/workspaces/current/providers/${provider}/models/${modelId}/credentials/${credentialId}/activate`,
+    ),
   validateModelCredentials: (provider, modelId, payload) =>
-    api.post(`/admin/model-providers/workspaces/current/providers/${provider}/models/${modelId}/credentials/validate`, payload),
+    api.post(
+      `/admin/model-providers/workspaces/current/providers/${provider}/models/${modelId}/credentials/validate`,
+      payload,
+    ),
   getModelParameterRules: (provider, modelId) =>
-    api.get(`/admin/model-providers/workspaces/current/providers/${provider}/models/${modelId}/parameter-rules`),
+    api.get(
+      `/admin/model-providers/workspaces/current/providers/${provider}/models/${modelId}/parameter-rules`,
+    ),
   // 默认模型
-  listDefaultModels: () =>
-    api.get('/admin/model-providers/workspaces/current/default-models'),
+  listDefaultModels: () => api.get('/admin/model-providers/workspaces/current/default-models'),
   setDefaultModel: (payload) =>
     api.post('/admin/model-providers/workspaces/current/default-models', payload),
   // 健康检查
@@ -391,13 +423,11 @@ export const kbAdminApi = {
   // 文档详情
   getDoc: (kbId) => api.get(`/admin/kb/docs/${encodeURIComponent(kbId)}`),
   // 更新文档(标题/内容/元信息)
-  updateDoc: (kbId, payload) =>
-    api.put(`/admin/kb/docs/${encodeURIComponent(kbId)}`, payload),
+  updateDoc: (kbId, payload) => api.put(`/admin/kb/docs/${encodeURIComponent(kbId)}`, payload),
   // 删除文档
   deleteDoc: (kbId) => api.delete(`/admin/kb/docs/${encodeURIComponent(kbId)}`),
   // 重建向量索引(先删后建,按当前 chunk 配置分块嵌入)
-  reindexDoc: (kbId) =>
-    api.post(`/admin/kb/docs/${encodeURIComponent(kbId)}/reindex`),
+  reindexDoc: (kbId) => api.post(`/admin/kb/docs/${encodeURIComponent(kbId)}/reindex`),
   // 检索测试台: 用 query 在向量库做 top_k 召回
   testRetrieval: (payload) => api.post('/admin/kb/test-retrieval', payload),
   // 获取当前 chunk 配置(chunk_size/chunk_overlap/embedding_model)
@@ -424,8 +454,7 @@ export const analyticsAdminApi = {
   // 成本统计(按 model / tenant 维度 USD)
   cost: (params) => api.get('/admin/analytics/cost', { params }),
   // Provider 调用分布(调用次数 + token 总数 + 平均延迟)
-  providerDistribution: (params) =>
-    api.get('/admin/analytics/provider-distribution', { params }),
+  providerDistribution: (params) => api.get('/admin/analytics/provider-distribution', { params }),
   // 评估统计(总数 + 按状态 + 按周期)
   evaluationStats: (params) => api.get('/admin/analytics/evaluation-stats', { params }),
 }
@@ -450,8 +479,7 @@ export const customToolAdminApi = {
   update: (toolId, payload) =>
     api.put(`/admin/custom-tools/${encodeURIComponent(toolId)}`, payload),
   // 删除
-  delete: (toolId) =>
-    api.delete(`/admin/custom-tools/${encodeURIComponent(toolId)}`),
+  delete: (toolId) => api.delete(`/admin/custom-tools/${encodeURIComponent(toolId)}`),
   // 启用/禁用
   toggle: (toolId, enabled) =>
     api.post(`/admin/custom-tools/${encodeURIComponent(toolId)}/toggle`, {
@@ -474,11 +502,9 @@ export const featureFlagAdminApi = {
   // 详情
   get: (key) => api.get(`/admin/feature-flags/${encodeURIComponent(key)}`),
   // 更新 (任意字段, key 不可改)
-  update: (key, payload) =>
-    api.put(`/admin/feature-flags/${encodeURIComponent(key)}`, payload),
+  update: (key, payload) => api.put(`/admin/feature-flags/${encodeURIComponent(key)}`, payload),
   // 删除
-  delete: (key) =>
-    api.delete(`/admin/feature-flags/${encodeURIComponent(key)}`),
+  delete: (key) => api.delete(`/admin/feature-flags/${encodeURIComponent(key)}`),
   // 启用/禁用切换
   toggle: (key, enabled) =>
     api.post(`/admin/feature-flags/${encodeURIComponent(key)}/toggle`, {
@@ -522,8 +548,7 @@ export const workflowAdminApi = {
   update: (workflowId, payload) =>
     api.put(`/admin/workflows/${encodeURIComponent(workflowId)}`, payload),
   // 5. 删除工作流
-  delete: (workflowId) =>
-    api.delete(`/admin/workflows/${encodeURIComponent(workflowId)}`),
+  delete: (workflowId) => api.delete(`/admin/workflows/${encodeURIComponent(workflowId)}`),
   // 6. 启用/禁用切换
   toggle: (workflowId, enabled) =>
     api.post(`/admin/workflows/${encodeURIComponent(workflowId)}/toggle`, {
@@ -559,11 +584,9 @@ export const chatApi = {
   updateSession: (sessionId, payload) =>
     api.patch(`/chat/sessions/${encodeURIComponent(sessionId)}`, payload),
   // 删除会话
-  deleteSession: (sessionId) =>
-    api.delete(`/chat/sessions/${encodeURIComponent(sessionId)}`),
+  deleteSession: (sessionId) => api.delete(`/chat/sessions/${encodeURIComponent(sessionId)}`),
   // 列出会话消息（含 parts，供前端回显历史）
-  listMessages: (sessionId) =>
-    api.get(`/chat/sessions/${encodeURIComponent(sessionId)}/messages`),
+  listMessages: (sessionId) => api.get(`/chat/sessions/${encodeURIComponent(sessionId)}/messages`),
   // 注意：发送消息走 SSE 流式，用 utils/sse.js 的 streamSSE，不在此处
 
   // ---- P0 新增 ----
@@ -571,24 +594,25 @@ export const chatApi = {
   regenerateUrl: (sessionId) => `/chat/sessions/${encodeURIComponent(sessionId)}/regenerate`,
   // P0-3: 删除单条消息（含 parts 级联）
   deleteMessage: (sessionId, messageId) =>
-    api.delete(`/chat/sessions/${encodeURIComponent(sessionId)}/messages/${encodeURIComponent(messageId)}`),
+    api.delete(
+      `/chat/sessions/${encodeURIComponent(sessionId)}/messages/${encodeURIComponent(messageId)}`,
+    ),
   // P0-8: 消息反馈（点赞/点踩）
   sendFeedback: (sessionId, messageId, payload) =>
-    api.post(`/chat/sessions/${encodeURIComponent(sessionId)}/messages/${encodeURIComponent(messageId)}/feedback`, payload),
+    api.post(
+      `/chat/sessions/${encodeURIComponent(sessionId)}/messages/${encodeURIComponent(messageId)}/feedback`,
+      payload,
+    ),
   // P0-5: 自动生成会话标题
-  autoTitle: (sessionId) =>
-    api.post(`/chat/sessions/${encodeURIComponent(sessionId)}/auto-title`),
+  autoTitle: (sessionId) => api.post(`/chat/sessions/${encodeURIComponent(sessionId)}/auto-title`),
   // P0-10: 搜索会话
-  searchSessions: (query) =>
-    api.get('/chat/sessions/search', { params: { q: query } }),
+  searchSessions: (query) => api.get('/chat/sessions/search', { params: { q: query } }),
 
   // ---- 增强：分享 / Fork ----
   // 生成会话分享链接：返回 {share_url, share_id}
-  shareSession: (sessionId) =>
-    api.post(`/chat/sessions/${encodeURIComponent(sessionId)}/share`),
+  shareSession: (sessionId) => api.post(`/chat/sessions/${encodeURIComponent(sessionId)}/share`),
   // 通过 share_id 只读访问会话（公开端点，无需认证）
-  getSharedSession: (shareId) =>
-    api.get(`/chat/sessions/shared/${encodeURIComponent(shareId)}`),
+  getSharedSession: (shareId) => api.get(`/chat/sessions/shared/${encodeURIComponent(shareId)}`),
   // 从指定消息分叉出新会话：返回新会话 dict
   forkSession: (sessionId, fromMessageId, title) =>
     api.post(`/chat/sessions/${encodeURIComponent(sessionId)}/fork`, {
@@ -596,8 +620,7 @@ export const chatApi = {
       title: title || undefined,
     }),
   // 停止当前会话的 SSE 流式生成
-  stop: (sessionId) =>
-    api.post(`/chat/sessions/${encodeURIComponent(sessionId)}/stop`),
+  stop: (sessionId) => api.post(`/chat/sessions/${encodeURIComponent(sessionId)}/stop`),
 }
 
 // ============================================================
@@ -605,8 +628,7 @@ export const chatApi = {
 // ============================================================
 export const evidenceApi = {
   // 查询某评估的所有证据引用（按 dimension 分组）
-  list: (evaluationId) =>
-    api.get(`/evaluations/${encodeURIComponent(evaluationId)}/evidence`),
+  list: (evaluationId) => api.get(`/evaluations/${encodeURIComponent(evaluationId)}/evidence`),
 }
 
 // ============================================================
@@ -632,10 +654,8 @@ export const voiceApi = {
 export const templateApi = {
   list: (category) => api.get('/presets/templates', { params: { category } }),
   create: (data) => api.post('/presets/templates', data),
-  update: (id, data) =>
-    api.put(`/presets/templates/${encodeURIComponent(id)}`, data),
-  delete: (id) =>
-    api.delete(`/presets/templates/${encodeURIComponent(id)}`),
+  update: (id, data) => api.put(`/presets/templates/${encodeURIComponent(id)}`, data),
+  delete: (id) => api.delete(`/presets/templates/${encodeURIComponent(id)}`),
   instantiate: (id, variables) =>
     api.post(`/presets/templates/${encodeURIComponent(id)}/instantiate`, {
       variables,
@@ -650,8 +670,7 @@ export const presetApi = {
   list: (category) => api.get('/presets/agents', { params: { category } }),
   get: (id) => api.get(`/presets/agents/${encodeURIComponent(id)}`),
   create: (data) => api.post('/presets/agents', data),
-  update: (id, data) =>
-    api.put(`/presets/agents/${encodeURIComponent(id)}`, data),
+  update: (id, data) => api.put(`/presets/agents/${encodeURIComponent(id)}`, data),
   delete: (id) => api.delete(`/presets/agents/${encodeURIComponent(id)}`),
   use: (id) => api.post(`/presets/agents/${encodeURIComponent(id)}/use`),
 }
@@ -661,8 +680,7 @@ export const presetApi = {
 // 管理某会话启用的工具列表
 // ============================================================
 export const sessionToolsApi = {
-  get: (sessionId) =>
-    api.get(`/chat/sessions/${encodeURIComponent(sessionId)}/tools`),
+  get: (sessionId) => api.get(`/chat/sessions/${encodeURIComponent(sessionId)}/tools`),
   update: (sessionId, tools) =>
     api.put(`/chat/sessions/${encodeURIComponent(sessionId)}/tools`, {
       tools,

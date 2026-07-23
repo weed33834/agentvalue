@@ -57,7 +57,7 @@
             <el-table-column label="主要风险因子">
               <template #default="{ row }">
                 <el-tag
-                  v-for="f in (row.factors || [])"
+                  v-for="f in row.factors || []"
                   :key="f.factor"
                   size="small"
                   type="danger"

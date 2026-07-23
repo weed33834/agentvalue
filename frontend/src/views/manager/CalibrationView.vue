@@ -33,7 +33,12 @@
         </el-form-item>
       </el-form>
 
-      <el-table :data="sessionList" v-loading="listLoading" style="width: 100%" empty-text="暂无校准会">
+      <el-table
+        :data="sessionList"
+        v-loading="listLoading"
+        style="width: 100%"
+        empty-text="暂无校准会"
+      >
         <el-table-column prop="session_id" label="校准会ID" width="180" />
         <el-table-column prop="title" label="标题" min-width="180" />
         <el-table-column prop="period" label="周期" width="120" />
@@ -71,14 +76,20 @@
         <template #content>
           <span class="page-title">
             {{ currentSession.title }}
-            <el-tag size="small" :type="statusTagType(currentSession.status)" style="margin-left: 8px">
+            <el-tag
+              size="small"
+              :type="statusTagType(currentSession.status)"
+              style="margin-left: 8px"
+            >
               {{ statusLabel(currentSession.status) }}
             </el-tag>
           </span>
         </template>
         <template #extra>
           <div class="header-actions">
-            <span class="muted">周期: {{ currentSession.period }} | 主持人: {{ currentSession.facilitator_id }}</span>
+            <span class="muted"
+              >周期: {{ currentSession.period }} | 主持人: {{ currentSession.facilitator_id }}</span
+            >
             <el-button
               v-if="currentSession.status !== 'completed'"
               type="success"
@@ -89,9 +100,7 @@
             >
               完成校准（应用分数）
             </el-button>
-            <el-button v-else type="info" disabled style="margin-left: 12px">
-              已完成
-            </el-button>
+            <el-button v-else type="info" disabled style="margin-left: 12px"> 已完成 </el-button>
           </div>
         </template>
       </el-page-header>
@@ -157,7 +166,10 @@
               </el-table-column>
               <el-table-column label="调整原因" min-width="200">
                 <template #default="{ row }">
-                  <span class="muted">{{ (row.adjustment_reason || '').slice(0, 60) }}{{ (row.adjustment_reason || '').length > 60 ? '...' : '' }}</span>
+                  <span class="muted"
+                    >{{ (row.adjustment_reason || '').slice(0, 60)
+                    }}{{ (row.adjustment_reason || '').length > 60 ? '...' : '' }}</span
+                  >
                 </template>
               </el-table-column>
               <el-table-column label="已应用" width="80">
@@ -189,9 +201,15 @@
             <template #header><span>调整面板</span></template>
             <template v-if="adjustTarget">
               <el-descriptions :column="1" border size="small">
-                <el-descriptions-item label="员工">{{ adjustTarget.employee_id }}</el-descriptions-item>
-                <el-descriptions-item label="评估ID">{{ adjustTarget.evaluation_id }}</el-descriptions-item>
-                <el-descriptions-item label="原始分">{{ adjustTarget.original_score }}</el-descriptions-item>
+                <el-descriptions-item label="员工">{{
+                  adjustTarget.employee_id
+                }}</el-descriptions-item>
+                <el-descriptions-item label="评估ID">{{
+                  adjustTarget.evaluation_id
+                }}</el-descriptions-item>
+                <el-descriptions-item label="原始分">{{
+                  adjustTarget.original_score
+                }}</el-descriptions-item>
                 <el-descriptions-item label="当前校准分">
                   {{ adjustTarget.calibrated_score ?? '-' }}
                 </el-descriptions-item>
@@ -243,10 +261,18 @@
     <el-dialog v-model="showCreateDialog" title="新建校准会" width="560px">
       <el-form :model="createForm" label-width="100px">
         <el-form-item label="标题" required>
-          <el-input v-model="createForm.title" placeholder="例如 2026 Q2 研发部校准会" maxlength="256" />
+          <el-input
+            v-model="createForm.title"
+            placeholder="例如 2026 Q2 研发部校准会"
+            maxlength="256"
+          />
         </el-form-item>
         <el-form-item label="周期" required>
-          <el-input v-model="createForm.period" placeholder="例如 2026-Q2 / 2026-W25" maxlength="32" />
+          <el-input
+            v-model="createForm.period"
+            placeholder="例如 2026-Q2 / 2026-W25"
+            maxlength="32"
+          />
         </el-form-item>
         <el-form-item label="参与者">
           <el-input
@@ -281,7 +307,13 @@
             placeholder="单个评估ID, 例如 EVAL-XXXX"
             style="width: 320px"
           />
-          <el-button type="primary" size="small" style="margin-left: 8px" :loading="addingItem" @click="addItem">
+          <el-button
+            type="primary"
+            size="small"
+            style="margin-left: 8px"
+            :loading="addingItem"
+            @click="addItem"
+          >
             添加
           </el-button>
         </el-form-item>
@@ -448,7 +480,10 @@ async function addItem() {
   }
   addingItem.value = true
   try {
-    await calibrationApi.addItem(currentSession.value.session_id, addItemForm.value.evaluationId.trim())
+    await calibrationApi.addItem(
+      currentSession.value.session_id,
+      addItemForm.value.evaluationId.trim(),
+    )
     ElMessage.success('校准项已添加')
     addItemForm.value.evaluationId = ''
     await loadSessionDetail(currentSession.value.session_id)
@@ -505,14 +540,10 @@ async function applyAdjust() {
   if (!adjustTarget.value) return
   adjusting.value = true
   try {
-    await calibrationApi.adjustItem(
-      currentSession.value.session_id,
-      adjustTarget.value.item_id,
-      {
-        calibrated_score: Number(adjustForm.value.calibrated_score),
-        adjustment_reason: adjustForm.value.adjustment_reason || null,
-      }
-    )
+    await calibrationApi.adjustItem(currentSession.value.session_id, adjustTarget.value.item_id, {
+      calibrated_score: Number(adjustForm.value.calibrated_score),
+      adjustment_reason: adjustForm.value.adjustment_reason || null,
+    })
     ElMessage.success('调整已保存')
     adjustTarget.value = null
     await loadSessionDetail(currentSession.value.session_id)
@@ -582,7 +613,7 @@ async function completeSession() {
     await ElMessageBox.confirm(
       '完成校准将把所有调整后的分数应用回 Evaluation, 此操作不可撤销。确认完成？',
       '确认完成校准',
-      { confirmButtonText: '确认完成', cancelButtonText: '取消', type: 'warning' }
+      { confirmButtonText: '确认完成', cancelButtonText: '取消', type: 'warning' },
     )
   } catch {
     return // 用户取消

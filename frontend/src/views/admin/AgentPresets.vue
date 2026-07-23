@@ -4,8 +4,8 @@
     <el-alert type="info" :closable="false" show-icon class="mb-16">
       <template #title>
         Agent 预设市场 —— 对标 ChatGPT GPTs / LobeChat 助手市场 / Coze Bot 商店。
-        选择预设快速开始对话，或创建自定义 Agent（系统提示词 + 模型层级 + 工具组合）。
-        第二个 Tab 提供可复用提示词模板，支持变量插值。
+        选择预设快速开始对话，或创建自定义 Agent（系统提示词 + 模型层级 + 工具组合）。 第二个 Tab
+        提供可复用提示词模板，支持变量插值。
       </template>
     </el-alert>
 
@@ -23,11 +23,7 @@
         <div class="toolbar mb-16">
           <el-radio-group v-model="filterCategory" @change="loadPresets">
             <el-radio-button label="all">全部</el-radio-button>
-            <el-radio-button
-              v-for="cat in categoryOptions"
-              :key="cat.value"
-              :label="cat.value"
-            >
+            <el-radio-button v-for="cat in categoryOptions" :key="cat.value" :label="cat.value">
               {{ cat.label }}
             </el-radio-button>
           </el-radio-group>
@@ -114,7 +110,10 @@
                     <el-icon><View /></el-icon>
                     使用 {{ preset.use_count || 0 }} 次
                   </span>
-                  <span v-if="preset.enabled_tools && preset.enabled_tools.length" class="stat-item">
+                  <span
+                    v-if="preset.enabled_tools && preset.enabled_tools.length"
+                    class="stat-item"
+                  >
                     <el-icon><Tools /></el-icon>
                     {{ preset.enabled_tools.length }} 个工具
                   </span>
@@ -188,7 +187,9 @@
           <el-table :data="templates" stripe empty-text="暂无模板">
             <el-table-column prop="name" label="模板名" min-width="160">
               <template #default="{ row }">
-                <el-link type="primary" @click="openTemplateEditDialog(row)">{{ row.name }}</el-link>
+                <el-link type="primary" @click="openTemplateEditDialog(row)">{{
+                  row.name
+                }}</el-link>
               </template>
             </el-table-column>
             <el-table-column label="分类" width="110">
@@ -200,13 +201,14 @@
             </el-table-column>
             <el-table-column prop="content" label="内容预览" min-width="280" show-overflow-tooltip>
               <template #default="{ row }">
-                {{ (row.content || '').slice(0, 80) }}{{ (row.content || '').length > 80 ? '...' : '' }}
+                {{ (row.content || '').slice(0, 80)
+                }}{{ (row.content || '').length > 80 ? '...' : '' }}
               </template>
             </el-table-column>
             <el-table-column label="变量" width="160">
               <template #default="{ row }">
                 <el-tag
-                  v-for="v in (row.variables || [])"
+                  v-for="v in row.variables || []"
                   :key="v.name || v"
                   size="small"
                   type="warning"
@@ -242,7 +244,12 @@
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="名称" prop="name">
-              <el-input v-model="presetForm.name" placeholder="如：代码审查助手" maxlength="60" show-word-limit />
+              <el-input
+                v-model="presetForm.name"
+                placeholder="如：代码审查助手"
+                maxlength="60"
+                show-word-limit
+              />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -282,7 +289,11 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="模型层级" prop="model_tier">
-              <el-select v-model="presetForm.model_tier" placeholder="选择模型层级" style="width: 100%">
+              <el-select
+                v-model="presetForm.model_tier"
+                placeholder="选择模型层级"
+                style="width: 100%"
+              >
                 <el-option
                   v-for="tier in tierOptions"
                   :key="tier.value"
@@ -329,12 +340,7 @@
                 placeholder="输入后回车添加标签"
                 style="width: 100%"
               >
-                <el-option
-                  v-for="tag in tagSuggestions"
-                  :key="tag"
-                  :label="tag"
-                  :value="tag"
-                />
+                <el-option v-for="tag in tagSuggestions" :key="tag" :label="tag" :value="tag" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -349,25 +355,14 @@
                 placeholder="选择或输入工具名"
                 style="width: 100%"
               >
-                <el-option
-                  v-for="tool in toolOptions"
-                  :key="tool"
-                  :label="tool"
-                  :value="tool"
-                />
+                <el-option v-for="tool in toolOptions" :key="tool" :label="tool" :value="tool" />
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
 
         <el-form-item label="温度 (Temperature): {{ presetForm.temperature / 100 }}">
-          <el-slider
-            v-model="presetForm.temperature"
-            :min="0"
-            :max="100"
-            :step="5"
-            show-stops
-          />
+          <el-slider v-model="presetForm.temperature" :min="0" :max="100" :step="5" show-stops />
           <span class="field-hint">
             0 = 严谨确定，100 = 高度创造性。对话类建议 70，分析类建议 30。
           </span>
@@ -389,11 +384,21 @@
       width="720px"
       :close-on-click-modal="false"
     >
-      <el-form ref="templateFormRef" :model="templateForm" :rules="templateRules" label-position="top">
+      <el-form
+        ref="templateFormRef"
+        :model="templateForm"
+        :rules="templateRules"
+        label-position="top"
+      >
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="模板名" prop="name">
-              <el-input v-model="templateForm.name" placeholder="如：周报生成模板" maxlength="60" show-word-limit />
+              <el-input
+                v-model="templateForm.name"
+                placeholder="如：周报生成模板"
+                maxlength="60"
+                show-word-limit
+              />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -424,31 +429,19 @@
 
         <el-form-item label="变量配置">
           <div class="var-editor">
-            <div
-              v-for="(v, idx) in templateForm.variables"
-              :key="idx"
-              class="var-row"
-            >
+            <div v-for="(v, idx) in templateForm.variables" :key="idx" class="var-row">
               <el-input
                 v-model="v.name"
                 placeholder="变量名 (如 employee_name)"
                 style="width: 200px"
               />
-              <el-input
-                v-model="v.description"
-                placeholder="变量描述"
-                style="flex: 1"
-              />
+              <el-input v-model="v.description" placeholder="变量描述" style="flex: 1" />
               <el-input
                 v-model="v.default_value"
                 placeholder="默认值 (可选)"
                 style="width: 180px"
               />
-              <el-button
-                type="danger"
-                link
-                @click="removeVariable(idx)"
-              >
+              <el-button type="danger" link @click="removeVariable(idx)">
                 <el-icon><Delete /></el-icon>
               </el-button>
             </div>
@@ -502,12 +495,7 @@ const tierOptions = [
 const tagSuggestions = ['高效', '创意', '严谨', '中文', '英文', '代码', '文档', '分析', '报告']
 
 // 启用工具可选项 (与 AdminTools 中的内置工具对齐,支持自定义输入)
-const toolOptions = [
-  'calculator',
-  'datetime',
-  'employee_history',
-  'company_kb',
-]
+const toolOptions = ['calculator', 'datetime', 'employee_history', 'company_kb']
 
 function categoryLabel(value) {
   const found = categoryOptions.find((c) => c.value === value)
@@ -678,11 +666,9 @@ async function savePreset() {
 
 async function handleDelete(preset) {
   try {
-    await ElMessageBox.confirm(
-      `确认删除预设「${preset.name}」?此操作不可恢复`,
-      '删除确认',
-      { type: 'warning' },
-    )
+    await ElMessageBox.confirm(`确认删除预设「${preset.name}」?此操作不可恢复`, '删除确认', {
+      type: 'warning',
+    })
   } catch {
     return
   }
@@ -827,11 +813,9 @@ async function saveTemplate() {
 
 async function handleDeleteTemplate(row) {
   try {
-    await ElMessageBox.confirm(
-      `确认删除模板「${row.name}」?此操作不可恢复`,
-      '删除确认',
-      { type: 'warning' },
-    )
+    await ElMessageBox.confirm(`确认删除模板「${row.name}」?此操作不可恢复`, '删除确认', {
+      type: 'warning',
+    })
   } catch {
     return
   }

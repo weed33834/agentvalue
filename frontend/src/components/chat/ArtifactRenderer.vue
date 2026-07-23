@@ -27,9 +27,7 @@ const editContent = ref('')
 const fullscreenVisible = ref(false)
 
 // ---- 字段 ----
-const artifactType = computed(
-  () => props.artifact?.artifact_type || props.artifact?.type || 'code',
-)
+const artifactType = computed(() => props.artifact?.artifact_type || props.artifact?.type || 'code')
 const content = computed(() => props.artifact?.content || '')
 const name = computed(() => props.artifact?.name || 'Artifact')
 const language = computed(() => props.artifact?.language || '')
@@ -215,11 +213,7 @@ function openFullscreen() {
         />
 
         <!-- SVG: 直接渲染 -->
-        <div
-          v-else-if="artifactType === 'svg'"
-          class="svg-area"
-          v-html="content"
-        />
+        <div v-else-if="artifactType === 'svg'" class="svg-area" v-html="content" />
 
         <!-- Mermaid -->
         <div v-else-if="artifactType === 'mermaid'" class="mermaid-area">
@@ -256,11 +250,7 @@ function openFullscreen() {
           sandbox="allow-scripts"
           :srcdoc="iframeSrcDoc"
         />
-        <div
-          v-else-if="artifactType === 'svg'"
-          class="svg-area full"
-          v-html="content"
-        />
+        <div v-else-if="artifactType === 'svg'" class="svg-area full" v-html="content" />
         <div v-else-if="artifactType === 'mermaid'" class="mermaid-area full">
           <div v-if="mermaidSvg" class="mermaid-svg" v-html="mermaidSvg" />
           <pre v-else class="mermaid-fallback"><code>{{ content }}</code></pre>
