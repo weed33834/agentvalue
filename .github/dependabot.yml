@@ -1,0 +1,28 @@
+# Dependabot 配置 — 手动管理依赖，不开自动 PR
+# 如需检查依赖更新，手动运行 pip list --outdated 或 npm outdated
+version: 2
+updates:
+  # Python 依赖 — 仅检查不开 PR
+  - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 0
+  # npm 依赖 — 仅检查不开 PR
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 0
+  # GitHub Actions — 仅检查不开 PR
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 0
+  # Docker — 仅检查不开 PR
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 0

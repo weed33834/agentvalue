@@ -1,7 +1,7 @@
 {
   "name": "agentvalue-ai-frontend",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.2.0",
   "license": "CNCL-1.0",
   "type": "module",
   "description": "AgentValue-AI 前端 — 员工 / 主管 / HR / 管理后台四端可视化",
@@ -29,12 +29,12 @@
     "element-plus": "^2.7.0",
     "highlight.js": "^11.10.0",
     "katex": "^0.16.47",
-    "marked": "^14.0.0",
+    "marked": "^18.0.7",
     "mermaid": "^11.16.0",
-    "pinia": "^3.0.4",
-    "vue": "^3.5.39",
+    "pinia": "^4.0.2",
+    "vue": "^3.5.40",
     "vue-echarts": "^8.0.1",
-    "vue-router": "^5.1.0"
+    "vue-router": "^5.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -42,7 +42,7 @@
     "@vitejs/plugin-vue": "^6.0.7",
     "@vue/test-utils": "^2.4.6",
     "eslint": "^10.6.0",
-    "eslint-plugin-vue": "^10.9.2",
+    "eslint-plugin-vue": "^10.10.0",
     "globals": "^17.7.0",
     "jsdom": "^29.1.1",
     "prettier": "^3.3.3",

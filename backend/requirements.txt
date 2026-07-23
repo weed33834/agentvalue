@@ -1,8 +1,8 @@
 pydantic>=2.13.4
 pydantic-settings>=2.0
 email-validator>=2.3.0
-fastapi>=0.139.0
-uvicorn[standard]>=0.50.2
+fastapi>=0.139.2
+uvicorn[standard]>=0.51.0
 langgraph>=1.2.8
 # P1 工具管理: LangChain @tool 装饰器 + bind_tools + ToolNode + ReAct agent
 langchain>=0.3.0
@@ -14,9 +14,9 @@ langchain-mcp-adapters>=0.2.0
 openai>=2.44.0
 chromadb>=1.5.9
 sqlalchemy>=2.0.51
-aiosqlite>=0.19
+aiosqlite>=0.22.1
 alembic>=1.18.5
-asyncpg>=0.29
+asyncpg>=0.31.0
 pytest>=9.1.1
 pytest-asyncio>=1.4.0
 pytest-cov>=7.1.0
@@ -28,7 +28,7 @@ pyjwt>=2.13.0
 bcrypt>=4.0.0
 prometheus_client>=0.25.0
 redis>=5.0
-fakeredis>=2.20
+fakeredis>=2.36.2
 # Lua 脚本支持: fakeredis 跑 RedisJobQueue.update 的 Lua 原子脚本需要 lupa 解释器
 # 生产环境用真实 Redis(原生支持 Lua),lupa 仅测试环境需要
 lupa>=2.0
