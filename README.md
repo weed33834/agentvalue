@@ -19,7 +19,7 @@
   <img src="https://img.shields.io/badge/Vue-3-4FC08D?logo=vue.js&logoColor=white" alt="Vue 3" />
   <img src="https://img.shields.io/badge/LangGraph-agent-FF6B6B" alt="LangGraph" />
   <img src="https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white" alt="Docker" />
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.1.0-blue.svg" alt="Version" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.2.0-blue.svg" alt="Version" /></a>
   <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome" /></a>
 </p>
 
@@ -160,7 +160,7 @@ AgentValue-AI 把三件事拼到了一个平台里:
 | 可观测性 | Prometheus + Langfuse + Grafana |
 | 工作流引擎 | 自研 DAG 执行器 (Kahn 拓扑排序 + 7 种节点 + 代码沙箱) |
 | Feature Flag | 自研 5 级规则 (sha256 稳定哈希 + 60s LRU 缓存) |
-| 测试 | pytest + locust (1517 + 111 enterprise = 1628 passing) |
+| 测试 | pytest + locust (1517 + 122 enterprise = 1639 passing) |
 | 部署 | Docker Compose |
 | 安全围栏 | InputGuard + OutputGuard (PII脱敏/越狱防护/偏见检测/幻觉标记) |
 
@@ -379,7 +379,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 │   ├── core/             # 配置 / 模型路由 / 护栏 / 工作流引擎 / Feature Flag
 │   ├── models/           # SQLAlchemy 数据模型
 │   ├── services/          # 业务服务
-│   ├── tests/             # 1517 + 111 enterprise = 1628 passing
+│   ├── tests/             # 1517 + 122 enterprise = 1639 passing
 │   └── ...
 ├── frontend/
 │   ├── src/components/chat/   # 对话组件

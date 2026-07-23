@@ -3,6 +3,31 @@
 本文件记录 AgentValue-AI 所有显著变更,格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/),
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [v2.2.0] - 2026-07-22
+
+### 第三轮 P1 级缺失功能补全
+
+基于对标 12 个平台的深度调研,补齐剩余 5 个 P1 级缺失功能模块,新增 18 个文件、8 张数据库表、55+ API 端点。修复 SQLAlchemy async MissingGreenlet 问题。
+
+#### 新增功能 (5 项)
+
+- **GraphRAG 知识图谱** — LLM 驱动的实体/关系抽取, BFS 图遍历增强检索, 图谱可视化 (对标 RagFlow GraphRAG+RAPTOR)
+- **灰度发布/蓝绿部署** — canary/blue_green/rolling 三种策略, 流量百分比控制, 一键回滚 (对标 Bisheng/Langfuse canary)
+- **多环境管理** — dev/staging/prod 环境隔离, 配置深度合并, Agent 环境级部署 (对标 Bisheng/Langfuse)
+- **知识库自动更新** — 数据源自动同步 + 定时增量更新 + 变更检测 (对标 RagFlow 自动同步)
+- **Prompt 优化建议** — LLM 驱动的 Prompt 质量评分 + 优化建议 (improve/simplify/translate/specialize 四种模式) (对标 Langfuse Playground)
+- **模型负载均衡** — 4 种策略(round_robin/weighted/least_connections/latency_aware) + 健康检查 + 并发控制 (对标阿里百炼 AI 网关)
+
+#### Bug 修复
+
+- 修复 SQLAlchemy async session 在 `onupdate` 字段 flush 后触发 MissingGreenlet 错误 (添加 `session.refresh()` )
+- 修复路由层 `session.commit()` 后调用 `_to_dict()` 导致对象过期问题
+
+#### 测试
+
+- 三轮端到端测试全部通过: 122 个 (第一轮 27 + 第二轮 59 + 第三轮 36)
+- 覆盖 CRUD + 搜索 + 路由决策 + 图遍历 + 安全验证
+
 ## [v2.1.0] - 2026-07-22
 
 ### 深度对标大厂完善管理功能矩阵 (两轮)

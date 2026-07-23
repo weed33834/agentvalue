@@ -80,6 +80,18 @@ from api.admin.agent_template_routes import router as admin_agent_template_route
 from api.admin.nl2sql_routes import router as admin_nl2sql_router  # noqa: E402
 # 深度文档解析 (对标 RagFlow DeepDoc, 表格提取 + 版面分析)
 from api.admin.doc_parsing_routes import router as admin_doc_parsing_router  # noqa: E402
+# GraphRAG 知识图谱 (对标 RagFlow GraphRAG + RAPTOR, 实体关系抽取 + 图增强检索)
+from api.admin.graph_rag_routes import router as admin_graph_rag_router  # noqa: E402
+# 灰度发布 / 蓝绿部署 (对标 Bisheng/Langfuse Canary 发布)
+from api.admin.gray_release_routes import router as admin_gray_release_router  # noqa: E402
+# 多环境管理 (对标 Bisheng/Langfuse 环境隔离, dev/staging/prod 配置隔离)
+from api.admin.environment_routes import router as admin_environment_router  # noqa: E402
+# 知识库自动同步 (对标 RagFlow 自动同步 / 阿里百炼数据源管理)
+from api.admin.kb_sync_routes import router as admin_kb_sync_router  # noqa: E402
+# Prompt 优化建议 (对标 Langfuse LLM Playground 交互测试)
+from api.admin.prompt_optimization_routes import router as admin_prompt_optimization_router  # noqa: E402
+# 模型负载均衡 (对标阿里百炼 AI 网关 GPU 感知负载均衡)
+from api.admin.model_load_balancer_routes import router as admin_model_lb_router  # noqa: E402
 from api.deps import AppState  # noqa: E402
 from api.auth_routes import router as auth_router  # noqa: E402
 from api.analytics_routes import router as analytics_router  # noqa: E402
@@ -151,6 +163,14 @@ async def lifespan(app: FastAPI):
         _task_scheduler = TaskScheduler()
         await _task_scheduler.start()
         set_scheduler(_task_scheduler)
+    except Exception:
+        pass
+    # 注册知识库自动同步定时任务（降级容错：注册失败不影响应用）
+    try:
+        from services.kb_sync_service import KbSyncService
+
+        _kb_sync_service = KbSyncService()
+        await _kb_sync_service._register_scheduler()
     except Exception:
         pass
     try:
@@ -402,6 +422,36 @@ app.include_router(
 app.include_router(
     admin_doc_parsing_router,
     tags=["admin-doc-parsing"],
+)
+# GraphRAG 知识图谱 (对标 RagFlow GraphRAG + RAPTOR, 实体关系抽取 + 图增强检索)
+app.include_router(
+    admin_graph_rag_router,
+    tags=["admin-graph-rag"],
+)
+# 灰度发布 / 蓝绿部署 (对标 Bisheng/Langfuse Canary 发布)
+app.include_router(
+    admin_gray_release_router,
+    tags=["admin-gray-release"],
+)
+# 多环境管理 (对标 Bisheng/Langfuse 环境隔离, dev/staging/prod 配置隔离)
+app.include_router(
+    admin_environment_router,
+    tags=["admin-environments"],
+)
+# 知识库自动同步 (对标 RagFlow 自动同步 / 阿里百炼数据源管理)
+app.include_router(
+    admin_kb_sync_router,
+    tags=["admin-kb-sync"],
+)
+# Prompt 优化建议 (对标 Langfuse LLM Playground 交互测试)
+app.include_router(
+    admin_prompt_optimization_router,
+    tags=["admin-prompt-optimization"],
+)
+# 模型负载均衡 (对标阿里百炼 AI 网关 GPU 感知负载均衡)
+app.include_router(
+    admin_model_lb_router,
+    tags=["admin-model-lb"],
 )
 # 数据导出 (评估/审计/分析/通知, CSV/Excel/JSON)
 app.include_router(

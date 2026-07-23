@@ -91,6 +91,22 @@ from models.agent_template_models import AgentTemplate, TemplateReview
 from models.nl2sql_models import NL2SQLQuery, NL2SQLSchema
 # 深度文档解析 (对标 RagFlow DeepDoc, 表格提取 + 版面分析)
 from models.doc_parsing_models import DocParsingResult, DocParsingTask
+# GraphRAG 知识图谱 (对标 RagFlow GraphRAG + RAPTOR, 实体关系抽取 + 图增强检索)
+from models.knowledge_graph_models import (
+    KnowledgeGraphEntity,
+    KnowledgeGraphRelation,
+    KnowledgeGraphTask,
+)
+# 灰度发布 / 蓝绿部署 (对标 Bisheng/Langfuse Canary 发布)
+from models.gray_release_models import GrayRelease
+# 多环境管理 (对标 Bisheng/Langfuse 环境隔离, dev/staging/prod 配置隔离)
+from models.environment_models import Environment, EnvironmentDeployment
+# 知识库自动同步 (对标 RagFlow 自动同步 / 阿里百炼数据源管理)
+from models.kb_sync_models import KbDataSource, KbSyncLog
+# Prompt 优化建议 (对标 Langfuse LLM Playground 交互测试)
+from models.prompt_optimization_models import PromptOptimizationTask
+# 模型负载均衡 (对标阿里百炼 AI 网关 GPU 感知负载均衡)
+from models.model_load_balancer_models import LoadBalancerConfig, ModelInstance
 
 __all__ = [
     "Tenant",
@@ -191,4 +207,21 @@ __all__ = [
     # 深度文档解析
     "DocParsingTask",
     "DocParsingResult",
+    # GraphRAG 知识图谱
+    "KnowledgeGraphEntity",
+    "KnowledgeGraphRelation",
+    "KnowledgeGraphTask",
+    # 灰度发布 / 蓝绿部署
+    "GrayRelease",
+    # 多环境管理
+    "Environment",
+    "EnvironmentDeployment",
+    # 知识库自动同步
+    "KbDataSource",
+    "KbSyncLog",
+    # Prompt 优化建议
+    "PromptOptimizationTask",
+    # 模型负载均衡
+    "ModelInstance",
+    "LoadBalancerConfig",
 ]
