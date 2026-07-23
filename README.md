@@ -1,3 +1,5 @@
+[English](README.md) | [中文](README.zh.md) | [日本語](README.ja.md)
+
 <p align="center">
   <img src="docs/assets/logo.jpg" width="180" alt="AgentValue-AI Logo" />
 </p>
@@ -5,8 +7,8 @@
 <h1 align="center">AgentValue-AI</h1>
 
 <p align="center">
-  一个能对话、能操作电脑、能评估员工价值的 AI 智能体平台<br/>
-  对标 ChatGPT / Claude.ai / opencode / Dify / Coze
+  An AI agent platform that combines conversational chat, computer-use tooling,<br/>
+  and structured employee value evaluation. Comparable in scope to ChatGPT / Claude.ai / opencode / Dify / Coze.
 </p>
 
 <p align="center">
@@ -25,180 +27,180 @@
 
 ---
 
-## 这是什么
+## Overview
 
-AgentValue-AI 把三件事拼到了一个平台里:
+AgentValue-AI consolidates three capability areas into a single platform:
 
-**对话** — 完整的 AI 聊天界面,支持流式输出、工具调用展示、思考过程折叠、数学公式渲染、Markdown 导出。你在 ChatGPT 或 Claude.ai 上常用的操作,这里都有。
+**Conversation** — A full-featured AI chat interface with streaming output, tool-call visualization, collapsible reasoning traces, math rendering, and Markdown export. It covers the interactions commonly used in ChatGPT or Claude.ai.
 
-**工具调用** — Agent 能执行 bash 命令、读写文件、浏览目录、抓取网页、搜索代码、执行 Python 沙箱。14 个内置工具覆盖了日常操作,支持 MCP 协议接入 400+ 外部工具。生产环境可以按需开关高危工具。
+**Tool use** — The agent executes bash commands, reads and writes files, lists directories, fetches web pages, searches code, and runs a Python sandbox. Built-in tools cover day-to-day operations, and the MCP protocol allows integration with 400+ external tools. High-risk tools can be toggled per environment in production.
 
-**员工价值评估** — 持续接收员工的多维工作数据(日报、任务进度、代码贡献、会议记录、截图、语音),交给 LangGraph Agent 自动分析,一次推理同时产出三套视图:
+**Employee value evaluation** — The platform ingests multi-dimensional work data (daily reports, task progress, code contributions, meeting notes, screenshots, voice), analyzes it through a LangGraph agent, and produces three separate views in a single inference pass:
 
-| 视角 | 给谁看 | 说了什么 |
+| View | Audience | Content |
 |---|---|---|
-| 员工视角 | 本人 | 建设性成长反馈 |
-| 管理视角 | 主管 / HR | 人才诊断与调配建议 |
-| 审计视角 | 合规审计 | 每条结论带原始证据引用,可追溯 |
+| Employee | The individual | Constructive growth feedback |
+| Manager | Direct manager / HR | Talent diagnostics and reallocation suggestions |
+| Audit | Compliance / audit | Each conclusion carries original-evidence citations and is traceable |
 
-三套视图刻意分离。同一个判断,对员工说"成长空间",给主管看"ROI 下滑"——措辞和立场本就不该一样。所有评估必须经人工审批才能落地,这条是硬约束。
+The three views are intentionally separated. The same finding is phrased as "growth room" to the employee and as "ROI decline" to the manager — wording and stance differ by audience. Every evaluation must pass manual approval before it takes effect; this is a hard constraint, not a recommendation.
 
 ---
 
-## 功能一览
+## Features
 
-### AI 对话
+### AI Chat
 
-| 功能 | 说明 |
+| Feature | Description |
 |---|---|
-| 流式对话 | SSE 逐 token 输出,支持中断 |
-| 工具调用展示 | 可折叠输入/输出,JSON 美化,状态图标 |
-| 思考过程 | DeepSeek reasoning_content 可折叠展示 |
-| 消息复制 | 代码块复制 + 整条消息复制 |
-| 重新生成 | 删除末条回复重新执行 |
-| 编辑消息 | inline 编辑用户消息 |
-| Token 用量 | 每条消息显示 token 分解与响应延迟 |
-| 会话管理 | 重命名、自动标题、搜索、Markdown 导出 |
-| 数学公式 | KaTeX 行内 `$...$` 与块级 `$$...$$` |
-| 图表渲染 | Mermaid 流程图、时序图懒加载 |
-| 点赞反馈 | like/dislike 持久化 |
-| 文件上传 | 多文件附件,10MB 限制 |
-| 模型切换 | 下拉切换 8 种模型 |
+| Streaming chat | SSE token-by-token output, supports interruption |
+| Tool-call display | Collapsible input/output, JSON prettified, status icons |
+| Reasoning trace | DeepSeek `reasoning_content` shown in a collapsible block |
+| Message copy | Code-block copy and whole-message copy |
+| Regenerate | Drop the last reply and re-run |
+| Edit message | Inline editing of user messages |
+| Token usage | Per-message token breakdown and response latency |
+| Session management | Rename, auto-title, search, Markdown export |
+| Math formulas | KaTeX inline `$...$` and block `$$...$$` |
+| Chart rendering | Mermaid flowcharts and sequence diagrams, lazy-loaded |
+| Feedback | Like / dislike, persisted |
+| File upload | Multi-file attachments, 10 MB cap |
+| Model switching | Dropdown across 8 models |
 
-### Agent 工具
+### Agent Tools
 
-| 工具 | 说明 | 安全约束 |
+| Tool | Description | Safety constraint |
 |---|---|---|
-| `bash` | 执行 shell 命令 | 30s 超时 + 5000 字符截断 |
-| `read_file` | 读取文件内容 | 5000 字符截断 |
-| `write_file` | 写入文件 | 自动创建父目录 |
-| `list_directory` | 列出目录内容 | — |
-| `web_fetch` | 抓取网页 | HTML 转纯文本 + 截断 |
-| `calculator` | 数学计算 | — |
-| `get_current_datetime` | 获取日期时间 | — |
-| `get_employee_history` | 查询员工历史评估 | 业务工具 |
-| `query_company_kb` | 查询公司知识库 | 业务工具 |
+| `bash` | Execute shell commands | 30 s timeout + 5 000-char truncation |
+| `read_file` | Read file contents | 5 000-char truncation |
+| `write_file` | Write files | Auto-creates parent directories |
+| `list_directory` | List directory contents | — |
+| `web_fetch` | Fetch web pages | HTML → plain text + truncation |
+| `calculator` | Math evaluation | — |
+| `get_current_datetime` | Return current date and time | — |
+| `get_employee_history` | Query an employee's evaluation history | Business tool |
+| `query_company_kb` | Query the company knowledge base | Business tool |
 
-工具经 `ToolRegistry` 统一管理,可通过 `enabled_tools` 配置按需开关。
+Tools are managed centrally through `ToolRegistry` and can be toggled via the `enabled_tools` configuration.
 
-### 运营管理平台
+### Operations Console
 
-| 页面 | 路由 | 对标 |
+| Page | Route | Comparable to |
 |---|---|---|
-| 模型供应商 | `/admin/providers` | Dify model-providers |
-| Prompt 调试台 | `/admin/playground` | Langfuse Playground |
-| 知识库管理 | `/admin/knowledge-base` | Dify Dataset |
-| 链路追踪 | `/admin/trace` | Langfuse Trace |
-| Token 趋势 | `/admin/metrics` | Langfuse Usage |
-| 功能开关 | `/admin/feature-flags` | LaunchDarkly |
-| 多 Agent 协作 | `/admin/multi-agent` | LangGraph Supervisor |
-| 工作流编排 | `/admin/workflows` | Dify Workflow |
-| 自定义工具 | `/admin/tools` | Dify Custom Tool |
-| 模型 Fallback | `/admin/model-fallback` | 阿里百炼 AI 网关 |
-| 会话分析 | `/admin/analytics-v2` | Langfuse Dashboard |
-| API 健康 | `/admin/api-health` | Langfuse 延迟监控 |
-| 数据集管理 | `/admin/datasets` | Langfuse 数据集 |
-| LLM 评测 | `/admin/llm-judge` | Langfuse LLM-as-a-Judge |
-| RAG 评测 | `/admin/rag-eval` | RagFlow 检索测试 |
-| 人工标注 | `/admin/annotations` | Langfuse HITL |
-| SSO 配置 | `/admin/sso` | Dify SSO |
-| 模板市场 | `/admin/agent-templates` | Coze 插件市场 |
+| Model providers | `/admin/providers` | Dify model-providers |
+| Prompt playground | `/admin/playground` | Langfuse Playground |
+| Knowledge base | `/admin/knowledge-base` | Dify Dataset |
+| Trace | `/admin/trace` | Langfuse Trace |
+| Token trends | `/admin/metrics` | Langfuse Usage |
+| Feature flags | `/admin/feature-flags` | LaunchDarkly |
+| Multi-agent collaboration | `/admin/multi-agent` | LangGraph Supervisor |
+| Workflow orchestration | `/admin/workflows` | Dify Workflow |
+| Custom tools | `/admin/tools` | Dify Custom Tool |
+| Model fallback | `/admin/model-fallback` | Alibaba Bailian AI Gateway |
+| Session analytics | `/admin/analytics-v2` | Langfuse Dashboard |
+| API health | `/admin/api-health` | Langfuse latency monitoring |
+| Datasets | `/admin/datasets` | Langfuse datasets |
+| LLM judge | `/admin/llm-judge` | Langfuse LLM-as-a-Judge |
+| RAG evaluation | `/admin/rag-eval` | RagFlow retrieval testing |
+| Human annotation | `/admin/annotations` | Langfuse HITL |
+| SSO | `/admin/sso` | Dify SSO |
+| Template marketplace | `/admin/agent-templates` | Coze plugin market |
 | NL2SQL | `/admin/nl2sql` | RagFlow NL2SQL |
-| 文档解析 | `/admin/doc-parsing` | RagFlow DeepDoc |
-| 配额管理 | `/admin/quota` | 阿里百炼 Token Plan |
-| 预算告警 | `/admin/budgets` | Langfuse 预算 |
-| 计费账单 | `/admin/billing` | 阿里百炼统一计量 |
-| Agent 版本 | `/admin/agent-versions` | Langfuse 版本 |
-| 多渠道发布 | `/admin/publish` | Coze 全域分发 |
-| 敏感词管理 | `/admin/sensitive-words` | 腾讯混元内容安全 |
-| 告警通知 | `/admin/alerts` | Grafana Alerting |
-| 工具配置 | `/admin/tool-config` | Dify 工具管理 |
-| 混合检索 | `/admin/search` | Dify 检索 |
+| Document parsing | `/admin/doc-parsing` | RagFlow DeepDoc |
+| Quota management | `/admin/quota` | Alibaba Bailian Token Plan |
+| Budget alerts | `/admin/budgets` | Langfuse budgets |
+| Billing | `/admin/billing` | Alibaba Bailian unified metering |
+| Agent versions | `/admin/agent-versions` | Langfuse versions |
+| Multi-channel publish | `/admin/publish` | Coze omnichannel distribution |
+| Sensitive words | `/admin/sensitive-words` | Tencent Hunyuan content safety |
+| Alerts | `/admin/alerts` | Grafana Alerting |
+| Tool config | `/admin/tool-config` | Dify tool management |
+| Hybrid retrieval | `/admin/search` | Dify retrieval |
 
 ---
 
-## 系统架构
+## System Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│              前端交互层 (Vue 3 + Element Plus)              │
-│  员工端 │ 主管端 │ HR端 │ 管理后台 │ AI 对话界面             │
+│        Frontend Layer (Vue 3 + Element Plus)             │
+│  Employee │ Manager │ HR │ Admin Console │ AI Chat UI     │
 ├──────────────────────────────────────────────────────────┤
-│              API 网关层 (FastAPI)                           │
-│  RBAC │ 限流 │ 审计日志 │ 护栏拦截 │ SSE 流式               │
+│        API Gateway Layer (FastAPI)                       │
+│  RBAC │ Rate limiting │ Audit logs │ Guards │ SSE stream  │
 ├──────────────────────────────────────────────────────────┤
-│              Agent 编排层 (LangGraph + ReAct 循环)         │
-│  状态机 │ 工具调用 │ 记忆检索 │ 人工中断点                    │
+│     Agent Orchestration Layer (LangGraph + ReAct loop)   │
+│  State machine │ Tool calls │ Memory retrieval │ HITL     │
 ├──────────────────────────────────────────────────────────┤
-│              Agent 工具层 (9 个内置工具)                    │
+│        Agent Tool Layer (9 built-in tools)               │
 │  bash │ read_file │ write_file │ list_directory │ web_fetch│
-│  calculator │ datetime │ employee_history │ company_kb     │
+│  calculator │ datetime │ employee_history │ company_kb    │
 ├──────────────────────────────────────────────────────────┤
-│              模型抽象层 (ModelRouter)                       │
-│  硬件探测 │ 云端 API │ 本地 LM Studio │ 自动降级               │
+│        Model Abstraction Layer (ModelRouter)             │
+│  Hardware probe │ Cloud API │ Local LM Studio │ Fallback  │
 ├──────────────────────────────────────────────────────────┤
-│              数据与记忆层                                   │
-│  SQLite/PostgreSQL │ ChromaDB │ Redis(队列)                  │
+│        Data and Memory Layer                             │
+│  SQLite/PostgreSQL │ ChromaDB │ Redis (queue)            │
 └──────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 技术栈
+## Tech Stack
 
-| 层级 | 技术 |
+| Layer | Technology |
 |---|---|
-| 前端 | Vue 3 + JavaScript + Vite + Element Plus + ECharts + Vue Flow + KaTeX + Mermaid |
-| 后端 | Python 3.11+ + FastAPI + SQLAlchemy |
-| Agent | LangGraph (supervisor 多 Agent + ReAct 循环 + SSE 流式) |
-| LLM Provider | OpenAI / Anthropic Claude / Google Gemini / Ollama (凭证加密 + 负载均衡) |
-| Rerank | Cohere / Jina / BGE (本地) / Dummy fallback |
-| 流式响应 | sse-starlette + @microsoft/fetch-event-source |
-| 向量记忆 | ChromaDB |
-| 数据库 | SQLite (默认) / PostgreSQL (生产) |
-| 缓存 | Redis (任务队列,未配置降级内存) |
-| 可观测性 | Prometheus + Langfuse + Grafana |
-| 工作流引擎 | 自研 DAG 执行器 (Kahn 拓扑排序 + 7 种节点 + 代码沙箱) |
-| Feature Flag | 自研 5 级规则 (sha256 稳定哈希 + 60s LRU 缓存) |
-| 测试 | pytest + locust (1517 + 122 enterprise = 1639 passing) |
-| 部署 | Docker Compose |
-| 安全围栏 | InputGuard + OutputGuard (PII脱敏/越狱防护/偏见检测/幻觉标记) |
+| Frontend | Vue 3 + JavaScript + Vite + Element Plus + ECharts + Vue Flow + KaTeX + Mermaid |
+| Backend | Python 3.11+ + FastAPI + SQLAlchemy |
+| Agent | LangGraph (supervisor multi-agent + ReAct loop + SSE streaming) |
+| LLM Provider | OpenAI / Anthropic Claude / Google Gemini / Ollama (encrypted credentials + load balancing) |
+| Rerank | Cohere / Jina / BGE (local) / Dummy fallback |
+| Streaming | sse-starlette + @microsoft/fetch-event-source |
+| Vector memory | ChromaDB |
+| Database | SQLite (default) / PostgreSQL (production) |
+| Cache | Redis (job queue; in-memory fallback when unconfigured) |
+| Observability | Prometheus + Langfuse + Grafana |
+| Workflow engine | In-house DAG executor (Kahn topological sort + 7 node types + code sandbox) |
+| Feature flag | In-house 5-level rules (sha256 stable hash + 60 s LRU cache) |
+| Tests | pytest + locust (1 517 + 122 enterprise = 1 639 passing) |
+| Deployment | Docker Compose |
+| Safety guardrails | InputGuard + OutputGuard (PII redaction / jailbreak defense / bias detection / hallucination flagging) |
 
 ---
 
-## 快速开始
+## Quick Start
 
-### Docker Compose 一键启动
+### Docker Compose (one command)
 
 ```bash
-git clone https://gitcode.com/badhope/agentvalue.git
+git clone https://github.com/weed33834/agentvalue.git
 cd agentvalue
 cp backend/.env.example backend/.env
 docker compose up -d --build
 ```
 
-启动后访问:
+After startup, the following services are available:
 
-| 服务 | 地址 |
+| Service | URL |
 |---|---|
-| 前端 | <http://localhost> |
-| 后端 API | <http://localhost:8000> |
-| 健康检查 | <http://localhost:8000/health> |
+| Frontend | <http://localhost> |
+| Backend API | <http://localhost:8000> |
+| Health check | <http://localhost:8000/health> |
 | Swagger UI | <http://localhost:8000/docs> |
 
-### 本地开发
+### Local development
 
-**后端:**
+**Backend:**
 
 ```bash
 cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env                  # 填入模型 API Key
+cp .env.example .env                  # Fill in model API keys
 uvicorn main:app --reload --port 8000
 ```
 
-**前端:**
+**Frontend:**
 
 ```bash
 cd frontend
@@ -206,68 +208,68 @@ npm install
 npm run dev                           # http://localhost:5173
 ```
 
-### 不配 API Key 也能跑
+### Running without an API key
 
-不配置任何模型 API Key 时,系统自动走 Mock Provider 端到端跑通评估流程:
+With no model API key configured, the system automatically uses a Mock Provider and runs the evaluation flow end-to-end:
 
 ```bash
 cd backend
 cp .env.example .env
 AUTH_DEMO_MODE=true uvicorn main:app --reload
-python -m eval.evaluate --mock        # 跑通评估,无需外部 API
+python -m eval.evaluate --mock        # Run evaluation without external APIs
 ```
 
-> 演示模式仅限本地开发。`AUTH_DEMO_MODE=true` 允许通过 HTTP header 伪造身份,部署到非本机环境前必须关闭。
+> Demo mode is for local development only. `AUTH_DEMO_MODE=true` allows identity spoofing via HTTP headers and must be disabled before deploying to any non-local environment.
 
 ---
 
-## 配置
+## Configuration
 
-所有配置通过 `backend/.env` 注入,详见 [backend/.env.example](backend/.env.example) 的逐项注释。
+All configuration is injected through `backend/.env`. See [backend/.env.example](backend/.env.example) for per-item annotations.
 
-### 关键配置
+### Key configuration
 
-| 配置项 | 用途 | 何时必须改 |
+| Variable | Purpose | When it must be changed |
 |---|---|---|
-| `JWT_SECRET_KEY` | JWT 签名密钥 | 生产部署 |
-| `AGENTVALUE_ENV` | 设为 `production` 触发生产守护 | 生产部署 |
-| `CLOUD_API_KEY` | 云端 LLM (OpenAI 兼容) | 想用真实模型时 |
-| `EMBEDDING_API_KEY` | 真实 Embedding 服务 | 想要语义检索时 |
-| `CORS_ORIGINS` | 前端允许来源 | 生产必填实际域名 |
-| `FIELD_ENCRYPTION_KEY` | 敏感字段 AES-GCM 加密 | 生产必填 |
+| `JWT_SECRET_KEY` | JWT signing key | Production deployment |
+| `AGENTVALUE_ENV` | Set to `production` to enable production guards | Production deployment |
+| `CLOUD_API_KEY` | Cloud LLM (OpenAI-compatible) | When real models are required |
+| `EMBEDDING_API_KEY` | Real embedding service | When semantic retrieval is required |
+| `CORS_ORIGINS` | Allowed frontend origins | Required in production with the real domain |
+| `FIELD_ENCRYPTION_KEY` | AES-GCM encryption for sensitive fields | Required in production |
 
-### 模型档位
+### Model tiers
 
-`MODEL_TIER` 控制评估时 LLM 走云端还是本地:
+`MODEL_TIER` controls whether the evaluation LLM runs in the cloud or locally:
 
-| 档位 | 场景 | 模型示例 |
+| Tier | Scenario | Example models |
 |---|---|---|
-| `auto` | 根据硬件自动推荐 (默认) | — |
-| `L0` | 云端大模型 | GPT-4o / DeepSeek-V3 / Qwen-Max |
-| `L1` | 边缘小模型 | Qwen2.5-0.5B |
-| `L2` | 标准本地模型 | Qwen2.5-7B |
-| `L3` | 本地旗舰模型 | Qwen2.5-14B |
+| `auto` | Auto-recommended from hardware (default) | — |
+| `L0` | Cloud large model | GPT-4o / DeepSeek-V3 / Qwen-Max |
+| `L1` | Edge small model | Qwen2.5-0.5B |
+| `L2` | Standard local model | Qwen2.5-7B |
+| `L3` | Local flagship model | Qwen2.5-14B |
 
-未配置 `CLOUD_API_KEY` 与 `LOCAL_BASE_URL` 时走 Mock Provider,不依赖外部模型。
+When neither `CLOUD_API_KEY` nor `LOCAL_BASE_URL` is configured, the Mock Provider is used and no external model is required.
 
 ---
 
-## 使用教程
+## Usage Guide
 
-### 1. 初始化数据
+### 1. Seed initial data
 
 ```bash
-python -m scripts.seed_kb             # 公司知识库(评分标准、价值观、培训材料)
-python -m scripts.seed_demo            # 演示数据(用户、一条样例评估)
+python -m scripts.seed_kb             # Company KB (scoring criteria, values, training material)
+python -m scripts.seed_demo            # Demo data (users and one sample evaluation)
 ```
 
-### 2. 登录
+### 2. Log in
 
-四角色: `employee` / `manager` / `hr` / `admin`。
+Four roles: `employee` / `manager` / `hr` / `admin`.
 
-演示模式下,登录页有"演示账号一键填充"按钮。正常模式走 `/api/v1/auth/register` + `/api/v1/auth/login` 拿 JWT。
+In demo mode, the login page provides a "fill demo account" button. In normal mode, use `/api/v1/auth/register` and `/api/v1/auth/login` to obtain a JWT.
 
-### 3. 发起评估
+### 3. Trigger an evaluation
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/evaluations \
@@ -277,13 +279,13 @@ curl -X POST http://localhost:8000/api/v1/evaluations \
     "employee_id": "E1001",
     "period": "2026-W25",
     "raw_inputs": [
-      {"type": "daily_report", "content": "今天完成订单中心接口重构..."},
-      {"type": "task_progress", "content": "JIRA-2051 推进至联调阶段..."}
+      {"type": "daily_report", "content": "Refactored the order-center API today..."},
+      {"type": "task_progress", "content": "JIRA-2051 moved to integration stage..."}
     ]
   }'
 ```
 
-评估进入 LangGraph 状态机:
+The evaluation enters the LangGraph state machine:
 
 ```
 input_clean → multimodal_extract → llm_evaluate → parse_output → persist
@@ -291,198 +293,198 @@ input_clean → multimodal_extract → llm_evaluate → parse_output → persist
                    retrieve_context            human-in-the-loop interrupt
 ```
 
-### 4. 审批与三视图
+### 4. Approval and the three views
 
-评估状态流转:
+Evaluation status flow:
 
 ```
-ai_drafted → manager_review → hr_audit(高风险才进) → approved/rejected
+ai_drafted → manager_review → hr_audit (high risk only) → approved/rejected
                                   ↓ rejected
                             employee_appeal → manager_review
 ```
 
-查看三视图:
+View the three views:
 
 ```bash
 curl http://localhost:8000/api/v1/evaluations/{id} \
   -H "Authorization: Bearer <token>"
-# 响应里的 employee_view / manager_view / audit_view 就是三视图
-# 字段级可见性由 RBAC 控制:员工 token 看不到 manager_view / audit_view
+# employee_view / manager_view / audit_view in the response are the three views.
+# Field-level visibility is enforced by RBAC: an employee token cannot see manager_view / audit_view.
 ```
 
-### 5. AI 对话
+### 5. AI chat
 
-管理后台 `/admin/chat` 提供完整的对话界面。创建会话后直接发消息:
+The admin console exposes a full chat interface at `/admin/chat`. After creating a session, send a message:
 
 ```bash
-# 创建会话
+# Create a session
 curl -X POST http://localhost:8000/api/v1/chat/sessions \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
-  -d '{"title": "测试会话", "model_name": "DeepSeek-V4-Flash"}'
+  -d '{"title": "Test session", "model_name": "DeepSeek-V4-Flash"}'
 
-# 发送消息(SSE 流式响应)
+# Send a message (SSE streaming response)
 curl -X POST http://localhost:8000/api/v1/chat/sessions/{id}/messages \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
-  -d '{"content": "帮我列出当前目录下的文件"}'
+  -d '{"content": "List the files in the current directory"}'
 ```
 
-Agent 会自动调用 `list_directory` 工具并返回格式化结果。
+The agent automatically invokes the `list_directory` tool and returns a formatted result.
 
-### 6. 可观测性
+### 6. Observability
 
-- Prometheus 指标: <http://localhost:8000/metrics> (21 项业务指标)
-- Grafana 看板: 生产 compose 启动后 <http://localhost:3000>
-- Langfuse 链路追踪: 配置 `LANGFUSE_*` 后自动上报
-- 审计日志: 所有写操作入审计表,管理后台可分页查询
+- Prometheus metrics: <http://localhost:8000/metrics> (21 business metrics)
+- Grafana dashboard: <http://localhost:3000> after the production compose stack starts
+- Langfuse tracing: auto-reported once `LANGFUSE_*` is configured
+- Audit logs: all write operations are written to the audit table, paginated and queryable from the admin console
 
 ---
 
-## 测试
+## Testing
 
 ```bash
-cd backend && python -m pytest tests -q          # 单元测试
-cd backend && python -m pytest -m e2e -q         # E2E 测试
-cd backend && python -m eval.evaluate --mock      # Mock 评估
-cd frontend && npm run lint                       # 前端 lint
-cd frontend && npm run build                      # 前端构建
+cd backend && python -m pytest tests -q          # Unit tests
+cd backend && python -m pytest -m e2e -q         # E2E tests
+cd backend && python -m eval.evaluate --mock      # Mock evaluation
+cd frontend && npm run lint                       # Frontend lint
+cd frontend && npm run build                      # Frontend build
 ```
 
-后端 1517 个测试通过,前端构建与 lint 无 error。
+The backend has 1 517 passing tests; the frontend build and lint produce no errors.
 
 ---
 
-## 部署到生产
+## Production Deployment
 
 ```bash
 cp backend/.env.example backend/.env
-# 编辑 .env,设置所有生产凭据
-cd backend && python scripts/check_prod_readiness.py   # 就绪检查
+# Edit .env and set all production credentials
+cd backend && python scripts/check_prod_readiness.py   # Readiness check
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
 
-生产栈在基础 compose 之上叠加 PostgreSQL、MinIO、Prometheus + Grafana。
+The production stack layers PostgreSQL, MinIO, and Prometheus + Grafana on top of the base compose file.
 
-详细部署手册: [企业部署](docs/deployment-guide.md) | [试点 Runbook](docs/pilot-runbook.md) | [规模化扩展](docs/scale-deployment-runbook.md)
+Detailed deployment guides: [Enterprise deployment](docs/deployment-guide.md) | [Pilot runbook](docs/pilot-runbook.md) | [Scale-out runbook](docs/scale-deployment-runbook.md)
 
 ---
 
-## 项目结构
+## Project Structure
 
 ```
 .
 ├── backend/
-│   ├── agent/            # LangGraph Agent + ReAct 循环 + 工具调用
-│   ├── api/              # FastAPI 路由 (chat / auth / admin/*)
+│   ├── agent/            # LangGraph agent + ReAct loop + tool calls
+│   ├── api/              # FastAPI routes (chat / auth / admin/*)
 │   ├── auth/             # JWT + RBAC
-│   ├── core/             # 配置 / 模型路由 / 护栏 / 工作流引擎 / Feature Flag
-│   ├── models/           # SQLAlchemy 数据模型
-│   ├── services/          # 业务服务
-│   ├── tests/             # 1517 + 122 enterprise = 1639 passing
+│   ├── core/             # Config / model router / guards / workflow engine / feature flag
+│   ├── models/           # SQLAlchemy data models
+│   ├── services/         # Business services
+│   ├── tests/            # 1 517 + 122 enterprise = 1 639 passing
 │   └── ...
 ├── frontend/
-│   ├── src/components/chat/   # 对话组件
-│   ├── src/stores/chat.js     # 对话状态管理
-│   ├── src/utils/markdown.js  # KaTeX + Mermaid 渲染
-│   └── src/views/admin/       # 管理后台页面
-├── docs/                 # 项目文档
-├── monitoring/           # Prometheus 配置
-├── grafana/              # Grafana Dashboard
-├── .github/              # CI / Issue 模板 / PR 模板
-├── docker-compose.yml    # 开发栈
+│   ├── src/components/chat/   # Chat components
+│   ├── src/stores/chat.js     # Chat state management
+│   ├── src/utils/markdown.js  # KaTeX + Mermaid rendering
+│   └── src/views/admin/       # Admin console pages
+├── docs/                 # Project documentation
+├── monitoring/           # Prometheus configuration
+├── grafana/              # Grafana dashboard
+├── .github/              # CI / issue templates / PR template
+├── docker-compose.yml    # Development stack
 ├── docker-compose.prod.yml
 └── CHANGELOG.md
 ```
 
 ---
 
-## 文档索引
+## Documentation Index
 
-| 文档 | 说明 |
+| Document | Description |
 |---|---|
-| [CHANGELOG.md](CHANGELOG.md) | 版本变更记录 |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | 贡献指南 |
-| [SECURITY.md](SECURITY.md) | 安全漏洞报告流程 |
-| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | 行为准则 |
-| [backend/README.md](backend/README.md) | 后端开发说明 |
-| [frontend/README.md](frontend/README.md) | 前端开发说明 |
-| [docs/architecture-notes.md](docs/architecture-notes.md) | 架构实现说明 |
-| [docs/deployment-guide.md](docs/deployment-guide.md) | 企业部署手册 |
-| [docs/dev-guidelines.md](docs/dev-guidelines.md) | 开发规范 |
-| [docs/DEVELOPMENT-PLAN.md](docs/DEVELOPMENT-PLAN.md) | 开发计划 |
+| [CHANGELOG.md](CHANGELOG.md) | Version history |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guide |
+| [SECURITY.md](SECURITY.md) | Security vulnerability reporting process |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Code of conduct |
+| [backend/README.md](backend/README.md) | Backend development notes |
+| [frontend/README.md](frontend/README.md) | Frontend development notes |
+| [docs/architecture-notes.md](docs/architecture-notes.md) | Architecture implementation notes |
+| [docs/deployment-guide.md](docs/deployment-guide.md) | Enterprise deployment guide |
+| [docs/dev-guidelines.md](docs/dev-guidelines.md) | Development guidelines |
+| [docs/DEVELOPMENT-PLAN.md](docs/DEVELOPMENT-PLAN.md) | Development plan |
 
 ---
 
 ## Roadmap
 
-**已完成版本:**
+**Released versions:**
 
-- v1.2 — 模型供应商管理 + Prompt 调试台 + 多 Provider 接入
-- v1.3 — arq 任务队列 + Postgres 持久化 + 测试补全 + CI 加固 + 飞书/GitLab 集成骨架
-- v1.4 — 知识库 UI / 链路追踪 / Token 趋势 / Rerank / 自定义工具 / Feature Flag / Multi-Agent / 工作流编排
-- v1.5 — AI 对话系统 (10 项功能) + Agent 工具层 (5 个工具)
-- v2.1 — 深度对标大厂完善管理功能矩阵: 模型Fallback/会话分析/API健康/数据集/LLM评测/RAG评测/人工标注/SSO/模板市场/NL2SQL/文档解析 + 19项安全加固
+- v1.2 — Model provider management + Prompt playground + multi-provider integration
+- v1.3 — arq job queue + Postgres persistence + test backfill + CI hardening + Feishu/GitLab integration skeleton
+- v1.4 — Knowledge base UI / tracing / token trends / rerank / custom tools / feature flags / multi-agent / workflow orchestration
+- v1.5 — AI chat system (10 features) + agent tool layer (5 tools)
+- v2.1 — Deep parity with major platforms on the management matrix: model fallback / session analytics / API health / datasets / LLM judge / RAG eval / human annotation / SSO / template marketplace / NL2SQL / document parsing + 19 security hardening items
 
-**后续方向:**
+**Planned directions:**
 
-- 对话附件上传解析 (图片/PDF/音频)
-- 流式中断恢复与对话分支
-- 对话分享链接
-- 多模态能力补齐 (云端 OCR / Whisper ASR)
-- 团队 ROI 九宫格与成长路径看板增强
-- IM 集成落地 (飞书)
-- 代码仓库集成落地 (GitLab)
+- Chat attachment parsing (image / PDF / audio)
+- Streaming interruption recovery and conversation branching
+- Conversation share links
+- Multimodal capability completion (cloud OCR / Whisper ASR)
+- Team ROI nine-grid and growth-path dashboard enhancements
+- IM integration landing (Feishu)
+- Code repository integration landing (GitLab)
 
-如果你有想推进的方向,欢迎到 [GitCode Issues](https://gitcode.com/badhope/agentvalue/issues) 提议。
+If there is a direction you would like to push forward, propose it via [GitHub Issues](https://github.com/weed33834/agentvalue/issues).
 
 ---
 
 ## FAQ
 
-**不配 API Key 能跑吗?**
+**Can it run without an API key?**
 
-能。系统默认走 Mock Provider,评估流程端到端跑通,但 LLM 输出是模拟的。真实使用必须配置 `CLOUD_API_KEY` 或 `LOCAL_BASE_URL`。
+Yes. The system defaults to the Mock Provider and runs the evaluation flow end-to-end, but the LLM output is simulated. Real use requires configuring `CLOUD_API_KEY` or `LOCAL_BASE_URL`.
 
-**评估结果能直接用于人事决策吗?**
+**Can evaluation results be used directly for HR decisions?**
 
-不能。"AI 不做人事决策"是核心硬约束:所有评估必须经主管审批,高风险项还要 HR 复核。Agent 只负责生成与结构化呈现,不替人下结论。
+No. "AI does not make HR decisions" is a core hard constraint: every evaluation must be approved by a manager, and high-risk items additionally require HR review. The agent only generates and structures the output; it does not make decisions on behalf of humans.
 
-**Agent 的 bash 工具安全吗?**
+**Is the agent's bash tool safe?**
 
-设有 30 秒超时和 5000 字符输出截断。所有工具经 `ToolRegistry` 统一管理,可通过 `enabled_tools` 配置开关。生产环境可只启用 `calculator,get_current_datetime` 等安全工具。
+It enforces a 30-second timeout and a 5 000-character output truncation. All tools are managed centrally through `ToolRegistry` and can be toggled via `enabled_tools`. In production, only safe tools such as `calculator,get_current_datetime` can be enabled.
 
-**AI 对话支持哪些模型?**
+**Which models does the AI chat support?**
 
-默认 `DeepSeek-V4-Flash` (OpenAI 兼容网关),前端下拉支持 DeepSeek V4 Flash/Pro、GLM 4.7/5.1、Qwen 3 Coder、Kimi K2.6、MiniMax M3。只要 Provider 支持 OpenAI 兼容 API + function calling 即可接入。
+The default is `DeepSeek-V4-Flash` (OpenAI-compatible gateway). The frontend dropdown supports DeepSeek V4 Flash/Pro, GLM 4.7/5.1, Qwen 3 Coder, Kimi K2.6, and MiniMax M3. Any provider that supports an OpenAI-compatible API with function calling can be integrated.
 
-**多租户隔离是怎么做的?**
+**How is multi-tenant isolation implemented?**
 
-数据层每个表带 `tenant_id` 字段,RBAC 在数据级过滤;向量库按 tenant 分 collection;任务队列前缀带 tenant。
-
----
-
-## 贡献
-
-欢迎通过 Issue 与 PR 贡献代码或反馈问题。开始前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。CI 在每次 PR 上自动跑 lint / 测试 / 构建,全绿才能合并。
+At the data layer, every table carries a `tenant_id` column and RBAC filters at the data level. The vector store separates collections by tenant. The job queue prefixes keys with the tenant.
 
 ---
 
-## 安全
+## Contributing
 
-发现安全漏洞请按 [SECURITY.md](SECURITY.md) 流程私密报告,不要开公开 Issue。
+Issues and pull requests are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before starting. CI runs lint / tests / build on every PR; all checks must pass before merge.
+
+---
+
+## Security
+
+If you discover a security vulnerability, follow the process in [SECURITY.md](SECURITY.md) and report it privately. Do not open a public issue.
 
 ---
 
 ## Mirror
 
-| 平台 | 地址 | 说明 |
+| Platform | URL | Notes |
 |---|---|---|
-| GitCode (主仓) | <https://gitcode.com/badhope/agentvalue> | Issue / PR 提交 |
-| GitHub (镜像) | <https://github.com/weed33834/agentvalue> | 国际镜像 |
+| GitCode (primary) | <https://gitcode.com/badhope/agentvalue> | Issue / PR submission |
+| GitHub (mirror) | <https://github.com/weed33834/agentvalue> | International mirror |
 
 ---
 
-## 许可证
+## License
 
-本项目基于 [Custom Non-Commercial License (CNCL) v1.0](LICENSE) 开源。© 2026 AgentValue-AI Contributors.
+This project is open-sourced under the [Custom Non-Commercial License (CNCL) v1.0](LICENSE). © 2026 AgentValue-AI Contributors.
