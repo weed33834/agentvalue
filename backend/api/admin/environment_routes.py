@@ -48,7 +48,12 @@ router = APIRouter(
 class EnvironmentCreate(BaseModel):
     """创建环境请求"""
 
-    name: str = Field(..., min_length=1, max_length=32, description="环境名称 (dev/staging/prod/custom)")
+    name: str = Field(
+        ...,
+        min_length=1,
+        max_length=32,
+        description="环境名称 (dev/staging/prod/custom)",
+    )
     display_name: str = Field(default="", max_length=64, description="展示名称")
     description: Optional[str] = Field(default=None, description="环境描述")
     config: Optional[dict] = Field(default=None, description="环境级配置覆盖")
@@ -62,7 +67,9 @@ class EnvironmentUpdate(BaseModel):
     config: Optional[dict] = Field(default=None, description="环境级配置覆盖")
     variables: Optional[dict] = Field(default=None, description="环境变量覆盖")
     description: Optional[str] = Field(default=None, description="环境描述")
-    display_name: Optional[str] = Field(default=None, max_length=64, description="展示名称")
+    display_name: Optional[str] = Field(
+        default=None, max_length=64, description="展示名称"
+    )
 
 
 class DeployRequest(BaseModel):
@@ -106,9 +113,7 @@ async def create_environment(
             is_default=payload.is_default,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     await audit_service.log(
         actor_id=current_user_id,
@@ -173,9 +178,7 @@ async def update_environment(
             tenant_id=tenant_id,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
     await audit_service.log(
         actor_id=current_user_id,
@@ -204,12 +207,8 @@ async def delete_environment(
     except ValueError as e:
         msg = str(e)
         if "不存在" in msg:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=msg
-            )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=msg
-        )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=msg)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
 
     await audit_service.log(
         actor_id=current_user_id,
@@ -233,9 +232,7 @@ async def get_environment_config(
     try:
         config = await service.get_environment_config(env_id, tenant_id=tenant_id)
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     return {"env_id": env_id, "config": config}
 
 
@@ -263,12 +260,8 @@ async def deploy_agent(
     except ValueError as e:
         msg = str(e)
         if "不存在" in msg:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=msg
-            )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=msg
-        )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=msg)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
 
     await audit_service.log(
         actor_id=current_user_id,
@@ -304,12 +297,8 @@ async def undeploy_agent(
     except ValueError as e:
         msg = str(e)
         if "不存在" in msg or "无部署记录" in msg:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=msg
-            )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=msg
-        )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=msg)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
 
     await audit_service.log(
         actor_id=current_user_id,

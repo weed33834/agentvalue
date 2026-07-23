@@ -93,19 +93,23 @@ class KeywordMockProvider(BaseProvider):
     async def chat_completion(self, messages, response_format=None):
         self._calls.append({"messages": list(messages)})
         # 拼接所有 message 内容做关键词匹配
-        full_text = " ".join(
-            getattr(m, "content", str(m)) for m in messages
-        )
+        full_text = " ".join(getattr(m, "content", str(m)) for m in messages)
         for keyword, response in self._keyword_to_response.items():
             if keyword in full_text:
                 return ChatCompletion(
                     content=json.dumps(response, ensure_ascii=False),
                     model="keyword-mock",
-                    usage={"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
+                    usage={
+                        "prompt_tokens": 10,
+                        "completion_tokens": 20,
+                        "total_tokens": 30,
+                    },
                 )
         # 默认 END
         return ChatCompletion(
-            content=json.dumps({"next": "END", "reason": "no match"}, ensure_ascii=False),
+            content=json.dumps(
+                {"next": "END", "reason": "no match"}, ensure_ascii=False
+            ),
             model="keyword-mock",
             usage={"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
         )
@@ -353,7 +357,9 @@ async def test_interrupt_at_paused_at_data_analyst():
     # 应该被 interrupt
     assert "__interrupt__" in result
     interrupts = result["__interrupt__"]
-    interrupt_info = interrupts[0].value if hasattr(interrupts[0], "value") else interrupts[0]
+    interrupt_info = (
+        interrupts[0].value if hasattr(interrupts[0], "value") else interrupts[0]
+    )
     assert interrupt_info["node"] == "data_analyst"
     assert "等待人工确认" in interrupt_info["message"]
 
@@ -394,7 +400,9 @@ async def test_resume_after_interrupt():
 
     # resume: data_analyst 不执行 LLM, 直接返回 interrupt_at=None
     # supervisor 再次执行, 走 report_writer
-    result2 = await graph.ainvoke(Command(resume={"decision": "approve"}), config=config)
+    result2 = await graph.ainvoke(
+        Command(resume={"decision": "approve"}), config=config
+    )
 
     # 应该完成
     assert "__interrupt__" not in result2
@@ -410,6 +418,7 @@ async def test_resume_after_interrupt():
 @pytest.mark.asyncio
 async def test_expert_failure_does_not_affect_others():
     """data_analyst 失败时, artifacts[data_analyst]={error: ...}, 其他 agent 仍可执行"""
+
     # 用 KeywordMock 让 data_analyst 关键词触发失败 (返回 _error)
     # 这里直接用 ScriptedMock 让中间一次返回错误 JSON
     class _ErrorThenOKProvider(BaseProvider):
@@ -434,21 +443,35 @@ async def test_expert_failure_does_not_affect_others():
             # call 6: report_writer
             if self._call_count == 1:
                 return ChatCompletion(
-                    content=json.dumps({"next": "code_reviewer", "reason": "skip data"}),
+                    content=json.dumps(
+                        {"next": "code_reviewer", "reason": "skip data"}
+                    ),
                     model="err-then-ok",
-                    usage={"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+                    usage={
+                        "prompt_tokens": 1,
+                        "completion_tokens": 1,
+                        "total_tokens": 2,
+                    },
                 )
             if self._call_count == 3:
                 return ChatCompletion(
                     content=json.dumps({"next": "END", "reason": "完成"}),
                     model="err-then-ok",
-                    usage={"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+                    usage={
+                        "prompt_tokens": 1,
+                        "completion_tokens": 1,
+                        "total_tokens": 2,
+                    },
                 )
             if self._call_count == 4:
                 return ChatCompletion(
                     content=json.dumps({"summary": "code_reviewer 完成"}),
                     model="err-then-ok",
-                    usage={"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+                    usage={
+                        "prompt_tokens": 1,
+                        "completion_tokens": 1,
+                        "total_tokens": 2,
+                    },
                 )
             # call 5: report_writer
             return ChatCompletion(
@@ -482,6 +505,7 @@ async def test_expert_failure_does_not_affect_others():
 @pytest.mark.asyncio
 async def test_expert_failure_marks_error_in_artifacts():
     """expert LLM 失败时, artifacts[name] = {error: ...}, 其他 agent 不受影响"""
+
     class _ScriptedProvider(BaseProvider):
         def __init__(self):
             super().__init__(ProviderConfig(model_name="scripted-err"))
@@ -496,7 +520,12 @@ async def test_expert_failure_marks_error_in_artifacts():
             if self._call_count == 1:
                 return ChatCompletion(
                     content=json.dumps({"next": "data_analyst", "reason": "step1"}),
-                    model="x", usage={"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+                    model="x",
+                    usage={
+                        "prompt_tokens": 1,
+                        "completion_tokens": 1,
+                        "total_tokens": 2,
+                    },
                 )
             # call 2: data_analyst 抛异常
             if self._call_count == 2:
@@ -505,24 +534,40 @@ async def test_expert_failure_marks_error_in_artifacts():
             if self._call_count == 3:
                 return ChatCompletion(
                     content=json.dumps({"next": "code_reviewer", "reason": "step2"}),
-                    model="x", usage={"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+                    model="x",
+                    usage={
+                        "prompt_tokens": 1,
+                        "completion_tokens": 1,
+                        "total_tokens": 2,
+                    },
                 )
             # call 4: code_reviewer 正常返回
             if self._call_count == 4:
                 return ChatCompletion(
                     content=json.dumps({"summary": "code review 完成"}),
-                    model="x", usage={"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+                    model="x",
+                    usage={
+                        "prompt_tokens": 1,
+                        "completion_tokens": 1,
+                        "total_tokens": 2,
+                    },
                 )
             # call 5: supervisor → END (兜底改 report_writer)
             if self._call_count == 5:
                 return ChatCompletion(
                     content=json.dumps({"next": "END", "reason": "done"}),
-                    model="x", usage={"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+                    model="x",
+                    usage={
+                        "prompt_tokens": 1,
+                        "completion_tokens": 1,
+                        "total_tokens": 2,
+                    },
                 )
             # call 6: report_writer
             return ChatCompletion(
                 content=json.dumps({"report_md": "# 报告"}),
-                model="x", usage={"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+                model="x",
+                usage={"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
             )
 
         async def health_check(self) -> bool:
@@ -558,6 +603,7 @@ async def test_expert_failure_marks_error_in_artifacts():
 @pytest.mark.asyncio
 async def test_supervisor_returns_invalid_json_routes_to_end():
     """supervisor LLM 返回非法 JSON 时应兜底走 END (或 report_writer)"""
+
     class _BadJsonProvider(BaseProvider):
         def __init__(self):
             super().__init__(ProviderConfig(model_name="bad-json"))
@@ -571,11 +617,17 @@ async def test_supervisor_returns_invalid_json_routes_to_end():
             if self._call_count == 1:
                 return ChatCompletion(
                     content="这不是合法的 JSON {{{",
-                    model="bad", usage={"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+                    model="bad",
+                    usage={
+                        "prompt_tokens": 1,
+                        "completion_tokens": 1,
+                        "total_tokens": 2,
+                    },
                 )
             return ChatCompletion(
                 content=json.dumps({"report_md": "# 兜底报告"}),
-                model="bad", usage={"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+                model="bad",
+                usage={"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
             )
 
         async def health_check(self) -> bool:
@@ -688,6 +740,7 @@ def multi_agent_client(monkeypatch, tmp_path):
 
     # patch _get_or_create_multi_agent_graph 直接返回我们构造的图
     from agent.tools import AgentToolkit
+
     toolkit = AgentToolkit(DummyMemoryStore(), DummyCompanyKB())
     mock_graph = create_multi_agent_graph(
         model_router=state.model_router,
@@ -920,6 +973,7 @@ def test_api_resume_returns_404_for_unknown_thread(multi_agent_client):
 def test_api_test_with_interrupt_at_returns_waiting(multi_agent_client):
     """/test + interrupt_at=data_analyst 应返回 status=waiting"""
     from api.admin import multi_agent as ma_module
+
     ma_module.clear_thread_store()
 
     # 重新构造 client 让 mock 路由指向新的图 (用新 provider)
@@ -933,6 +987,7 @@ def test_api_test_with_interrupt_at_returns_waiting(multi_agent_client):
     )
     app_state.model_router = MockModelRouter(provider)
     from agent.tools import AgentToolkit
+
     toolkit = AgentToolkit(DummyMemoryStore(), DummyCompanyKB())
     app_state._multi_agent_graphs = {
         "default": create_multi_agent_graph(
@@ -966,6 +1021,7 @@ def test_api_test_with_interrupt_at_returns_waiting(multi_agent_client):
 def test_api_run_interrupt_state_resume_full_flow(multi_agent_client):
     """/run + interrupt_at → /state 显示 waiting → /resume 恢复完成"""
     from api.admin import multi_agent as ma_module
+
     ma_module.clear_thread_store()
 
     # 用更长的脚本: data_analyst 暂停后, resume → supervisor → report_writer → END
@@ -981,6 +1037,7 @@ def test_api_run_interrupt_state_resume_full_flow(multi_agent_client):
     )
     app_state.model_router = MockModelRouter(provider)
     from agent.tools import AgentToolkit
+
     toolkit = AgentToolkit(DummyMemoryStore(), DummyCompanyKB())
     app_state._multi_agent_graphs = {
         "default": create_multi_agent_graph(

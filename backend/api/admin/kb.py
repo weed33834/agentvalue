@@ -170,7 +170,9 @@ def _persist_kb_config_env(settings) -> None:
 async def list_kb_docs(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=200),
-    search: Optional[str] = Query(None, max_length=128, description="标题/内容模糊搜索"),
+    search: Optional[str] = Query(
+        None, max_length=128, description="标题/内容模糊搜索"
+    ),
     title: Optional[str] = Query(None, max_length=128, description="标题模糊搜索"),
     session: AsyncSession = Depends(get_db),
 ):

@@ -42,7 +42,9 @@ class AliyunKMSProvider(KMSProvider):
         self._endpoint = endpoint  # kms.<region>.aliyuncs.com 或专属网关
         self._ak = access_key_id  # None 时走默认凭据链 (RAM Role / 环境变量)
         self._sk = access_key_secret
-        self._region = region_id or (endpoint.split(".")[1] if "." in endpoint else "cn-hangzhou")
+        self._region = region_id or (
+            endpoint.split(".")[1] if "." in endpoint else "cn-hangzhou"
+        )
         self._client = None
         self._init_lock = asyncio.Lock()
 
@@ -79,6 +81,7 @@ class AliyunKMSProvider(KMSProvider):
     ) -> Dict[str, bytes]:
         def _call() -> Dict[str, bytes]:
             from alibabacloud_kms20160120.models import GenerateDataKeyRequest
+
             client = self._ensure_client()
             try:
                 req = GenerateDataKeyRequest(
@@ -103,6 +106,7 @@ class AliyunKMSProvider(KMSProvider):
     ) -> Dict[str, bytes]:
         def _call() -> Dict[str, bytes]:
             from alibabacloud_kms20160120.models import DecryptRequest
+
             client = self._ensure_client()
             try:
                 req = DecryptRequest(
@@ -119,6 +123,7 @@ class AliyunKMSProvider(KMSProvider):
     async def health_check(self) -> bool:
         def _call() -> bool:
             from alibabacloud_kms20160120.models import DescribeKeyRequest
+
             try:
                 client = self._ensure_client()
                 client.describe_key(DescribeKeyRequest(key_id=self._key_id))
@@ -149,14 +154,26 @@ class AliyunKMSProvider(KMSProvider):
         if TeaException is not None and isinstance(e, TeaException):
             code = getattr(e, "code", "") or ""
             msg_text = getattr(e, "message", "") or str(e)
-            if code in ("InvalidAccessKeyId.NotFound", "Forbidden.KeyNotFound", "NoPermission"):
-                raise KMSAuthenticationError(f"{msg} (code={code})", provider=provider, cause=e) from e
+            if code in (
+                "InvalidAccessKeyId.NotFound",
+                "Forbidden.KeyNotFound",
+                "NoPermission",
+            ):
+                raise KMSAuthenticationError(
+                    f"{msg} (code={code})", provider=provider, cause=e
+                ) from e
             if code in ("InvalidCiphertext", "EncryptionContext not equal"):
-                raise KMSCiphertextInvalidError(f"{msg} (code={code})", provider=provider, cause=e) from e
+                raise KMSCiphertextInvalidError(
+                    f"{msg} (code={code})", provider=provider, cause=e
+                ) from e
             if code in ("ServiceUnavailable", "Throttling", "InternalFailure"):
-                raise KMSUnavailableError(f"{msg} (code={code})", provider=provider, cause=e) from e
+                raise KMSUnavailableError(
+                    f"{msg} (code={code})", provider=provider, cause=e
+                ) from e
 
         if isinstance(e, (ConnectionError, TimeoutError, OSError)):
-            raise KMSUnavailableError(msg + " (网络故障)", provider=provider, cause=e) from e
+            raise KMSUnavailableError(
+                msg + " (网络故障)", provider=provider, cause=e
+            ) from e
 
         raise KMSProviderError(msg, provider=provider, cause=e) from e

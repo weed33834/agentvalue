@@ -238,10 +238,13 @@ async def blacklist_all_user_tokens(user_id: str) -> int:
     """
     try:
         import time
+
         key = f"agentvalue:user_revoke:{user_id}"
         # 尝试 Redis
-        if hasattr(token_blacklist, '_redis') and token_blacklist._redis:
-            await token_blacklist._redis.setex(key, 86400, str(int(time.time())))  # 24h TTL
+        if hasattr(token_blacklist, "_redis") and token_blacklist._redis:
+            await token_blacklist._redis.setex(
+                key, 86400, str(int(time.time()))
+            )  # 24h TTL
             logger.info("已吊销用户 %s 的所有 Token (Redis)", user_id)
             return 1
     except Exception as e:

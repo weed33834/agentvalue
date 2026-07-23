@@ -141,8 +141,10 @@ class DatasetService:
 
         offset = (page - 1) * size
         rows = (
-            await self.session.execute(base.offset(offset).limit(size))
-        ).scalars().all()
+            (await self.session.execute(base.offset(offset).limit(size)))
+            .scalars()
+            .all()
+        )
 
         return {
             "items": [self._dataset_to_dict(d) for d in rows],
@@ -214,13 +216,17 @@ class DatasetService:
 
         # 删除所有关联条目
         items = (
-            await self.session.execute(
-                select(DatasetItem).where(
-                    DatasetItem.dataset_id == dataset_id,
-                    DatasetItem.tenant_id == tenant_id,
+            (
+                await self.session.execute(
+                    select(DatasetItem).where(
+                        DatasetItem.dataset_id == dataset_id,
+                        DatasetItem.tenant_id == tenant_id,
+                    )
                 )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         for item in items:
             await self.session.delete(item)
 
@@ -393,9 +399,7 @@ class DatasetService:
         else:
             raise ValueError(f"不支持的格式: {format}, 可选: json / csv")
 
-        return await self.batch_add_items(
-            dataset_id, items, tenant_id=tenant_id
-        )
+        return await self.batch_add_items(dataset_id, items, tenant_id=tenant_id)
 
     async def list_items(
         self,
@@ -437,8 +441,10 @@ class DatasetService:
 
         offset = (page - 1) * size
         rows = (
-            await self.session.execute(base.offset(offset).limit(size))
-        ).scalars().all()
+            (await self.session.execute(base.offset(offset).limit(size)))
+            .scalars()
+            .all()
+        )
 
         return {
             "items": [self._item_to_dict(i) for i in rows],
@@ -496,7 +502,9 @@ class DatasetService:
             item.label = label
         if status is not None:
             if status not in VALID_ITEM_STATUSES:
-                raise ValueError(f"无效的条目状态: {status}, 可选: {VALID_ITEM_STATUSES}")
+                raise ValueError(
+                    f"无效的条目状态: {status}, 可选: {VALID_ITEM_STATUSES}"
+                )
             item.status = status
 
         await self.session.flush()
@@ -558,10 +566,12 @@ class DatasetService:
         # 按状态分组统计
         rows = (
             await self.session.execute(
-                select(DatasetItem.status, func.count(DatasetItem.id)).where(
+                select(DatasetItem.status, func.count(DatasetItem.id))
+                .where(
                     DatasetItem.dataset_id == dataset_id,
                     DatasetItem.tenant_id == tenant_id,
-                ).group_by(DatasetItem.status)
+                )
+                .group_by(DatasetItem.status)
             )
         ).all()
 
@@ -595,15 +605,19 @@ class DatasetService:
             raise ValueError(f"数据集 {dataset_id} 不存在")
 
         items = (
-            await self.session.execute(
-                select(DatasetItem)
-                .where(
-                    DatasetItem.dataset_id == dataset_id,
-                    DatasetItem.tenant_id == tenant_id,
+            (
+                await self.session.execute(
+                    select(DatasetItem)
+                    .where(
+                        DatasetItem.dataset_id == dataset_id,
+                        DatasetItem.tenant_id == tenant_id,
+                    )
+                    .order_by(DatasetItem.created_at.asc())
                 )
-                .order_by(DatasetItem.created_at.asc())
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         if format.lower() == "json":
             payload = {
@@ -631,17 +645,17 @@ class DatasetService:
                     {
                         "id": item.id,
                         "input": json.dumps(item.input, ensure_ascii=False),
-                        "expected_output": json.dumps(
-                            item.expected_output, ensure_ascii=False
-                        )
-                        if item.expected_output
-                        else "",
+                        "expected_output": (
+                            json.dumps(item.expected_output, ensure_ascii=False)
+                            if item.expected_output
+                            else ""
+                        ),
                         "metadata": json.dumps(item.metadata_, ensure_ascii=False),
                         "label": item.label or "",
                         "status": item.status,
-                        "created_at": item.created_at.isoformat()
-                        if item.created_at
-                        else "",
+                        "created_at": (
+                            item.created_at.isoformat() if item.created_at else ""
+                        ),
                     }
                 )
             return output.getvalue()

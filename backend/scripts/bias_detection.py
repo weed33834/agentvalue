@@ -51,24 +51,74 @@ logger = logging.getLogger(__name__)
 # =====================================================================
 _SUBJECTIVE_WORDS: tuple[str, ...] = (
     # 程度副词 (绝对化)
-    "总是", "从不", "永远", "经常", "常常", "一直", "完全", "彻底", "绝对",
-    "毫无疑问", "毫无疑问地",
+    "总是",
+    "从不",
+    "永远",
+    "经常",
+    "常常",
+    "一直",
+    "完全",
+    "彻底",
+    "绝对",
+    "毫无疑问",
+    "毫无疑问地",
     # 主观判断词
-    "感觉", "觉得", "认为", "以为", "似乎", "好像", "可能", "应该",
-    "显然", "明显", "看不出", "说不清",
+    "感觉",
+    "觉得",
+    "认为",
+    "以为",
+    "似乎",
+    "好像",
+    "可能",
+    "应该",
+    "显然",
+    "明显",
+    "看不出",
+    "说不清",
     # 情感色彩词 (正向)
-    "优秀", "出色", "突出", "杰出", "完美", "极好", "卓越", "优异", "棒",
+    "优秀",
+    "出色",
+    "突出",
+    "杰出",
+    "完美",
+    "极好",
+    "卓越",
+    "优异",
+    "棒",
     # 情感色彩词 (负向)
-    "糟糕", "差劲", "平庸", "懒散", "懈怠", "消极", "敷衍", "马虎", "粗心",
-    "可惜", "遗憾", "令人失望",
+    "糟糕",
+    "差劲",
+    "平庸",
+    "懒散",
+    "懈怠",
+    "消极",
+    "敷衍",
+    "马虎",
+    "粗心",
+    "可惜",
+    "遗憾",
+    "令人失望",
     # 模糊评价词
-    "还不错", "还行", "一般般", "凑合", "马马虎虎",
+    "还不错",
+    "还行",
+    "一般般",
+    "凑合",
+    "马马虎虎",
 )
 
 # 严重偏见词 (出现即强烈信号)
 _SEVERE_BIAS_WORDS: tuple[str, ...] = (
-    "总是", "从不", "永远", "完全", "彻底", "绝对",
-    "糟糕", "差劲", "敷衍", "懒散", "令人失望",
+    "总是",
+    "从不",
+    "永远",
+    "完全",
+    "彻底",
+    "绝对",
+    "糟糕",
+    "差劲",
+    "敷衍",
+    "懒散",
+    "令人失望",
 )
 
 
@@ -122,12 +172,23 @@ def _extract_text(evaluation: Dict[str, Any]) -> str:
             for v in value:
                 _walk(v)
 
-    for field in ("audit", "manager_view", "employee_view", "feedback", "comment", "summary"):
+    for field in (
+        "audit",
+        "manager_view",
+        "employee_view",
+        "feedback",
+        "comment",
+        "summary",
+    ):
         _walk(evaluation.get(field))
 
     # feedback_text / comment_text 等顶层字符串字段
     for key, value in evaluation.items():
-        if isinstance(value, str) and key not in ("evaluation_id", "employee_id", "period"):
+        if isinstance(value, str) and key not in (
+            "evaluation_id",
+            "employee_id",
+            "period",
+        ):
             chunks.append(value)
 
     return "\n".join(chunks)
@@ -428,6 +489,7 @@ class BiasDetector:
             for emp_id, records in by_employee.items():
                 if len(records) < 2:
                     continue
+
                 # 按时间排序 (created_at 优先, 其次 period)
                 def _sort_key(r: Dict[str, Any]):
                     ca = r.get("created_at")
@@ -481,9 +543,7 @@ class BiasDetector:
             ratio = affected_count / eligible_count if eligible_count else 0.0
             detected = affected_count > 0
 
-            avg_deviation = (
-                statistics.mean(deviations) if deviations else 0.0
-            )
+            avg_deviation = statistics.mean(deviations) if deviations else 0.0
             if avg_deviation >= self.RECENCY_DEVIATION_HIGH:
                 severity = _severity_from_ratio(ratio, low=0.1, high=0.3)
                 if ratio >= 0.3:
@@ -683,9 +743,7 @@ class BiasDetector:
             for evaluation in evals:
                 dim_scores = _extract_dimension_scores(evaluation)
                 # 过滤掉非合理分数
-                dim_scores = {
-                    k: v for k, v in dim_scores.items() if 0 <= v <= 100
-                }
+                dim_scores = {k: v for k, v in dim_scores.items() if 0 <= v <= 100}
                 if len(dim_scores) < self.HALO_MIN_DIMENSIONS:
                     continue
                 eligible_count += 1
@@ -744,7 +802,11 @@ class BiasDetector:
             )
 
             # 严重度判定
-            if affected_count > 0 and avg_correlation is not None and avg_correlation >= 0.85:
+            if (
+                affected_count > 0
+                and avg_correlation is not None
+                and avg_correlation >= 0.85
+            ):
                 severity = _severity_from_ratio(ratio, low=0.1, high=0.3)
                 if ratio >= 0.3:
                     severity = "high"
@@ -755,9 +817,7 @@ class BiasDetector:
             else:
                 severity = "low"
 
-            avg_inter_std = (
-                statistics.mean(per_eval_stds) if per_eval_stds else None
-            )
+            avg_inter_std = statistics.mean(per_eval_stds) if per_eval_stds else None
             details_parts = [
                 f"参与判定评估 {eligible_count} 份 (维度>={self.HALO_MIN_DIMENSIONS})",
                 f"维度间标准差 < {self.HALO_STD_LOW} 的 {affected_count} 份",
@@ -869,9 +929,9 @@ class BiasDetector:
             severity_rank = {"low": 1, "medium": 2, "high": 3}
             overall_severity = "low"
             for result in dimensions.values():
-                if severity_rank.get(result.get("severity", "low"), 1) > severity_rank.get(
-                    overall_severity, 1
-                ):
+                if severity_rank.get(
+                    result.get("severity", "low"), 1
+                ) > severity_rank.get(overall_severity, 1):
                     overall_severity = result["severity"]
 
             detected_count = sum(1 for r in dimensions.values() if r.get("detected"))
@@ -924,7 +984,9 @@ class BiasDetector:
         无 db_session_factory 时返回空列表 (供单元测试 mock)。
         """
         if self.db_session_factory is None:
-            logger.debug("db_session_factory 未配置, _load_evaluations_by_period 返回空")
+            logger.debug(
+                "db_session_factory 未配置, _load_evaluations_by_period 返回空"
+            )
             return []
 
         try:
@@ -965,7 +1027,9 @@ class BiasDetector:
             logger.warning("_load_evaluations_by_period 失败 period=%s: %s", period, e)
             return []
 
-    async def _load_historical_evaluations(self, current_period: str) -> List[Dict[str, Any]]:
+    async def _load_historical_evaluations(
+        self, current_period: str
+    ) -> List[Dict[str, Any]]:
         """加载历史周期 (period < current_period) 的评估, 供近因偏见检测。
 
         最多取最近 6 个周期, 避免数据量过大。
@@ -1017,6 +1081,7 @@ class BiasDetector:
 # =====================================================================
 # 命令行入口 (供 python -m scripts.bias_detection 调用)
 # =====================================================================
+
 
 def _demo_evaluations() -> List[Dict[str, Any]]:
     """构造演示用合成评估数据 (不依赖数据库)。"""

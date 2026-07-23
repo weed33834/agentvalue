@@ -212,7 +212,9 @@ def replace_part_with_missing_leading_whitespace(
         replace_lines = [
             add_leading + rline if rline.strip() else rline for rline in replace_lines
         ]
-        whole_lines = whole_lines[:i] + replace_lines + whole_lines[i + num_part_lines :]
+        whole_lines = (
+            whole_lines[:i] + replace_lines + whole_lines[i + num_part_lines :]
+        )
         return "".join(whole_lines)
 
     return None
@@ -239,7 +241,9 @@ def perfect_or_whitespace(
         return res
 
     # 策略二: 行首空白灵活匹配
-    res = replace_part_with_missing_leading_whitespace(whole_lines, part_lines, replace_lines)
+    res = replace_part_with_missing_leading_whitespace(
+        whole_lines, part_lines, replace_lines
+    )
     if res:
         return res
 
@@ -394,7 +398,9 @@ def replace_most_similar_chunk(whole: str, part: str, replace: str) -> Optional[
     # 策略三: 跳过首行空行后重试 (GPT 有时会多余地添加空行, issue #25)
     if len(part_lines) > 2 and not part_lines[0].strip():
         skip_blank_line_part_lines = part_lines[1:]
-        res = perfect_or_whitespace(whole_lines, skip_blank_line_part_lines, replace_lines)
+        res = perfect_or_whitespace(
+            whole_lines, skip_blank_line_part_lines, replace_lines
+        )
         if res:
             return res
 
@@ -499,7 +505,7 @@ def do_replace(
 
 
 def strip_filename(filename: str, fence: Tuple[str, str]) -> Optional[str]:
-    """从可能带包装的行中提取文件名。
+    r"""从可能带包装的行中提取文件名。
 
     处理各种 LLM 输出风格:
     - ````python word_count.py```` （围栏 + 文件名）
@@ -676,7 +682,10 @@ def find_original_update_blocks(
         )
 
         # 处理 shell 代码块
-        if any(line.strip().startswith(start) for start in shell_starts) and not next_is_editblock:
+        if (
+            any(line.strip().startswith(start) for start in shell_starts)
+            and not next_is_editblock
+        ):
             shell_content = []
             i += 1
             while i < len(lines) and not lines[i].strip().startswith("```"):
@@ -695,7 +704,9 @@ def find_original_update_blocks(
                 if i + 1 < len(lines) and divider_pattern.match(lines[i + 1].strip()):
                     filename = find_filename(lines[max(0, i - 3) : i], fence, None)
                 else:
-                    filename = find_filename(lines[max(0, i - 3) : i], fence, valid_fnames)
+                    filename = find_filename(
+                        lines[max(0, i - 3) : i], fence, valid_fnames
+                    )
 
                 if not filename:
                     if current_filename:
@@ -928,7 +939,9 @@ def find_context(
     if eof:
         # EOF 标记: 先尝试在文件末尾匹配
         if len(lines) >= len(context):
-            new_index, fuzz = find_context_core(lines, context, len(lines) - len(context))
+            new_index, fuzz = find_context_core(
+                lines, context, len(lines) - len(context)
+            )
             if new_index != -1:
                 return new_index, fuzz
         # 末尾未匹配: 从 start 位置搜索，附加大模糊度惩罚
@@ -1117,7 +1130,9 @@ def parse_add_file_content(
 
         index += 1
 
-    action = PatchAction(type=ActionType.ADD, path="", new_content="\n".join(added_lines))
+    action = PatchAction(
+        type=ActionType.ADD, path="", new_content="\n".join(added_lines)
+    )
     return action, index
 
 
@@ -1193,7 +1208,8 @@ def parse_update_file_sections(
                     for i, scope in enumerate(scope_lines):
                         if (
                             temp_index + i >= len(orig_lines)
-                            or _norm(orig_lines[temp_index + i]).strip() != scope.strip()
+                            or _norm(orig_lines[temp_index + i]).strip()
+                            != scope.strip()
                         ):
                             match = False
                             break
@@ -1209,10 +1225,14 @@ def parse_update_file_sections(
                 raise DiffError(f"Could not find scope context:\n{scope_txt}")
 
         # 解析下一个 context/change section
-        context_block, chunks_in_section, next_index, is_eof = peek_next_section(lines, index)
+        context_block, chunks_in_section, next_index, is_eof = peek_next_section(
+            lines, index
+        )
 
         # 在原始文件中查找上下文块位置
-        found_index, fuzz = find_context(orig_lines, context_block, current_file_index, is_eof)
+        found_index, fuzz = find_context(
+            orig_lines, context_block, current_file_index, is_eof
+        )
         total_fuzz += fuzz
 
         if found_index == -1:
@@ -1291,17 +1311,24 @@ def parse_patch_text(
                 if existing_action.type != ActionType.UPDATE:
                     raise DiffError(f"Conflicting actions for file: {path}")
 
-                new_action, index, fuzz = parse_update_file_sections(lines, index, file_content)
+                new_action, index, fuzz = parse_update_file_sections(
+                    lines, index, file_content
+                )
                 existing_action.chunks.extend(new_action.chunks)
 
                 if move_to:
-                    if existing_action.move_path and existing_action.move_path != move_to:
+                    if (
+                        existing_action.move_path
+                        and existing_action.move_path != move_to
+                    ):
                         raise DiffError(f"Conflicting move targets for file: {path}")
                     existing_action.move_path = move_to
                 fuzz_accumulator += fuzz
             else:
                 # 首次出现该文件的 UPDATE 块
-                action, index, fuzz = parse_update_file_sections(lines, index, file_content)
+                action, index, fuzz = parse_update_file_sections(
+                    lines, index, file_content
+                )
                 action.path = path
                 action.move_path = move_to
                 patch.actions[path] = action
@@ -1389,7 +1416,9 @@ def apply_update(text: str, action: PatchAction, path: str) -> str:
 
         # 验证待删除行与文件实际内容匹配
         num_del = len(chunk.del_lines)
-        actual_deleted_lines = orig_lines[chunk_start_index : chunk_start_index + num_del]
+        actual_deleted_lines = orig_lines[
+            chunk_start_index : chunk_start_index + num_del
+        ]
 
         norm_chunk_del = [_norm(s).strip() for s in chunk.del_lines]
         norm_actual_del = [_norm(s).strip() for s in actual_deleted_lines]
@@ -1576,7 +1605,9 @@ class CodeEditor:
             if not is_patch_like:
                 logger.warning("响应文本不像 patch 格式，跳过应用")
                 return {}
-            logger.warning("Patch 格式警告: 缺少 '*** Begin Patch'/'*** End Patch' 哨兵")
+            logger.warning(
+                "Patch 格式警告: 缺少 '*** Begin Patch'/'*** End Patch' 哨兵"
+            )
             start_index = 0
 
         # 读取需要文件的内容
@@ -1682,7 +1713,12 @@ class CodeEditor:
         # 检测是否为 patch 格式
         is_patch = any(
             _norm(line).startswith(
-                ("*** Begin Patch", "*** Update File:", "*** Add File:", "*** Delete File:")
+                (
+                    "*** Begin Patch",
+                    "*** Update File:",
+                    "*** Add File:",
+                    "*** Delete File:",
+                )
             )
             for line in lines
         )
@@ -1763,10 +1799,17 @@ class CodeEditor:
                     i += 1
                 # 跳过该文件的所有 patch 行（直到下一个操作或结束）
                 while i < len(lines) and not _norm(lines[i]).startswith(
-                    ("*** End Patch", "*** Update File:", "*** Delete File:", "*** Add File:")
+                    (
+                        "*** End Patch",
+                        "*** Update File:",
+                        "*** Delete File:",
+                        "*** Add File:",
+                    )
                 ):
                     i += 1
-                action = PatchAction(type=ActionType.UPDATE, path=path, move_path=move_to)
+                action = PatchAction(
+                    type=ActionType.UPDATE, path=path, move_path=move_to
+                )
                 edits.append(Edit(path=path, edit_type="patch", action=action))
 
             elif norm_line.startswith("*** Add File: "):
@@ -1774,7 +1817,12 @@ class CodeEditor:
                 i += 1
                 add_lines: List[str] = []
                 while i < len(lines) and not _norm(lines[i]).startswith(
-                    ("*** End Patch", "*** Update File:", "*** Delete File:", "*** Add File:")
+                    (
+                        "*** End Patch",
+                        "*** Update File:",
+                        "*** Delete File:",
+                        "*** Add File:",
+                    )
                 ):
                     line = lines[i]
                     if line.startswith("+"):

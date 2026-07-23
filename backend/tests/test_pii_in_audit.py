@@ -196,6 +196,3 @@ async def test_record_guard_check_marks_false_positive(audit_service, db_session
 
     log = await _fetch_log(db_session, "guard_check")
     assert log.details["would_be_false_positive"] is True
-
-
-

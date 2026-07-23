@@ -130,8 +130,9 @@ class PreviewRequest(BaseModel):
 # ====== 序列化 helper ======
 
 
-def _serialize_template(t: PromptTemplate, label_count: int = 0,
-                       version_count: int = 0) -> Dict[str, Any]:
+def _serialize_template(
+    t: PromptTemplate, label_count: int = 0, version_count: int = 0
+) -> Dict[str, Any]:
     return {
         "id": t.id,
         "tenant_id": t.tenant_id,
@@ -146,7 +147,9 @@ def _serialize_template(t: PromptTemplate, label_count: int = 0,
     }
 
 
-def _serialize_version(v: PromptVersion, labels: Optional[List[str]] = None) -> Dict[str, Any]:
+def _serialize_version(
+    v: PromptVersion, labels: Optional[List[str]] = None
+) -> Dict[str, Any]:
     return {
         "id": v.id,
         "template_id": v.template_id,
@@ -161,7 +164,9 @@ def _serialize_version(v: PromptVersion, labels: Optional[List[str]] = None) -> 
     }
 
 
-def _serialize_label(l: PromptLabel, version_no: Optional[int] = None) -> Dict[str, Any]:
+def _serialize_label(
+    l: PromptLabel, version_no: Optional[int] = None
+) -> Dict[str, Any]:
     return {
         "id": l.id,
         "template_id": l.template_id,
@@ -293,9 +298,8 @@ async def list_templates(
     from sqlalchemy import func
 
     count_stmt = select(func.count()).select_from(
-        select(PromptTemplate)
-        .where(PromptTemplate.tenant_id == tid)
-        .subquery() if not search
+        select(PromptTemplate).where(PromptTemplate.tenant_id == tid).subquery()
+        if not search
         else select(PromptTemplate)
         .where(
             and_(
@@ -317,9 +321,7 @@ async def list_templates(
     for t in templates:
         # 查版本数与 label 数(子查询更优,此处保持简单)
         v_count_stmt = select(func.count()).select_from(
-            select(PromptVersion).where(
-                PromptVersion.template_id == t.id
-            )
+            select(PromptVersion).where(PromptVersion.template_id == t.id)
         )
         l_count_stmt = select(func.count()).select_from(
             select(PromptLabel).where(PromptLabel.template_id == t.id)
@@ -419,7 +421,9 @@ async def create_template(
 
     labels_list = await _list_labels_for_version(session, template.id, version.id)
     return {
-        "template": _serialize_template(template, version_count=1, label_count=len(requested_labels)),
+        "template": _serialize_template(
+            template, version_count=1, label_count=len(requested_labels)
+        ),
         "version": _serialize_version(version, labels=labels_list),
     }
 
@@ -562,7 +566,11 @@ async def list_versions(
     }
 
 
-@router.post("/{name}/versions", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{name}/versions",
+    response_model=Dict[str, Any],
+    status_code=status.HTTP_201_CREATED,
+)
 @rate_limit("20/minute")
 async def create_version(
     name: str,
@@ -678,7 +686,9 @@ async def list_labels(
             v_map[v.id] = v.version
 
     return {
-        "items": [_serialize_label(l, version_no=v_map.get(l.version_id)) for l in labels],
+        "items": [
+            _serialize_label(l, version_no=v_map.get(l.version_id)) for l in labels
+        ],
         "total": len(labels),
     }
 
@@ -720,8 +730,10 @@ async def assign_label(
         )
 
     actor_id = await get_current_user_id(request)
-    protected = payload.protected if payload.protected is not None else (
-        payload.label in _PROTECTED_LABELS_DEFAULT
+    protected = (
+        payload.protected
+        if payload.protected is not None
+        else (payload.label in _PROTECTED_LABELS_DEFAULT)
     )
     await _upsert_label(
         session, template.id, version_row.id, payload.label, protected, actor_id
@@ -854,8 +866,12 @@ async def diff_versions(
 
         config_diff = list(
             difflib.unified_diff(
-                json.dumps(v_from.config, ensure_ascii=False, indent=2, sort_keys=True).splitlines(keepends=True),
-                json.dumps(v_to.config, ensure_ascii=False, indent=2, sort_keys=True).splitlines(keepends=True),
+                json.dumps(
+                    v_from.config, ensure_ascii=False, indent=2, sort_keys=True
+                ).splitlines(keepends=True),
+                json.dumps(
+                    v_to.config, ensure_ascii=False, indent=2, sort_keys=True
+                ).splitlines(keepends=True),
                 fromfile=f"v{frm}.config",
                 tofile=f"v{to}.config",
             )
@@ -922,13 +938,20 @@ async def rollback(
     old_version_no = None
     if old_prod:
         old_v = await _get_version_by_no(
-            session, template.id, await _get_version_no_by_id(session, old_prod.version_id)
+            session,
+            template.id,
+            await _get_version_no_by_id(session, old_prod.version_id),
         )
         old_version_no = old_v.version if old_v else None
 
     actor_id = await get_current_user_id(request)
     await _upsert_label(
-        session, template.id, target_version.id, "production", protected=True, updated_by=actor_id
+        session,
+        template.id,
+        target_version.id,
+        "production",
+        protected=True,
+        updated_by=actor_id,
     )
 
     await audit_service.log(
@@ -952,9 +975,7 @@ async def rollback(
     }
 
 
-async def _get_version_no_by_id(
-    session: AsyncSession, version_id: str
-) -> int:
+async def _get_version_no_by_id(session: AsyncSession, version_id: str) -> int:
     """根据 version_id 反查 version_no(用于 rollback 记录原版本)"""
     stmt = select(PromptVersion.version).where(PromptVersion.id == version_id)
     result = await session.execute(stmt)
@@ -1099,8 +1120,12 @@ async def setup_ab_test(
         )
 
     actor_id = await get_current_user_id(request)
-    await _upsert_label(session, template.id, v_a.id, "prod-a", protected=False, updated_by=actor_id)
-    await _upsert_label(session, template.id, v_b.id, "prod-b", protected=False, updated_by=actor_id)
+    await _upsert_label(
+        session, template.id, v_a.id, "prod-a", protected=False, updated_by=actor_id
+    )
+    await _upsert_label(
+        session, template.id, v_b.id, "prod-b", protected=False, updated_by=actor_id
+    )
 
     await audit_service.log(
         actor_id=actor_id,
@@ -1188,7 +1213,12 @@ async def setup_canary(
         await session.delete(old)
 
     await _upsert_label(
-        session, template.id, version_row.id, canary_label, protected=False, updated_by=actor_id
+        session,
+        template.id,
+        version_row.id,
+        canary_label,
+        protected=False,
+        updated_by=actor_id,
     )
 
     await audit_service.log(

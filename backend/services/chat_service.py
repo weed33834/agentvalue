@@ -223,9 +223,7 @@ class ChatService:
         await self.db.refresh(part)
         return part
 
-    async def update_part(
-        self, part_id: str, **fields: Any
-    ) -> Optional[ChatPart]:
+    async def update_part(self, part_id: str, **fields: Any) -> Optional[ChatPart]:
         stmt = select(ChatPart).where(ChatPart.id == part_id)
         result = await self.db.execute(stmt)
         part = result.scalar_one_or_none()
@@ -240,9 +238,7 @@ class ChatService:
         await self.db.flush()
         return part
 
-    async def list_parts_by_message(
-        self, message_id: str
-    ) -> List[ChatPart]:
+    async def list_parts_by_message(self, message_id: str) -> List[ChatPart]:
         stmt = (
             select(ChatPart)
             .where(ChatPart.message_id == message_id)

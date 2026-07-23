@@ -264,9 +264,7 @@ async def test_cohere_rerank_http_error_raises_runtime_error(monkeypatch):
     err_resp = MagicMock()
     err_resp.status_code = 401
     err_resp.text = "unauthorized"
-    http_err = httpx.HTTPStatusError(
-        "401", request=MagicMock(), response=err_resp
-    )
+    http_err = httpx.HTTPStatusError("401", request=MagicMock(), response=err_resp)
     _patch_httpx_client(monkeypatch, post_side_effect=http_err)
     provider = CohereRerankProvider(api_key="bad")
     with pytest.raises(RuntimeError, match="cohere rerank API 错误"):
@@ -348,7 +346,9 @@ async def test_jina_rerank_custom_base_url(monkeypatch):
 # ============================================================
 
 
-def test_bge_provider_missing_dependency_raises_not_implemented(no_sentence_transformers):
+def test_bge_provider_missing_dependency_raises_not_implemented(
+    no_sentence_transformers,
+):
     """BGE: sentence-transformers 缺失时 raise NotImplementedError
 
     通过 fixture 将 sys.modules["sentence_transformers"] 置 None 模拟依赖缺失,

@@ -70,7 +70,9 @@ class DEKCache:
             if entry is None:
                 self._misses += 1
                 return None
-            if entry.is_expired(self._ttl) or entry.is_exhausted(self._max_msgs, self._max_bytes):
+            if entry.is_expired(self._ttl) or entry.is_exhausted(
+                self._max_msgs, self._max_bytes
+            ):
                 # 过期或耗尽,主动淘汰
                 self._cache.pop(cache_key, None)
                 self._misses += 1

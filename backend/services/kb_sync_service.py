@@ -274,16 +274,31 @@ class KbSyncService:
 
                 # 详细处理结果
                 for f in changes["added"]:
-                    details.append({"file": f["path"], "action": "added", "status": "ok"})
+                    details.append(
+                        {"file": f["path"], "action": "added", "status": "ok"}
+                    )
                 for f in changes["updated"]:
-                    details.append({"file": f["path"], "action": "updated", "status": "ok"})
+                    details.append(
+                        {"file": f["path"], "action": "updated", "status": "ok"}
+                    )
                 for f in changes["deleted"]:
-                    details.append({"file": f["path"], "action": "deleted", "status": "ok"})
+                    details.append(
+                        {"file": f["path"], "action": "deleted", "status": "ok"}
+                    )
                 for f in changes.get("errors", []):
-                    details.append({"file": f.get("path", ""), "action": "error", "status": f.get("error", "unknown")})
+                    details.append(
+                        {
+                            "file": f.get("path", ""),
+                            "action": "error",
+                            "status": f.get("error", "unknown"),
+                        }
+                    )
 
                 # 判断最终状态
-                if stats["errors"] > 0 and (stats["added"] + stats["updated"] + stats["deleted"]) > 0:
+                if (
+                    stats["errors"] > 0
+                    and (stats["added"] + stats["updated"] + stats["deleted"]) > 0
+                ):
                     status_str = "partial"
                 elif stats["errors"] > 0:
                     status_str = "failed"
@@ -369,15 +384,13 @@ class KbSyncService:
                 .order_by(KbSyncLog.started_at.desc())
             )
             total = (
-                await session.execute(
-                    select(func.count()).select_from(base.subquery())
-                )
+                await session.execute(select(func.count()).select_from(base.subquery()))
             ).scalar() or 0
 
             offset = (page - 1) * size
             rows = (
-                await session.execute(base.offset(offset).limit(size))
-            ).scalars().all()
+                (await session.execute(base.offset(offset).limit(size))).scalars().all()
+            )
 
             return {
                 "items": [self._serialize_log(l) for l in rows],
@@ -410,13 +423,17 @@ class KbSyncService:
             # 查询所有启用的、间隔大于 0 的数据源
             async with AsyncSessionLocal() as session:
                 sources = (
-                    await session.execute(
-                        select(KbDataSource).where(
-                            KbDataSource.enabled.is_(True),
-                            KbDataSource.sync_interval_minutes > 0,
+                    (
+                        await session.execute(
+                            select(KbDataSource).where(
+                                KbDataSource.enabled.is_(True),
+                                KbDataSource.sync_interval_minutes > 0,
+                            )
                         )
                     )
-                ).scalars().all()
+                    .scalars()
+                    .all()
+                )
 
             for source in sources:
                 task_id = f"kb_sync_{source.id}"
@@ -477,9 +494,7 @@ class KbSyncService:
             if not os.path.isfile(filepath):
                 continue
             try:
-                file_hash = await asyncio.to_thread(
-                    self._compute_file_hash, filepath
-                )
+                file_hash = await asyncio.to_thread(self._compute_file_hash, filepath)
                 stat = os.stat(filepath)
                 rel_path = os.path.relpath(filepath, path)
                 results.append(
@@ -571,9 +586,7 @@ class KbSyncService:
 
         return {"added": added, "updated": updated, "deleted": deleted, "errors": []}
 
-    async def _get_existing_files(
-        self, source: KbDataSource
-    ) -> List[Dict[str, Any]]:
+    async def _get_existing_files(self, source: KbDataSource) -> List[Dict[str, Any]]:
         """获取已有文件列表（从上次同步的日志 details 中提取）
 
         若无历史日志，返回空列表（首次同步视为全部新增）。
@@ -683,18 +696,14 @@ class KbSyncService:
             "config": source.config,
             "collection_name": source.collection_name,
             "sync_interval_minutes": source.sync_interval_minutes,
-            "last_sync_at": source.last_sync_at.isoformat()
-            if source.last_sync_at
-            else None,
+            "last_sync_at": (
+                source.last_sync_at.isoformat() if source.last_sync_at else None
+            ),
             "last_sync_status": source.last_sync_status,
             "last_sync_stats": source.last_sync_stats,
             "enabled": source.enabled,
-            "created_at": source.created_at.isoformat()
-            if source.created_at
-            else None,
-            "updated_at": source.updated_at.isoformat()
-            if source.updated_at
-            else None,
+            "created_at": source.created_at.isoformat() if source.created_at else None,
+            "updated_at": source.updated_at.isoformat() if source.updated_at else None,
         }
 
     @staticmethod
@@ -706,9 +715,7 @@ class KbSyncService:
             "sync_type": log.sync_type,
             "status": log.status,
             "started_at": log.started_at.isoformat() if log.started_at else None,
-            "completed_at": log.completed_at.isoformat()
-            if log.completed_at
-            else None,
+            "completed_at": log.completed_at.isoformat() if log.completed_at else None,
             "stats": log.stats,
             "error_message": log.error_message,
             "details": log.details,

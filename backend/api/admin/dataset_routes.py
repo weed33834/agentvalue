@@ -318,7 +318,9 @@ async def list_items(
     dataset_id: int,
     request: Request,
     session: AsyncSession = Depends(get_db),
-    item_status: Optional[str] = Query(default=None, alias="status", description="按状态过滤"),
+    item_status: Optional[str] = Query(
+        default=None, alias="status", description="按状态过滤"
+    ),
     page: int = Query(default=1, ge=1, description="页码"),
     size: int = Query(default=50, ge=1, le=200, description="每页条数"),
 ):
@@ -416,13 +418,9 @@ async def export_dataset(
     tenant_id = get_current_tenant()
     service = DatasetService(session)
     try:
-        content = await service.export_dataset(
-            dataset_id, format, tenant_id=tenant_id
-        )
+        content = await service.export_dataset(dataset_id, format, tenant_id=tenant_id)
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
     media_type = "application/json" if format.lower() == "json" else "text/csv"
     filename = f"dataset_{dataset_id}.{format.lower()}"

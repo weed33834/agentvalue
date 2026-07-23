@@ -57,7 +57,9 @@ class NL2SQLQuery(Base):
     # 查询时的数据库 schema 快照 (JSON)
     database_schema: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     # 目标表名
-    table_name: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, index=True)
+    table_name: Mapped[Optional[str]] = mapped_column(
+        String(128), nullable=True, index=True
+    )
     # 状态: pending / success / failed / executed
     status: Mapped[str] = mapped_column(
         String(16), nullable=False, default="pending", index=True

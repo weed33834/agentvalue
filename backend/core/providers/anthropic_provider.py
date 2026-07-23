@@ -86,7 +86,9 @@ class AnthropicProvider(BaseProvider):
                 data = resp.json()
         except httpx.HTTPStatusError as e:
             record_llm_request(self._tier, "error")
-            raise RuntimeError(f"Anthropic API 错误: {e.response.status_code} {e.response.text}")
+            raise RuntimeError(
+                f"Anthropic API 错误: {e.response.status_code} {e.response.text}"
+            )
 
         # 提取文本内容
         content_parts = []
@@ -147,7 +149,9 @@ class AnthropicProvider(BaseProvider):
         payload: Dict[str, Any] = {
             "model": self.config.model_name,
             "max_tokens": max_tokens or self.config.max_tokens,
-            "temperature": temperature if temperature is not None else self.config.temperature,
+            "temperature": (
+                temperature if temperature is not None else self.config.temperature
+            ),
             "messages": user_messages,
             "stream": True,
         }
@@ -229,7 +233,9 @@ class AnthropicProvider(BaseProvider):
                                     finish_reason=delta["stop_reason"],
                                     usage={
                                         "prompt_tokens": usage.get("input_tokens", 0),
-                                        "completion_tokens": usage.get("output_tokens", 0),
+                                        "completion_tokens": usage.get(
+                                            "output_tokens", 0
+                                        ),
                                         "total_tokens": usage.get("input_tokens", 0)
                                         + usage.get("output_tokens", 0),
                                     },

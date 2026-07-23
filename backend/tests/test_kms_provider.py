@@ -222,10 +222,13 @@ class TestEnvelopeCipher:
         """旧 FieldCipher 密文格式:base64(nonce(12) + ct + tag(16)) 无 \x01 前缀"""
         # 构造一个旧格式密文
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
         legacy_key = os.urandom(32)
         aes = AESGCM(legacy_key)
         nonce = os.urandom(12)
-        legacy_ct = base64.b64encode(nonce + aes.encrypt(nonce, b"legacy-data", None)).decode()
+        legacy_ct = base64.b64encode(
+            nonce + aes.encrypt(nonce, b"legacy-data", None)
+        ).decode()
         assert EnvelopeCipher.is_envelope_ciphertext(legacy_ct) is False
 
     @pytest.mark.asyncio
@@ -284,7 +287,9 @@ class TestEnvelopeCipher:
         await cipher.encrypt("data1", encryption_context={"a": "1", "b": "2"})
         assert cache.stats["hits"] == 0
         # 第二次同 context 加密应命中 cache (不调 KMS.generate_data_key)
-        await cipher.encrypt("data2", encryption_context={"b": "2", "a": "1"})  # 顺序不同
+        await cipher.encrypt(
+            "data2", encryption_context={"b": "2", "a": "1"}
+        )  # 顺序不同
         assert cache.stats["hits"] == 1
 
     @pytest.mark.asyncio
@@ -334,6 +339,7 @@ class TestKMSExceptions:
 
     def test_kms_not_configured_error(self):
         from core.kms.base import KMSNotConfiguredError
+
         err = KMSNotConfiguredError("vault_addr missing", provider="vault")
         assert isinstance(err, KMSProviderError)
 

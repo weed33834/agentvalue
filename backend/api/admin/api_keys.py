@@ -140,18 +140,16 @@ def _entity_to_dict(entity: ApiKey) -> Dict[str, Any]:
         "tenant_id": entity.tenant_id,
         "created_by": entity.created_by,
         "is_active": entity.is_active,
-        "last_used_at": entity.last_used_at.isoformat()
-        if entity.last_used_at
-        else None,
+        "last_used_at": (
+            entity.last_used_at.isoformat() if entity.last_used_at else None
+        ),
         "expires_at": entity.expires_at.isoformat() if entity.expires_at else None,
         "created_at": entity.created_at.isoformat() if entity.created_at else None,
         "revoked_at": entity.revoked_at.isoformat() if entity.revoked_at else None,
     }
 
 
-async def _get_api_key_entity(
-    session: AsyncSession, key_id: str
-) -> Optional[ApiKey]:
+async def _get_api_key_entity(session: AsyncSession, key_id: str) -> Optional[ApiKey]:
     """按 key_id 查询 (当前租户隔离)"""
     result = await session.execute(
         select(ApiKey).where(
@@ -239,11 +237,7 @@ async def list_api_keys(
     total = (await session.execute(count_stmt)).scalar() or 0
 
     offset = (page - 1) * page_size
-    rows = (
-        (await session.execute(base.offset(offset).limit(page_size)))
-        .scalars()
-        .all()
-    )
+    rows = (await session.execute(base.offset(offset).limit(page_size))).scalars().all()
     return {
         "items": [_entity_to_dict(r) for r in rows],
         "total": total,
@@ -352,6 +346,7 @@ async def revoke_api_key(
 
     # 立即清除缓存, 使吊销的 key 即刻失效
     from api.middleware import invalidate_apikey_cache
+
     invalidate_apikey_cache(entity.key_hash)
 
     return {"revoked": True, "key_id": key_id}
@@ -417,6 +412,7 @@ async def rotate_api_key(
 
     # 立即清除缓存, 使旧 key 即刻失效
     from api.middleware import invalidate_apikey_cache
+
     invalidate_apikey_cache(old_entity.key_hash)
 
     return ApiKeyRotateResponse(
@@ -488,8 +484,8 @@ async def get_api_key_usage(
         "name": entity.name,
         "total_calls": total_count,
         "daily": daily,
-        "last_used_at": entity.last_used_at.isoformat()
-        if entity.last_used_at
-        else None,
+        "last_used_at": (
+            entity.last_used_at.isoformat() if entity.last_used_at else None
+        ),
         "is_active": entity.is_active,
     }

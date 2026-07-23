@@ -72,7 +72,9 @@ class ReleaseUpdate(BaseModel):
     )
     status: Optional[str] = Field(default=None, description="发布状态")
     config: Optional[dict] = Field(default=None, description="灰度配置")
-    name: Optional[str] = Field(default=None, max_length=128, description="灰度发布名称")
+    name: Optional[str] = Field(
+        default=None, max_length=128, description="灰度发布名称"
+    )
     description: Optional[str] = Field(default=None, description="备注 / 描述")
 
 
@@ -81,7 +83,9 @@ class ReleaseUpdate(BaseModel):
 # ============================================================
 
 
-@router.post("/releases", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/releases", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED
+)
 async def create_release(
     payload: ReleaseCreate,
     request: Request,
@@ -104,9 +108,7 @@ async def create_release(
             description=payload.description,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     await audit_service.log(
         actor_id=current_user_id,
@@ -127,7 +129,9 @@ async def create_release(
 @router.get("/releases", response_model=Dict[str, Any])
 async def list_releases(
     request: Request,
-    status_filter: Optional[str] = Query(default=None, alias="status", description="按状态过滤"),
+    status_filter: Optional[str] = Query(
+        default=None, alias="status", description="按状态过滤"
+    ),
     agent_id: Optional[int] = Query(default=None, description="按 Agent 过滤"),
     session: AsyncSession = Depends(get_db),
 ):
@@ -184,12 +188,8 @@ async def update_release(
         # 区分不存在 (404) 与状态非法 (400)
         msg = str(e)
         if "不存在" in msg:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=msg
-            )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=msg
-        )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=msg)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
 
     await audit_service.log(
         actor_id=current_user_id,
@@ -222,12 +222,8 @@ async def start_release(
     except ValueError as e:
         msg = str(e)
         if "不存在" in msg:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=msg
-            )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=msg
-        )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=msg)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
 
     result = GrayReleaseService._release_to_dict(release)
     await audit_service.log(
@@ -256,12 +252,8 @@ async def pause_release(
     except ValueError as e:
         msg = str(e)
         if "不存在" in msg:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=msg
-            )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=msg
-        )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=msg)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
 
     await audit_service.log(
         actor_id=current_user_id,
@@ -290,12 +282,8 @@ async def complete_release(
     except ValueError as e:
         msg = str(e)
         if "不存在" in msg:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=msg
-            )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=msg
-        )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=msg)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
 
     await audit_service.log(
         actor_id=current_user_id,
@@ -324,12 +312,8 @@ async def rollback_release(
     except ValueError as e:
         msg = str(e)
         if "不存在" in msg:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=msg
-            )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=msg
-        )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=msg)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
 
     await audit_service.log(
         actor_id=current_user_id,
@@ -354,7 +338,10 @@ async def get_active_release(
     release = await service.get_active_release(agent_id, tenant_id=tenant_id)
     if release is None:
         return {"agent_id": agent_id, "active_release": None}
-    return {"agent_id": agent_id, "active_release": GrayReleaseService._release_to_dict(release)}
+    return {
+        "agent_id": agent_id,
+        "active_release": GrayReleaseService._release_to_dict(release),
+    }
 
 
 @router.delete("/releases/{release_id}", response_model=Dict[str, Any])
@@ -373,12 +360,8 @@ async def delete_release(
     except ValueError as e:
         msg = str(e)
         if "不存在" in msg:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=msg
-            )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=msg
-        )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=msg)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
 
     await audit_service.log(
         actor_id=current_user_id,

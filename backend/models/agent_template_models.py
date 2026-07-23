@@ -117,7 +117,9 @@ class TemplateReview(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            "tenant_id", "template_id", "reviewer_id",
+            "tenant_id",
+            "template_id",
+            "reviewer_id",
             name="uix_tenant_template_reviewer",
         ),
         Index("ix_template_review_template", "template_id"),

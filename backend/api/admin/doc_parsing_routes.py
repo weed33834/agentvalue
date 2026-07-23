@@ -52,7 +52,9 @@ class TaskCreate(BaseModel):
 
     file_path: str = Field(..., description="待解析文件路径")
     file_type: str = Field(..., description="文件类型: pdf/docx/xlsx/pptx/txt/md")
-    parse_strategy: str = Field(default="auto", description="解析策略: auto/ocr/structure/hybrid")
+    parse_strategy: str = Field(
+        default="auto", description="解析策略: auto/ocr/structure/hybrid"
+    )
 
 
 # ============================================================
@@ -60,7 +62,9 @@ class TaskCreate(BaseModel):
 # ============================================================
 
 
-@router.post("/tasks", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/tasks", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED
+)
 async def create_task(
     payload: TaskCreate,
     session: AsyncSession = Depends(get_db),
@@ -76,9 +80,7 @@ async def create_task(
             tenant_id=tenant_id,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     await session.commit()
     return DocParsingService._task_to_dict(task)
 
@@ -123,7 +125,9 @@ async def get_task(
 @router.post("/tasks/{task_id}/process", response_model=Dict[str, Any])
 async def process_task(
     task_id: int,
-    sync: bool = Query(False, description="True 同步执行 (等待完成), False 后台异步执行"),
+    sync: bool = Query(
+        False, description="True 同步执行 (等待完成), False 后台异步执行"
+    ),
     session: AsyncSession = Depends(get_db),
 ):
     """执行解析任务
@@ -169,9 +173,7 @@ async def process_task(
             await service.process_task(task_id, tenant_id=tenant_id)
         except ValueError as e:
             await session.commit()
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
         await session.commit()
         # 重新查询获取最新状态
         task = await service.get_task(task_id, tenant_id=tenant_id)

@@ -57,9 +57,7 @@ class SloCreate(BaseModel):
     target_success_rate: float = Field(
         default=0.99, gt=0, le=1, description="目标成功率（0-1）"
     )
-    window_minutes: int = Field(
-        default=5, ge=1, description="统计窗口（分钟）"
-    )
+    window_minutes: int = Field(default=5, ge=1, description="统计窗口（分钟）")
     enabled: bool = Field(default=True, description="是否启用")
 
 
@@ -156,7 +154,11 @@ async def endpoint_stats(
     """
     endpoint = _normalize_endpoint(endpoint_path)
     now = datetime.now(timezone.utc)
-    start = _parse_datetime(start_time, "start_time") if start_time else now - timedelta(hours=1)
+    start = (
+        _parse_datetime(start_time, "start_time")
+        if start_time
+        else now - timedelta(hours=1)
+    )
     end = _parse_datetime(end_time, "end_time") if end_time else now
     service = ApiHealthService(session)
     return await service.get_endpoint_stats(endpoint, start, end, tenant_id)

@@ -113,7 +113,9 @@ class KMSProvider(ABC):
 class KMSProviderError(Exception):
     """KMS Provider 异常基类"""
 
-    def __init__(self, message: str, provider: str = "", cause: Optional[Exception] = None):
+    def __init__(
+        self, message: str, provider: str = "", cause: Optional[Exception] = None
+    ):
         self.provider = provider
         self.cause = cause
         super().__init__(f"[{provider}] {message}" if provider else message)

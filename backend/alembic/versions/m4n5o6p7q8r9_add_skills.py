@@ -82,21 +82,11 @@ def upgrade() -> None:
                 nullable=False,
                 server_default="L1",
             ),
-            sa.Column(
-                "temperature", sa.Integer(), nullable=False, server_default="70"
-            ),
-            sa.Column(
-                "is_builtin", sa.Boolean(), nullable=False, server_default="0"
-            ),
-            sa.Column(
-                "is_public", sa.Boolean(), nullable=False, server_default="1"
-            ),
-            sa.Column(
-                "is_active", sa.Boolean(), nullable=False, server_default="1"
-            ),
-            sa.Column(
-                "use_count", sa.Integer(), nullable=False, server_default="0"
-            ),
+            sa.Column("temperature", sa.Integer(), nullable=False, server_default="70"),
+            sa.Column("is_builtin", sa.Boolean(), nullable=False, server_default="0"),
+            sa.Column("is_public", sa.Boolean(), nullable=False, server_default="1"),
+            sa.Column("is_active", sa.Boolean(), nullable=False, server_default="1"),
+            sa.Column("use_count", sa.Integer(), nullable=False, server_default="0"),
             sa.Column("tags", sa.JSON(), nullable=True),
             sa.Column("config", sa.JSON(), nullable=True),
             sa.Column("created_by", sa.Integer(), nullable=True),

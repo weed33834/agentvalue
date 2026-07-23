@@ -58,6 +58,7 @@ def _ensure_secret_key(settings) -> str:
             if kms is not None and hasattr(kms, "read_jwt_secret"):
                 # VaultKMSProvider 有 read_jwt_secret 方法
                 import asyncio
+
                 try:
                     loop = asyncio.get_running_loop()
                 except RuntimeError:
@@ -66,6 +67,7 @@ def _ensure_secret_key(settings) -> str:
                 if loop is not None and loop.is_running():
                     # 在 async 应用内被 sync 调用 → 新线程跑
                     import concurrent.futures
+
                     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
                         future = pool.submit(asyncio.run, kms.read_jwt_secret())
                         secret = future.result()

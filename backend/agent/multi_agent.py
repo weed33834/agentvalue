@@ -267,9 +267,7 @@ async def _call_llm_json(
         return {"_error": f"llm call failed: {e}"}
 
 
-def _append_timeline(
-    state: dict, node: str, status: str = "ok", **extra: Any
-) -> list:
+def _append_timeline(state: dict, node: str, status: str = "ok", **extra: Any) -> list:
     """追加节点执行记录到 timeline, 便于前端时间线可视化"""
     entry: Dict[str, Any] = {
         "node": node,
@@ -366,9 +364,7 @@ def create_multi_agent_graph(
                 goto=END,
                 update={
                     "iteration": iteration,
-                    "error": (
-                        f"max_iterations ({max_iter}) 超限, 强制结束"
-                    ),
+                    "error": (f"max_iterations ({max_iter}) 超限, 强制结束"),
                     "timeline": timeline,
                     "next_agent": "END",
                     "messages": [
@@ -396,9 +392,7 @@ def create_multi_agent_graph(
 
         # 处理 LLM 错误: 默认走 END, 避免无限循环
         if "_error" in decision:
-            logger.warning(
-                "supervisor LLM 调用失败: %s, 强制 END", decision["_error"]
-            )
+            logger.warning("supervisor LLM 调用失败: %s, 强制 END", decision["_error"])
             timeline = _append_timeline(
                 state, "supervisor", "llm_error", error=decision["_error"]
             )
@@ -420,9 +414,7 @@ def create_multi_agent_graph(
 
         # 防御性: 校验 next_agent 合法性
         if next_agent not in ALL_ROUTABLE and next_agent != "END":
-            logger.warning(
-                "supervisor 返回非法 next_agent: %s, 默认 END", next_agent
-            )
+            logger.warning("supervisor 返回非法 next_agent: %s, 默认 END", next_agent)
             next_agent = "END"
 
         # 兜底: 还有 artifacts 未汇总且没有 final_report, 强制走 report_writer

@@ -117,15 +117,11 @@ _PY_DEF_RE = re.compile(r"^\s*(async\s+)?def\s+(\w+)")
 _PY_CONST_RE = re.compile(r"^([A-Z][A-Z0-9_]*)\s*=\s*")
 
 # JS/TS: function / async function / export function
-_JS_FUNCTION_RE = re.compile(
-    r"^(export\s+)?(default\s+)?(async\s+)?function\s+(\w+)"
-)
+_JS_FUNCTION_RE = re.compile(r"^(export\s+)?(default\s+)?(async\s+)?function\s+(\w+)")
 # JS/TS: class / export class
 _JS_CLASS_RE = re.compile(r"^(export\s+)?(default\s+)?(abstract\s+)?class\s+(\w+)")
 # JS/TS: 箭头函数 const myFunc = (args) => {  或  const myFunc = async (args) =>
-_JS_ARROW_RE = re.compile(
-    r"^\s*(export\s+)?(const|let)\s+(\w+)\s*=\s*(async\s*)?\("
-)
+_JS_ARROW_RE = re.compile(r"^\s*(export\s+)?(const|let)\s+(\w+)\s*=\s*(async\s*)?\(")
 # JS/TS: 方法简写 (对象方法)  myMethod(args) {
 _JS_METHOD_RE = re.compile(r"^\s*(async\s+)?(\w+)\s*\([^)]*\)\s*\{")
 # Vue: defineComponent / export default
@@ -217,7 +213,10 @@ class RepoMap:
         # 语言分布
         languages = stats.get("languages", {})
         if languages:
-            lang_parts = [f"{lang}({count})" for lang, count in sorted(languages.items(), key=lambda x: -x[1])]
+            lang_parts = [
+                f"{lang}({count})"
+                for lang, count in sorted(languages.items(), key=lambda x: -x[1])
+            ]
             lines.append(f"Languages: {', '.join(lang_parts)}")
 
         lines.append("")
@@ -461,9 +460,7 @@ class RepoMap:
                 }
         return None
 
-    def _extract_js_symbol(
-        self, line: str, lineno: int
-    ) -> Optional[Dict[str, Any]]:
+    def _extract_js_symbol(self, line: str, lineno: int) -> Optional[Dict[str, Any]]:
         """提取 JS/TS 符号 (function / class / 箭头函数)"""
         # function
         m = _JS_FUNCTION_RE.match(line)
@@ -501,9 +498,7 @@ class RepoMap:
             }
         return None
 
-    def _extract_vue_symbol(
-        self, line: str, lineno: int
-    ) -> Optional[Dict[str, Any]]:
+    def _extract_vue_symbol(self, line: str, lineno: int) -> Optional[Dict[str, Any]]:
         """提取 Vue 符号 (复用 JS 提取 + defineComponent)"""
         # 先尝试 JS/TS 模式 (Vue SFC 的 <script> 部分用 JS 语法)
         sym = self._extract_js_symbol(line, lineno)
@@ -532,7 +527,7 @@ class RepoMap:
         idx = line.find(name)
         if idx == -1:
             return line.strip()
-        rest = line[idx + len(name):].strip()
+        rest = line[idx + len(name) :].strip()
         # 移除尾部的冒号/大括号 (保留参数部分)
         # 对于 Python: "def func(a, b):" → "(a, b):" → "(a, b)"
         # 对于 JS: "function func(a, b) {" → "(a, b) {" → "(a, b)"

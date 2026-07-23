@@ -97,9 +97,7 @@ class QuotaService:
             logger.info("为租户 %s 创建默认配额", tenant_id)
         return quota
 
-    async def check_quota(
-        self, tenant_id: str, estimated_tokens: int = 0
-    ) -> bool:
+    async def check_quota(self, tenant_id: str, estimated_tokens: int = 0) -> bool:
         """检查租户是否超出配额
 
         检查逻辑:
@@ -330,8 +328,7 @@ class QuotaService:
         try:
             now = datetime.now(timezone.utc)
             result = await session.execute(
-                update(TenantQuota)
-                .values(
+                update(TenantQuota).values(
                     current_requests_today=0,
                     current_tokens_today=0,
                     quota_reset_at=now,
@@ -360,14 +357,10 @@ class QuotaService:
             "max_api_keys": quota.max_api_keys,
             "current_requests_today": quota.current_requests_today,
             "current_tokens_today": quota.current_tokens_today,
-            "quota_reset_at": quota.quota_reset_at.isoformat()
-            if quota.quota_reset_at
-            else None,
+            "quota_reset_at": (
+                quota.quota_reset_at.isoformat() if quota.quota_reset_at else None
+            ),
             "enabled": quota.enabled,
-            "created_at": quota.created_at.isoformat()
-            if quota.created_at
-            else None,
-            "updated_at": quota.updated_at.isoformat()
-            if quota.updated_at
-            else None,
+            "created_at": quota.created_at.isoformat() if quota.created_at else None,
+            "updated_at": quota.updated_at.isoformat() if quota.updated_at else None,
         }

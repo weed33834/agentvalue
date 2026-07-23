@@ -109,7 +109,9 @@ class VaultKMSProvider(KMSProvider):
                     status_forcelist=(500, 502, 503, 504),
                     allowed_methods=("GET", "POST", "PUT"),
                 )
-                adapter = HTTPAdapter(max_retries=retry, pool_connections=10, pool_maxsize=20)
+                adapter = HTTPAdapter(
+                    max_retries=retry, pool_connections=10, pool_maxsize=20
+                )
                 session.mount("https://", adapter)
                 session.mount("http://", adapter)
 
@@ -123,7 +125,11 @@ class VaultKMSProvider(KMSProvider):
                 self._authenticate()
                 self._start_token_renewer()
                 self._initialized = True
-                logger.info("Vault client connected: %s (auth=%s)", self._addr, self._auth_method)
+                logger.info(
+                    "Vault client connected: %s (auth=%s)",
+                    self._addr,
+                    self._auth_method,
+                )
             except ImportError as e:
                 raise KMSProviderError(
                     "hvac 未安装,启用 Vault KMS: pip install hvac>=2.4.0",
@@ -293,6 +299,7 @@ class VaultKMSProvider(KMSProvider):
         encryption_context: Optional[Dict[str, str]] = None,
     ) -> bytes:
         """Vault 原生 rewrap_data,无需本地解密高效升级版本"""
+
         def _call() -> bytes:
             client = self._ensure_client()
             ciphertext = (
@@ -333,6 +340,7 @@ class VaultKMSProvider(KMSProvider):
         Returns:
             secret data dict (如 {"value": "base64...", "algorithm": "HS256"})
         """
+
         def _call() -> Dict:
             client = self._ensure_client()
             try:
@@ -347,6 +355,7 @@ class VaultKMSProvider(KMSProvider):
 
     async def write_secret(self, path: str, data: Dict) -> None:
         """写入 KV v2 (供运维/初始化脚本使用)"""
+
         def _call():
             client = self._ensure_client()
             try:
@@ -377,7 +386,9 @@ class VaultKMSProvider(KMSProvider):
             hvac_exc = None
 
         # KMS 异常已 raise 的不再包装
-        if isinstance(e, (KMSAuthenticationError, KMSCiphertextInvalidError, KMSUnavailableError)):
+        if isinstance(
+            e, (KMSAuthenticationError, KMSCiphertextInvalidError, KMSUnavailableError)
+        ):
             raise
 
         provider = "vault"
@@ -387,21 +398,31 @@ class VaultKMSProvider(KMSProvider):
             if isinstance(e, hvac_exc.Unauthorized):
                 raise KMSAuthenticationError(msg, provider=provider, cause=e) from e
             if isinstance(e, hvac_exc.Forbidden):
-                raise KMSAuthenticationError(msg + " (策略未授权)", provider=provider, cause=e) from e
+                raise KMSAuthenticationError(
+                    msg + " (策略未授权)", provider=provider, cause=e
+                ) from e
             if isinstance(e, hvac_exc.InvalidPath):
-                raise KMSCiphertextInvalidError(msg + " (path 不存在)", provider=provider, cause=e) from e
+                raise KMSCiphertextInvalidError(
+                    msg + " (path 不存在)", provider=provider, cause=e
+                ) from e
             if isinstance(e, hvac_exc.InvalidRequest):
                 raise KMSCiphertextInvalidError(msg, provider=provider, cause=e) from e
             if isinstance(e, hvac_exc.VaultDown):
-                raise KMSUnavailableError(msg + " (Vault sealed)", provider=provider, cause=e) from e
+                raise KMSUnavailableError(
+                    msg + " (Vault sealed)", provider=provider, cause=e
+                ) from e
             if isinstance(e, hvac_exc.RateLimitExceeded):
-                raise KMSUnavailableError(msg + " (rate limit)", provider=provider, cause=e) from e
+                raise KMSUnavailableError(
+                    msg + " (rate limit)", provider=provider, cause=e
+                ) from e
             if isinstance(e, hvac_exc.InternalServerError):
                 raise KMSUnavailableError(msg, provider=provider, cause=e) from e
 
         # 网络异常
         if isinstance(e, (ConnectionError, TimeoutError, OSError)):
-            raise KMSUnavailableError(msg + " (网络故障)", provider=provider, cause=e) from e
+            raise KMSUnavailableError(
+                msg + " (网络故障)", provider=provider, cause=e
+            ) from e
 
         # 兜底
         raise KMSProviderError(msg, provider=provider, cause=e) from e

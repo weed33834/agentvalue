@@ -51,13 +51,9 @@ def create_rerank_provider(settings: Settings) -> RerankProvider:
             )
             return DummyRerankProvider()
         try:
-            return CohereRerankProvider(
-                api_key=api_key, model=model, base_url=base_url
-            )
+            return CohereRerankProvider(api_key=api_key, model=model, base_url=base_url)
         except Exception as e:
-            logger.warning(
-                "CohereRerankProvider 初始化失败, 降级 Dummy: %s", e
-            )
+            logger.warning("CohereRerankProvider 初始化失败, 降级 Dummy: %s", e)
             return DummyRerankProvider()
 
     if provider_name == "jina":
@@ -67,13 +63,9 @@ def create_rerank_provider(settings: Settings) -> RerankProvider:
             )
             return DummyRerankProvider()
         try:
-            return JinaRerankProvider(
-                api_key=api_key, model=model, base_url=base_url
-            )
+            return JinaRerankProvider(api_key=api_key, model=model, base_url=base_url)
         except Exception as e:
-            logger.warning(
-                "JinaRerankProvider 初始化失败, 降级 Dummy: %s", e
-            )
+            logger.warning("JinaRerankProvider 初始化失败, 降级 Dummy: %s", e)
             return DummyRerankProvider()
 
     if provider_name == "bge":
@@ -86,9 +78,7 @@ def create_rerank_provider(settings: Settings) -> RerankProvider:
             )
             return DummyRerankProvider()
         except Exception as e:
-            logger.warning(
-                "BGERerankProvider 初始化失败, 降级 Dummy: %s", e
-            )
+            logger.warning("BGERerankProvider 初始化失败, 降级 Dummy: %s", e)
             return DummyRerankProvider()
 
     # 未知 provider 名: 降级 Dummy

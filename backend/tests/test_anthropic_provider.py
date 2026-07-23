@@ -18,6 +18,7 @@ MODULE = "core.providers.anthropic_provider"
 # Helpers
 # ============================================================
 
+
 async def _aiter(lines):
     """把字符串列表变成异步生成器,模拟 httpx aiter_lines。"""
     for line in lines:
@@ -85,6 +86,7 @@ def _provider(**overrides):
 # ============================================================
 # Tests
 # ============================================================
+
 
 def test_init_and_headers():
     provider = _provider(api_key="sk-test", base_url="https://custom.example.com/")
@@ -267,9 +269,7 @@ async def test_health_check_failure(monkeypatch):
 @pytest.mark.asyncio
 async def test_health_check_unauthorized(monkeypatch):
     """401 应视为不可用。"""
-    _patch_client(
-        monkeypatch, post_response=_make_response({}, status_code=401)
-    )
+    _patch_client(monkeypatch, post_response=_make_response({}, status_code=401))
     provider = _provider()
     assert await provider.health_check() is False
 

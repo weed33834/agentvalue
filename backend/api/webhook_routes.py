@@ -27,6 +27,8 @@ from fastapi.responses import JSONResponse
 
 from core.database import get_db_session
 from core.tenant_context import get_current_tenant
+from integrations.settings import get_integrations_settings
+from models.models import WebhookEvent
 
 # 保存后台任务引用，防止被 GC 回收
 _background_tasks: set = set()
@@ -38,8 +40,7 @@ def _spawn_task(coro):
     _background_tasks.add(task)
     task.add_done_callback(_background_tasks.discard)
     return task
-from integrations.settings import get_integrations_settings
-from models.models import WebhookEvent
+
 
 logger = logging.getLogger(__name__)
 
@@ -64,9 +65,7 @@ def _verify_hmac_sha256(body: bytes, signature: Optional[str], secret: str) -> b
         return False
     # 兼容 "sha256=<hex>" 前缀格式
     sig = signature.removeprefix("sha256=").strip()
-    expected = hmac.new(
-        secret.encode("utf-8"), body, hashlib.sha256
-    ).hexdigest()
+    expected = hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
     return hmac.compare_digest(sig, expected)
 
 
@@ -238,17 +237,13 @@ async def _handle_gitlab_event(
         action = mr.get("action", "")
         state = mr.get("state", "")
         title = mr.get("title", "")
-        logger.info(
-            "GitLab MR: title=%s action=%s state=%s", title, action, state
-        )
+        logger.info("GitLab MR: title=%s action=%s state=%s", title, action, state)
         # TODO: 提取 MR 状态变化,触发评估关联
     elif event_type == "Issue Hook":
         issue = payload.get("object_attributes", {})
         action = issue.get("action", "")
         title = issue.get("title", "")
-        logger.info(
-            "GitLab Issue: title=%s action=%s", title, action
-        )
+        logger.info("GitLab Issue: title=%s action=%s", title, action)
         # TODO: 提取 issue 事件
     else:
         logger.debug("GitLab 未处理的事件类型: %s", event_type)
@@ -280,9 +275,7 @@ async def _handle_custom_event(
             event_type,
         )
     except Exception:
-        logger.exception(
-            "自定义 webhook 转发事件总线失败 hook_id=%s", hook_id
-        )
+        logger.exception("自定义 webhook 转发事件总线失败 hook_id=%s", hook_id)
 
 
 # ====== 路由端点 ======
@@ -295,9 +288,7 @@ async def feishu_webhook(
     x_lark_request_timestamp: Optional[str] = Header(
         None, alias="X-Lark-Request-Timestamp"
     ),
-    x_lark_request_nonce: Optional[str] = Header(
-        None, alias="X-Lark-Request-Nonce"
-    ),
+    x_lark_request_nonce: Optional[str] = Header(None, alias="X-Lark-Request-Nonce"),
 ):
     """飞书事件回调端点
 
@@ -361,9 +352,7 @@ async def feishu_webhook(
         )
     )
 
-    logger.info(
-        "飞书 webhook 已接收 event_id=%s event_type=%s", event_id, event_type
-    )
+    logger.info("飞书 webhook 已接收 event_id=%s event_type=%s", event_id, event_type)
     return {"code": 0}
 
 
@@ -430,9 +419,7 @@ async def gitlab_webhook(
 async def custom_webhook(
     hook_id: str,
     request: Request,
-    x_webhook_signature: Optional[str] = Header(
-        None, alias="X-Webhook-Signature"
-    ),
+    x_webhook_signature: Optional[str] = Header(None, alias="X-Webhook-Signature"),
 ):
     """通用自定义 Webhook 端点
 
@@ -450,25 +437,19 @@ async def custom_webhook(
     secret = _get_custom_webhook_secret(hook_id)
     if secret:
         if not _verify_hmac_sha256(raw_body, x_webhook_signature, secret):
-            logger.warning(
-                "自定义 webhook 签名验证失败 hook_id=%s", hook_id
-            )
+            logger.warning("自定义 webhook 签名验证失败 hook_id=%s", hook_id)
             return JSONResponse(
                 status_code=401,
                 content={"status": "error", "msg": "签名验证失败"},
             )
     else:
-        logger.debug(
-            "自定义 webhook 未配置验签密钥 hook_id=%s,跳过签名验证", hook_id
-        )
+        logger.debug("自定义 webhook 未配置验签密钥 hook_id=%s,跳过签名验证", hook_id)
 
     # 解析 payload
     try:
         payload = json.loads(raw_body)
     except (json.JSONDecodeError, UnicodeDecodeError):
-        logger.exception(
-            "自定义 webhook payload 解析失败 hook_id=%s", hook_id
-        )
+        logger.exception("自定义 webhook payload 解析失败 hook_id=%s", hook_id)
         return JSONResponse(
             status_code=400,
             content={"status": "error", "msg": "payload 解析失败"},
@@ -490,7 +471,5 @@ async def custom_webhook(
         )
     )
 
-    logger.info(
-        "自定义 webhook 已接收 hook_id=%s event_type=%s", hook_id, event_type
-    )
+    logger.info("自定义 webhook 已接收 hook_id=%s event_type=%s", hook_id, event_type)
     return {"status": "ok"}

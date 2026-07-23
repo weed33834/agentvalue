@@ -32,7 +32,11 @@ DEFAULT_TEMPLATE_CONFIG: Dict[str, Any] = {
     "tools": [],
     "knowledge_base_ids": [],
     "workflow_id": None,
-    "guardrails": {"input_guard": False, "output_guard": False, "sensitive_words": False},
+    "guardrails": {
+        "input_guard": False,
+        "output_guard": False,
+        "sensitive_words": False,
+    },
 }
 
 
@@ -164,8 +168,10 @@ class AgentTemplateService:
 
         offset = (page - 1) * size
         rows = (
-            await self.session.execute(base.offset(offset).limit(size))
-        ).scalars().all()
+            (await self.session.execute(base.offset(offset).limit(size)))
+            .scalars()
+            .all()
+        )
 
         return {
             "items": [self._template_to_dict(t) for t in rows],
@@ -217,8 +223,10 @@ class AgentTemplateService:
 
         offset = (page - 1) * size
         rows = (
-            await self.session.execute(base.offset(offset).limit(size))
-        ).scalars().all()
+            (await self.session.execute(base.offset(offset).limit(size)))
+            .scalars()
+            .all()
+        )
 
         return {
             "items": [self._template_to_dict(t) for t in rows],
@@ -364,9 +372,7 @@ class AgentTemplateService:
             template.download_count = (template.download_count or 0) + 1
             await self.session.flush()
 
-    async def get_template_stats(
-        self, *, tenant_id: str = "default"
-    ) -> Dict[str, Any]:
+    async def get_template_stats(self, *, tenant_id: str = "default") -> Dict[str, Any]:
         """模板统计 (分类统计 / 总数 / 平均评分)
 
         Returns:
@@ -395,7 +401,9 @@ class AgentTemplateService:
         # 总数
         total = (
             await self.session.execute(
-                select(func.count()).select_from(AgentTemplate).where(
+                select(func.count())
+                .select_from(AgentTemplate)
+                .where(
                     or_(
                         AgentTemplate.tenant_id == tenant_id,
                         AgentTemplate.is_public.is_(True),
@@ -502,9 +510,9 @@ class AgentTemplateService:
         ).scalar() or float(rating)
         count = (
             await self.session.execute(
-                select(func.count()).select_from(TemplateReview).where(
-                    TemplateReview.template_id == template_id
-                )
+                select(func.count())
+                .select_from(TemplateReview)
+                .where(TemplateReview.template_id == template_id)
             )
         ).scalar() or 0
         template.rating = round(float(avg), 2)
@@ -543,8 +551,10 @@ class AgentTemplateService:
 
         offset = (page - 1) * size
         rows = (
-            await self.session.execute(base.offset(offset).limit(size))
-        ).scalars().all()
+            (await self.session.execute(base.offset(offset).limit(size)))
+            .scalars()
+            .all()
+        )
 
         return {
             "items": [self._review_to_dict(r) for r in rows],
@@ -604,8 +614,10 @@ class AgentTemplateService:
 
         offset = (page - 1) * size
         rows = (
-            await self.session.execute(base.offset(offset).limit(size))
-        ).scalars().all()
+            (await self.session.execute(base.offset(offset).limit(size)))
+            .scalars()
+            .all()
+        )
 
         return {
             "items": [self._template_to_dict(t) for t in rows],
@@ -625,7 +637,9 @@ class AgentTemplateService:
             "name": t.name,
             "description": t.description,
             "category": t.category,
-            "template_config": t.template_config if isinstance(t.template_config, dict) else {},
+            "template_config": (
+                t.template_config if isinstance(t.template_config, dict) else {}
+            ),
             "author": t.author,
             "version": t.version,
             "tags": t.tags if isinstance(t.tags, list) else [],

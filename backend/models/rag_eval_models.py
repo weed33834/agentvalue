@@ -75,9 +75,7 @@ class RagEvalTask(Base):
         DateTime(timezone=True), nullable=True
     )
 
-    __table_args__ = (
-        Index("ix_rag_eval_task_tenant_status", "tenant_id", "status"),
-    )
+    __table_args__ = (Index("ix_rag_eval_task_tenant_status", "tenant_id", "status"),)
 
 
 class RagEvalResult(Base):
@@ -133,6 +131,4 @@ class RagEvalResult(Base):
         DateTime(timezone=True), default=_now_utc
     )
 
-    __table_args__ = (
-        Index("ix_rag_eval_result_tenant_task", "tenant_id", "task_id"),
-    )
+    __table_args__ = (Index("ix_rag_eval_result_tenant_task", "tenant_id", "task_id"),)

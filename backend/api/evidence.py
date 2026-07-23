@@ -87,9 +87,7 @@ async def list_evidence(
 
     # 5. 可选：关联 RawInput 拿原始内容
     input_ids = [
-        ref.input_id
-        for ref in evidence_refs
-        if getattr(ref, "input_id", None)
+        ref.input_id for ref in evidence_refs if getattr(ref, "input_id", None)
     ]
     raw_inputs: Dict[str, Any] = {}
     if input_ids:
@@ -111,9 +109,7 @@ async def list_evidence(
                 item["raw_input"] = raw_inputs[str(item["input_id"])]
 
     # 6. 组装结果（合并 dimension score）
-    dim_score_map = {
-        getattr(d, "dimension", None): d for d in dimensions
-    }
+    dim_score_map = {getattr(d, "dimension", None): d for d in dimensions}
     result: List[Dict[str, Any]] = []
     for dim_name, items in evidence_by_dim.items():
         dim_score = dim_score_map.get(dim_name)

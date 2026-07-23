@@ -145,7 +145,9 @@ class GitIntegration:
         if cached:
             return cached
         try:
-            p = str(Path(PurePosixPath((Path(self.root) / path).relative_to(self.root))))
+            p = str(
+                Path(PurePosixPath((Path(self.root) / path).relative_to(self.root)))
+            )
         except ValueError:
             p = path
         self._normalized_path[orig_path] = p
@@ -221,15 +223,15 @@ class GitIntegration:
                 pass
 
             if current_branch_has_commits:
-                return self.repo.git.diff(
-                    "HEAD", stdout_as_string=False
-                ).decode(self.encoding, "replace")
+                return self.repo.git.diff("HEAD", stdout_as_string=False).decode(
+                    self.encoding, "replace"
+                )
 
             # 无 commit 的空仓库: 分别取 staged 与 unstaged
             diffs = ""
-            diffs += self.repo.git.diff(
-                "--cached", stdout_as_string=False
-            ).decode(self.encoding, "replace")
+            diffs += self.repo.git.diff("--cached", stdout_as_string=False).decode(
+                self.encoding, "replace"
+            )
             diffs += self.repo.git.diff(stdout_as_string=False).decode(
                 self.encoding, "replace"
             )
@@ -396,7 +398,9 @@ class GitIntegration:
                     break
             if not has_diff:
                 try:
-                    out = self.repo.git.diff("HEAD", "--", *fnames, stdout_as_string=False)
+                    out = self.repo.git.diff(
+                        "HEAD", "--", *fnames, stdout_as_string=False
+                    )
                     if out:
                         has_diff = True
                 except ANY_GIT_ERROR_TUPLE:
@@ -500,7 +504,10 @@ class GitIntegration:
             return False
 
         if len(last_commit.parents) > 1:
-            logger.warning("最后一次提交 %s 是合并提交 (多个父提交)，无法安全撤销", last_commit.hexsha)
+            logger.warning(
+                "最后一次提交 %s 是合并提交 (多个父提交)，无法安全撤销",
+                last_commit.hexsha,
+            )
             return False
 
         last_commit_hash = self.get_head_commit_sha(short=True)

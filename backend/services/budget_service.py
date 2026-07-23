@@ -74,9 +74,7 @@ class BudgetService:
         )
         return list(result.scalars().all())
 
-    async def check_budget(
-        self, tenant_id: str, cost: float
-    ) -> List[Dict[str, Any]]:
+    async def check_budget(self, tenant_id: str, cost: float) -> List[Dict[str, Any]]:
         """检查预算并在超阈值时触发告警
 
         遍历该租户所有有效预算，当 current_usage + cost >= limit * threshold
@@ -131,9 +129,7 @@ class BudgetService:
                 ):
                     # 触发告警
                     budget.alerted = True
-                    await self._send_alert_notification(
-                        session, tenant_id, budget
-                    )
+                    await self._send_alert_notification(session, tenant_id, budget)
                     triggered.append(self._serialize_budget(budget))
                     logger.warning(
                         "预算告警触发 tenant=%s budget_id=%d usage=%.2f/%.2f(%.0f%%)",
@@ -141,9 +137,11 @@ class BudgetService:
                         budget.id,
                         budget.current_usage,
                         budget.budget_limit,
-                        (budget.current_usage / budget.budget_limit * 100)
-                        if budget.budget_limit > 0
-                        else 0,
+                        (
+                            (budget.current_usage / budget.budget_limit * 100)
+                            if budget.budget_limit > 0
+                            else 0
+                        ),
                     )
 
             await session.flush()
@@ -167,9 +165,7 @@ class BudgetService:
         try:
             admins = await self._get_tenant_admins(session, tenant_id)
             if not admins:
-                logger.warning(
-                    "租户 %s 无管理员用户，预算告警通知未发送", tenant_id
-                )
+                logger.warning("租户 %s 无管理员用户，预算告警通知未发送", tenant_id)
                 return
 
             usage_percent = (
@@ -222,9 +218,7 @@ class BudgetService:
             创建的预算信息
         """
         if budget_type not in BUDGET_TYPES:
-            raise ValueError(
-                f"无效的预算类型: {budget_type}, 可选: {BUDGET_TYPES}"
-            )
+            raise ValueError(f"无效的预算类型: {budget_type}, 可选: {BUDGET_TYPES}")
         if not (0 < threshold <= 1):
             raise ValueError(f"告警阈值必须在 (0, 1] 范围内, 当前: {threshold}")
 
@@ -291,9 +285,7 @@ class BudgetService:
             if self._owns_session:
                 await self._close_if_owned()
 
-    async def update_budget_usage(
-        self, tenant_id: str, cost: float
-    ) -> None:
+    async def update_budget_usage(self, tenant_id: str, cost: float) -> None:
         """更新租户所有预算的使用量（累加 cost）
 
         Args:
@@ -335,9 +327,7 @@ class BudgetService:
                     budget.period_end = now + timedelta(days=30)
             budget.current_usage += cost
 
-    async def get_budget_status(
-        self, tenant_id: str
-    ) -> List[Dict[str, Any]]:
+    async def get_budget_status(self, tenant_id: str) -> List[Dict[str, Any]]:
         """获取租户所有预算的状态（百分比、是否告警）
 
         Args:
@@ -462,18 +452,12 @@ class BudgetService:
             "current_usage": round(budget.current_usage, 6),
             "alert_threshold": budget.alert_threshold,
             "alerted": budget.alerted,
-            "period_start": budget.period_start.isoformat()
-            if budget.period_start
-            else None,
-            "period_end": budget.period_end.isoformat()
-            if budget.period_end
-            else None,
-            "created_at": budget.created_at.isoformat()
-            if budget.created_at
-            else None,
-            "updated_at": budget.updated_at.isoformat()
-            if budget.updated_at
-            else None,
+            "period_start": (
+                budget.period_start.isoformat() if budget.period_start else None
+            ),
+            "period_end": budget.period_end.isoformat() if budget.period_end else None,
+            "created_at": budget.created_at.isoformat() if budget.created_at else None,
+            "updated_at": budget.updated_at.isoformat() if budget.updated_at else None,
         }
 
     @staticmethod
@@ -489,7 +473,5 @@ class BudgetService:
         base["usage_percent"] = round(usage_percent, 2)
         base["threshold_percent"] = round(threshold_percent, 2)
         base["is_alerted"] = budget.alerted
-        base["remaining"] = round(
-            max(budget.budget_limit - budget.current_usage, 0), 6
-        )
+        base["remaining"] = round(max(budget.budget_limit - budget.current_usage, 0), 6)
         return base

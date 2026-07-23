@@ -178,9 +178,7 @@ class PromptOptimizationService:
             if self._owns_session:
                 await self._close_if_owned()
 
-    async def get_task(
-        self, task_id: int, tenant_id: str
-    ) -> Optional[Dict[str, Any]]:
+    async def get_task(self, task_id: int, tenant_id: str) -> Optional[Dict[str, Any]]:
         """获取优化任务详情"""
         session = await self._get_session()
         try:
@@ -209,15 +207,13 @@ class PromptOptimizationService:
                 base = base.where(PromptOptimizationTask.status == task_status)
 
             total = (
-                await session.execute(
-                    select(func.count()).select_from(base.subquery())
-                )
+                await session.execute(select(func.count()).select_from(base.subquery()))
             ).scalar() or 0
 
             offset = (page - 1) * size
             rows = (
-                await session.execute(base.offset(offset).limit(size))
-            ).scalars().all()
+                (await session.execute(base.offset(offset).limit(size))).scalars().all()
+            )
 
             return {
                 "items": [self._serialize(t) for t in rows],
@@ -268,12 +264,10 @@ class PromptOptimizationService:
                 "quality_scores": task.quality_scores,
                 "overall_score": task.overall_score,
                 "model_used": task.model_used,
-                "created_at": task.created_at.isoformat()
-                if task.created_at
-                else None,
-                "completed_at": task.completed_at.isoformat()
-                if task.completed_at
-                else None,
+                "created_at": task.created_at.isoformat() if task.created_at else None,
+                "completed_at": (
+                    task.completed_at.isoformat() if task.completed_at else None
+                ),
                 "error": None,
             }
         finally:
@@ -343,7 +337,11 @@ class PromptOptimizationService:
                     task = await self._get_task_owned(session, task_id, tenant_id)
                     if task is None:
                         logger.error("优化任务 %s 不存在", task_id)
-                        return {"task_id": task_id, "status": "failed", "error": "任务不存在"}
+                        return {
+                            "task_id": task_id,
+                            "status": "failed",
+                            "error": "任务不存在",
+                        }
 
                     # 更新状态为 processing
                     task.status = "processing"
@@ -399,7 +397,9 @@ class PromptOptimizationService:
                     task.completed_at = datetime.now(timezone.utc)
                     await session.commit()
 
-                    logger.info("优化任务 %s 完成, 综合评分: %s", task_id, task.overall_score)
+                    logger.info(
+                        "优化任务 %s 完成, 综合评分: %s", task_id, task.overall_score
+                    )
                     return {
                         "task_id": task_id,
                         "status": "completed",
@@ -427,9 +427,7 @@ class PromptOptimizationService:
     # Prompt 构建与结果解析
     # ============================================================
 
-    def _build_optimization_prompt(
-        self, original_prompt: str, task_type: str
-    ) -> str:
+    def _build_optimization_prompt(self, original_prompt: str, task_type: str) -> str:
         """根据 task_type 构建 LLM 优化 prompt
 
         Args:
@@ -516,7 +514,7 @@ class PromptOptimizationService:
             "overall_score": task.overall_score,
             "status": task.status,
             "created_at": task.created_at.isoformat() if task.created_at else None,
-            "completed_at": task.completed_at.isoformat()
-            if task.completed_at
-            else None,
+            "completed_at": (
+                task.completed_at.isoformat() if task.completed_at else None
+            ),
         }

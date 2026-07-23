@@ -43,26 +43,64 @@ QUERY_STATUS_EXECUTED = "executed"
 
 # 禁止的 SQL 关键词 (DML/DDL/事务控制/系统命令)
 _FORBIDDEN_KEYWORDS = [
-    "INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE",
-    "TRUNCATE", "GRANT", "REVOKE", "ATTACH", "DETACH", "PRAGMA",
-    "REPLACE", "MERGE", "CALL", "EXEC", "EXECUTE", "COMMIT",
-    "ROLLBACK", "SAVEPOINT", "VACUUM", "REINDEX", "BEGIN",
-    "END", "LOAD", "IMPORT", "EXPORT",
+    "INSERT",
+    "UPDATE",
+    "DELETE",
+    "DROP",
+    "ALTER",
+    "CREATE",
+    "TRUNCATE",
+    "GRANT",
+    "REVOKE",
+    "ATTACH",
+    "DETACH",
+    "PRAGMA",
+    "REPLACE",
+    "MERGE",
+    "CALL",
+    "EXEC",
+    "EXECUTE",
+    "COMMIT",
+    "ROLLBACK",
+    "SAVEPOINT",
+    "VACUUM",
+    "REINDEX",
+    "BEGIN",
+    "END",
+    "LOAD",
+    "IMPORT",
+    "EXPORT",
 ]
 
 # 允许查询的表白名单 (多租户隔离, 所有表均含 tenant_id 列)
 _ALLOWED_TABLES = {
-    "evaluations", "dimension_scores", "raw_inputs", "feedback",
-    "users", "notifications", "audit_logs",
-    "chat_sessions", "chat_messages",
+    "evaluations",
+    "dimension_scores",
+    "raw_inputs",
+    "feedback",
+    "users",
+    "notifications",
+    "audit_logs",
+    "chat_sessions",
+    "chat_messages",
 }
 
 # 禁止查询的系统表/元数据表
 _FORBIDDEN_TABLES = {
-    "sqlite_master", "sqlite_sequence", "sqlite_dbpage",
-    "pragma", "information_schema", "pg_catalog", "sys",
-    "mysql", "performance_schema", "syscatalog", "pg_tables",
-    "pg_views", "pg_class", "pg_namespace",
+    "sqlite_master",
+    "sqlite_sequence",
+    "sqlite_dbpage",
+    "pragma",
+    "information_schema",
+    "pg_catalog",
+    "sys",
+    "mysql",
+    "performance_schema",
+    "syscatalog",
+    "pg_tables",
+    "pg_views",
+    "pg_class",
+    "pg_namespace",
 }
 
 # 默认 schema (HR 核心表, 当租户未配置 schema 时使用)
@@ -154,12 +192,18 @@ class NL2SQLService:
 
                 messages = [
                     ChatMessage(role="system", content=prompt),
-                    ChatMessage(role="user", content=f"问题: {natural_query}\n\n请生成 SQL 查询。"),
+                    ChatMessage(
+                        role="user",
+                        content=f"问题: {natural_query}\n\n请生成 SQL 查询。",
+                    ),
                 ]
             except ImportError:
                 messages = [
                     {"role": "system", "content": prompt},
-                    {"role": "user", "content": f"问题: {natural_query}\n\n请生成 SQL 查询。"},
+                    {
+                        "role": "user",
+                        "content": f"问题: {natural_query}\n\n请生成 SQL 查询。",
+                    },
                 ]
 
             completion = await llm_provider.chat_completion(messages=messages)
@@ -278,7 +322,10 @@ class NL2SQLService:
             logger.warning("NL2SQL 执行失败 sql=%s: %s", safe_sql, e)
             if query_id is not None:
                 await self._update_query_status(
-                    query_id, QUERY_STATUS_FAILED, error_message=str(e), tenant_id=tenant_id
+                    query_id,
+                    QUERY_STATUS_FAILED,
+                    error_message=str(e),
+                    tenant_id=tenant_id,
                 )
             return {
                 "success": False,
@@ -375,8 +422,10 @@ class NL2SQLService:
 
         offset = (page - 1) * size
         rows = (
-            await self.session.execute(base.offset(offset).limit(size))
-        ).scalars().all()
+            (await self.session.execute(base.offset(offset).limit(size)))
+            .scalars()
+            .all()
+        )
 
         return {
             "items": [self._query_to_dict(q) for q in rows],
@@ -385,9 +434,7 @@ class NL2SQLService:
             "size": size,
         }
 
-    async def delete_query(
-        self, query_id: int, *, tenant_id: str = "default"
-    ) -> bool:
+    async def delete_query(self, query_id: int, *, tenant_id: str = "default") -> bool:
         """删除查询记录"""
         query = await self.get_query(query_id, tenant_id=tenant_id)
         if query is None:
@@ -463,9 +510,7 @@ class NL2SQLService:
             )
         ).scalar_one_or_none()
 
-    async def list_schemas(
-        self, *, tenant_id: str = "default"
-    ) -> List[NL2SQLSchema]:
+    async def list_schemas(self, *, tenant_id: str = "default") -> List[NL2SQLSchema]:
         """列出租户所有 schema 定义"""
         result = await self.session.execute(
             select(NL2SQLSchema)
@@ -797,12 +842,16 @@ class NL2SQLService:
         # JSON 解析失败, 尝试从代码块或文本中提取
         if not sql:
             # 尝试提取 ```sql ... ``` 代码块
-            match = re.search(r"```sql\s*(.*?)\s*```", content, re.DOTALL | re.IGNORECASE)
+            match = re.search(
+                r"```sql\s*(.*?)\s*```", content, re.DOTALL | re.IGNORECASE
+            )
             if match:
                 sql = match.group(1).strip()
             else:
                 # 尝试提取 "sql": "..." 格式
-                match = re.search(r'"sql"\s*:\s*"((?:[^"\\]|\\.)*)"', content, re.DOTALL)
+                match = re.search(
+                    r'"sql"\s*:\s*"((?:[^"\\]|\\.)*)"', content, re.DOTALL
+                )
                 if match:
                     sql = (
                         match.group(1)
@@ -814,7 +863,9 @@ class NL2SQLService:
 
         # 仍然没有 SQL, 尝试直接从文本中提取 SELECT 语句
         if not sql:
-            match = re.search(r"(SELECT\s+.*?)(?:;|$)", content, re.DOTALL | re.IGNORECASE)
+            match = re.search(
+                r"(SELECT\s+.*?)(?:;|$)", content, re.DOTALL | re.IGNORECASE
+            )
             if match:
                 sql = match.group(1).strip()
 
@@ -853,7 +904,9 @@ class NL2SQLService:
             "natural_query": q.natural_query,
             "generated_sql": q.generated_sql,
             "sql_explanation": q.sql_explanation,
-            "database_schema": q.database_schema if isinstance(q.database_schema, dict) else None,
+            "database_schema": (
+                q.database_schema if isinstance(q.database_schema, dict) else None
+            ),
             "table_name": q.table_name,
             "status": q.status,
             "result_count": q.result_count,
@@ -870,9 +923,13 @@ class NL2SQLService:
             "id": s.id,
             "tenant_id": s.tenant_id,
             "table_name": s.table_name,
-            "schema_definition": s.schema_definition if isinstance(s.schema_definition, dict) else {},
+            "schema_definition": (
+                s.schema_definition if isinstance(s.schema_definition, dict) else {}
+            ),
             "description": s.description,
-            "sample_queries": s.sample_queries if isinstance(s.sample_queries, list) else [],
+            "sample_queries": (
+                s.sample_queries if isinstance(s.sample_queries, list) else []
+            ),
             "enabled": s.enabled,
             "created_at": s.created_at.isoformat() if s.created_at else None,
         }

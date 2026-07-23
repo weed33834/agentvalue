@@ -184,8 +184,10 @@ class LLMJudgeService:
 
         offset = (page - 1) * size
         rows = (
-            await self.session.execute(base.offset(offset).limit(size))
-        ).scalars().all()
+            (await self.session.execute(base.offset(offset).limit(size)))
+            .scalars()
+            .all()
+        )
 
         return {
             "items": [self._task_to_dict(t) for t in rows],
@@ -194,9 +196,7 @@ class LLMJudgeService:
             "size": size,
         }
 
-    async def delete_task(
-        self, task_id: int, *, tenant_id: str = "default"
-    ) -> bool:
+    async def delete_task(self, task_id: int, *, tenant_id: str = "default") -> bool:
         """删除评测任务 (同时删除所有结果)"""
         task = await self.get_task(task_id, tenant_id=tenant_id)
         if task is None:
@@ -204,13 +204,17 @@ class LLMJudgeService:
 
         # 删除所有关联结果
         results = (
-            await self.session.execute(
-                select(EvaluationResult).where(
-                    EvaluationResult.task_id == task_id,
-                    EvaluationResult.tenant_id == tenant_id,
+            (
+                await self.session.execute(
+                    select(EvaluationResult).where(
+                        EvaluationResult.task_id == task_id,
+                        EvaluationResult.tenant_id == tenant_id,
+                    )
                 )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         for r in results:
             await self.session.delete(r)
 
@@ -275,15 +279,19 @@ class LLMJudgeService:
 
                     # 加载数据集条目
                     items = (
-                        await session.execute(
-                            select(DatasetItem)
-                            .where(
-                                DatasetItem.dataset_id == task.dataset_id,
-                                DatasetItem.tenant_id == tenant_id,
+                        (
+                            await session.execute(
+                                select(DatasetItem)
+                                .where(
+                                    DatasetItem.dataset_id == task.dataset_id,
+                                    DatasetItem.tenant_id == tenant_id,
+                                )
+                                .order_by(DatasetItem.created_at.asc())
                             )
-                            .order_by(DatasetItem.created_at.asc())
                         )
-                    ).scalars().all()
+                        .scalars()
+                        .all()
+                    )
 
                     task.total_items = len(items)
                     await session.commit()
@@ -336,9 +344,7 @@ class LLMJudgeService:
                     )
 
                 except Exception as e:
-                    logger.error(
-                        "评测任务 %s 执行失败: %s", task_id, e, exc_info=True
-                    )
+                    logger.error("评测任务 %s 执行失败: %s", task_id, e, exc_info=True)
                     # 标记任务为失败
                     try:
                         async with AsyncSessionLocal() as err_session:
@@ -388,7 +394,10 @@ class LLMJudgeService:
         input_text = self._extract_text(item.input)
         try:
             agent_messages = [
-                ChatMessage(role="system", content="你是一个专业的 AI 助手, 请根据输入生成回答。"),
+                ChatMessage(
+                    role="system",
+                    content="你是一个专业的 AI 助手, 请根据输入生成回答。",
+                ),
                 ChatMessage(role="user", content=input_text),
             ]
             completion, _tier = await call_llm_with_fallback(
@@ -400,7 +409,9 @@ class LLMJudgeService:
             agent_output = f"[生成失败: {e}]"
 
         # 2. LLM Judge 评分
-        expected_text = self._extract_text(item.expected_output) if item.expected_output else "无"
+        expected_text = (
+            self._extract_text(item.expected_output) if item.expected_output else "无"
+        )
         metrics_str = "\n".join(f"- {m}" for m in (task.metrics or DEFAULT_METRICS))
 
         prompt_template = task.judge_prompt_template or DEFAULT_JUDGE_PROMPT_TEMPLATE
@@ -472,8 +483,10 @@ class LLMJudgeService:
 
         offset = (page - 1) * size
         rows = (
-            await self.session.execute(base.offset(offset).limit(size))
-        ).scalars().all()
+            (await self.session.execute(base.offset(offset).limit(size)))
+            .scalars()
+            .all()
+        )
 
         return {
             "items": [self._result_to_dict(r) for r in rows],
@@ -500,9 +513,7 @@ class LLMJudgeService:
             return task.results_summary
 
         # 实时计算
-        return await self._compute_summary(
-            self.session, task_id, tenant_id=tenant_id
-        )
+        return await self._compute_summary(self.session, task_id, tenant_id=tenant_id)
 
     async def _compute_summary(
         self,
@@ -513,13 +524,17 @@ class LLMJudgeService:
     ) -> Dict[str, Any]:
         """计算评测汇总统计"""
         results = (
-            await session.execute(
-                select(EvaluationResult).where(
-                    EvaluationResult.task_id == task_id,
-                    EvaluationResult.tenant_id == tenant_id,
+            (
+                await session.execute(
+                    select(EvaluationResult).where(
+                        EvaluationResult.task_id == task_id,
+                        EvaluationResult.tenant_id == tenant_id,
+                    )
                 )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         if not results:
             return {
@@ -623,7 +638,9 @@ class LLMJudgeService:
                         scores["overall"] = max(0, min(100, int(val)))
                 else:
                     # 自动计算 overall
-                    metric_vals = [v for v in scores.values() if isinstance(v, (int, float))]
+                    metric_vals = [
+                        v for v in scores.values() if isinstance(v, (int, float))
+                    ]
                     if metric_vals:
                         scores["overall"] = round(sum(metric_vals) / len(metric_vals))
                 feedback = str(data.get("feedback", ""))
@@ -633,7 +650,9 @@ class LLMJudgeService:
             for metric in metrics:
                 import re
 
-                match = re.search(rf'{metric}["\']?\s*[:=]\s*(\d+)', content, re.IGNORECASE)
+                match = re.search(
+                    rf'{metric}["\']?\s*[:=]\s*(\d+)', content, re.IGNORECASE
+                )
                 if match:
                     scores[metric] = max(0, min(100, int(match.group(1))))
 

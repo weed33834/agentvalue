@@ -60,6 +60,7 @@ class TestFieldCipherKMSIntegration:
         ct = cipher.encrypt(plaintext)
         # 应是 envelope 格式 (\x01 前缀)
         from core.kms.envelope import EnvelopeCipher as EC
+
         assert EC.is_envelope_ciphertext(ct)
 
     def test_decrypt_envelope_ciphertext(self):
@@ -87,6 +88,7 @@ class TestFieldCipherKMSIntegration:
         # 启用 envelope backend 但 field_encryption_key 仍配置 (用于旧密文兼容)
         from core.kms.envelope import EnvelopeCipher
         from core.kms.providers.local import LocalKMSProvider
+
         kms = LocalKMSProvider(key="dummy")
         envelope = EnvelopeCipher(kms)
         cipher_with_envelope = FieldCipher(key=key, envelope_cipher=envelope)
@@ -99,6 +101,7 @@ class TestFieldCipherKMSIntegration:
         """非 base64 字符串视为明文原样返回"""
         from core.kms.envelope import EnvelopeCipher
         from core.kms.providers.local import LocalKMSProvider
+
         kms = LocalKMSProvider(key="dummy")
         envelope = EnvelopeCipher(kms)
         cipher = FieldCipher(key=None, envelope_cipher=envelope)
@@ -109,6 +112,7 @@ class TestFieldCipherKMSIntegration:
         """encrypt_json 也走 envelope 路径"""
         from core.kms.envelope import EnvelopeCipher
         from core.kms.providers.local import LocalKMSProvider
+
         kms = LocalKMSProvider(key="dummy")
         envelope = EnvelopeCipher(kms)
         cipher = FieldCipher(key=None, envelope_cipher=envelope)
@@ -123,6 +127,7 @@ class TestFieldCipherKMSIntegration:
         """启用 envelope 后,旧的 JSON 字段 (无加密) 仍能 decrypt_json"""
         from core.kms.envelope import EnvelopeCipher
         from core.kms.providers.local import LocalKMSProvider
+
         kms = LocalKMSProvider(key="dummy")
         envelope = EnvelopeCipher(kms)
         cipher = FieldCipher(key=None, envelope_cipher=envelope)
@@ -145,17 +150,21 @@ class TestGetFieldCipherFactory:
     def test_default_env_backend_uses_local_aes(self, monkeypatch):
         """默认 backend=env,使用 field_encryption_key 本地 AES-GCM"""
         from core.config import Settings
+
         key = _make_key()
         monkeypatch.setenv("FIELD_ENCRYPTION_KEY", key)
         monkeypatch.setenv("AGENTVALUE_ENV", "")  # 非生产
         # 用 reset_settings 强制重读
         from core.config import get_settings
+
         get_settings.cache_clear() if hasattr(get_settings, "cache_clear") else None
         try:
             settings = get_settings()
         except Exception:
             # get_settings 可能用 lru_cache,直接构造
-            settings = Settings(field_encryption_key=key, field_encryption_backend="env")
+            settings = Settings(
+                field_encryption_key=key, field_encryption_backend="env"
+            )
         monkeypatch.setattr("core.config.get_settings", lambda: settings)
 
         cipher = get_field_cipher()
@@ -165,6 +174,7 @@ class TestGetFieldCipherFactory:
     def test_vault_backend_initializes_envelope(self, monkeypatch):
         """backend=vault 时,初始化 EnvelopeCipher"""
         from core.config import Settings
+
         key = _make_key()
         settings = Settings(
             field_encryption_key=key,
@@ -191,6 +201,7 @@ class TestGetFieldCipherFactory:
     def test_unknown_backend_returns_local_only(self, monkeypatch):
         """未知 backend (如 'env') 返回 None envelope,只用本地 AES-GCM"""
         from core.config import Settings
+
         key = _make_key()
         settings = Settings(field_encryption_key=key, field_encryption_backend="env")
         monkeypatch.setattr("core.config.get_settings", lambda: settings)
@@ -201,6 +212,7 @@ class TestGetFieldCipherFactory:
     def test_cache_hit_returns_same_instance(self, monkeypatch):
         """相同 (key, backend) 缓存命中,返回相同实例"""
         from core.config import Settings
+
         key = _make_key()
         settings = Settings(field_encryption_key=key, field_encryption_backend="env")
         monkeypatch.setattr("core.config.get_settings", lambda: settings)
@@ -212,6 +224,7 @@ class TestGetFieldCipherFactory:
     def test_cache_invalidated_on_key_change(self, monkeypatch):
         """field_encryption_key 变更,实例重建"""
         from core.config import Settings
+
         key1 = _make_key()
         settings1 = Settings(field_encryption_key=key1, field_encryption_backend="env")
         monkeypatch.setattr("core.config.get_settings", lambda: settings1)
@@ -227,6 +240,7 @@ class TestGetFieldCipherFactory:
     def test_cache_invalidated_on_backend_change(self, monkeypatch):
         """field_encryption_backend 变更,实例重建"""
         from core.config import Settings
+
         key = _make_key()
         settings1 = Settings(field_encryption_key=key, field_encryption_backend="env")
         monkeypatch.setattr("core.config.get_settings", lambda: settings1)
@@ -241,6 +255,7 @@ class TestGetFieldCipherFactory:
     def test_kms_init_failure_non_production_degrades_gracefully(self, monkeypatch):
         """非生产环境 KMS 初始化失败,降级到本地 AES-GCM"""
         from core.config import Settings
+
         key = _make_key()
         settings = Settings(
             field_encryption_key=key,
@@ -264,6 +279,7 @@ class TestGetFieldCipherFactory:
     def test_kms_init_failure_production_raises(self, monkeypatch):
         """生产环境 KMS 初始化失败,硬 raise (避免明文落库)"""
         from core.config import Settings
+
         key = _make_key()
         settings = Settings(
             field_encryption_key=key,
@@ -278,7 +294,9 @@ class TestGetFieldCipherFactory:
         ):
             with pytest.raises(Exception) as exc_info:
                 get_field_cipher()
-        assert "vault unavailable" in str(exc_info.value) or "KMS" in str(exc_info.value)
+        assert "vault unavailable" in str(exc_info.value) or "KMS" in str(
+            exc_info.value
+        )
 
 
 # ============================================================
@@ -292,6 +310,7 @@ class TestJWTSecretVaultFallback:
     @pytest.fixture(autouse=True)
     def reset_jwt_cache(self):
         from auth.jwt_handler import reset_jwt_secret_cache
+
         reset_jwt_secret_cache()
         yield
         reset_jwt_secret_cache()
@@ -299,6 +318,7 @@ class TestJWTSecretVaultFallback:
     def test_env_backend_uses_jwt_secret_key(self, monkeypatch):
         """backend=env 时,直接用 jwt_secret_key"""
         from core.config import Settings
+
         settings = Settings(
             jwt_secret_key="env-jwt-secret",
             field_encryption_backend="env",
@@ -306,11 +326,13 @@ class TestJWTSecretVaultFallback:
         monkeypatch.setattr("core.config.get_settings", lambda: settings)
 
         from auth.jwt_handler import _ensure_secret_key
+
         assert _ensure_secret_key(settings) == "env-jwt-secret"
 
     def test_vault_backend_fetches_from_kv(self, monkeypatch):
         """backend=vault 时,从 Vault KV v2 读 jwt secret"""
         from core.config import Settings
+
         settings = Settings(
             jwt_secret_key="env-fallback",
             field_encryption_backend="vault",
@@ -324,6 +346,7 @@ class TestJWTSecretVaultFallback:
 
         with patch("core.kms.factory.create_kms_provider", return_value=mock_kms):
             from auth.jwt_handler import _ensure_secret_key, reset_jwt_secret_cache
+
             reset_jwt_secret_cache()
             result = _ensure_secret_key(settings)
         assert result == "vault-jwt-secret"
@@ -333,6 +356,7 @@ class TestJWTSecretVaultFallback:
     def test_vault_backend_failure_fallback_to_env_non_production(self, monkeypatch):
         """非生产环境 Vault 失败时,fallback 到 env jwt_secret_key"""
         from core.config import Settings
+
         settings = Settings(
             jwt_secret_key="env-fallback",
             field_encryption_backend="vault",
@@ -345,6 +369,7 @@ class TestJWTSecretVaultFallback:
             side_effect=Exception("vault unavailable"),
         ):
             from auth.jwt_handler import _ensure_secret_key, reset_jwt_secret_cache
+
             reset_jwt_secret_cache()
             result = _ensure_secret_key(settings)
         assert result == "env-fallback"
@@ -352,6 +377,7 @@ class TestJWTSecretVaultFallback:
     def test_vault_backend_failure_production_raises(self, monkeypatch):
         """生产环境 Vault 失败时,硬 raise"""
         from core.config import Settings
+
         settings = Settings(
             jwt_secret_key="env-fallback",
             field_encryption_backend="vault",
@@ -364,6 +390,7 @@ class TestJWTSecretVaultFallback:
             side_effect=Exception("vault unavailable"),
         ):
             from auth.jwt_handler import _ensure_secret_key, reset_jwt_secret_cache
+
             reset_jwt_secret_cache()
             with pytest.raises(RuntimeError) as exc_info:
                 _ensure_secret_key(settings)
@@ -372,6 +399,7 @@ class TestJWTSecretVaultFallback:
     def test_jwt_secret_cached_after_first_fetch(self, monkeypatch):
         """JWT secret 首次 fetch 后缓存,后续不再调 Vault"""
         from core.config import Settings
+
         settings = Settings(
             jwt_secret_key="env-fallback",
             field_encryption_backend="vault",
@@ -383,6 +411,7 @@ class TestJWTSecretVaultFallback:
 
         with patch("core.kms.factory.create_kms_provider", return_value=mock_kms):
             from auth.jwt_handler import _ensure_secret_key, reset_jwt_secret_cache
+
             reset_jwt_secret_cache()
             _ensure_secret_key(settings)
             _ensure_secret_key(settings)
@@ -402,6 +431,7 @@ class TestKMSFactory:
     @pytest.fixture(autouse=True)
     def reset_factory(self):
         from core.kms.factory import reset_kms_provider_cache
+
         reset_kms_provider_cache()
         yield
         reset_kms_provider_cache()
@@ -410,6 +440,7 @@ class TestKMSFactory:
         """backend=env 不创建 KMS (调用方降级 FieldCipher)"""
         from core.config import Settings
         from core.kms.factory import create_kms_provider
+
         settings = Settings(field_encryption_backend="env")
         monkeypatch.setattr("core.config.get_settings", lambda: settings)
         assert create_kms_provider() is None
@@ -417,6 +448,7 @@ class TestKMSFactory:
     def test_local_backend_returns_local_provider(self, monkeypatch):
         from core.config import Settings
         from core.kms.factory import create_kms_provider
+
         settings = Settings(
             field_encryption_backend="local",
             field_encryption_key=_make_key(),
@@ -431,6 +463,7 @@ class TestKMSFactory:
         from core.config import Settings
         from core.kms.factory import create_kms_provider
         from core.kms.base import KMSNotConfiguredError
+
         settings = Settings(
             field_encryption_backend="local",
             field_encryption_key=_make_key(),
@@ -444,6 +477,7 @@ class TestKMSFactory:
         from core.config import Settings
         from core.kms.factory import create_kms_provider
         from core.kms.base import KMSNotConfiguredError
+
         settings = Settings(
             field_encryption_backend="vault",
             vault_addr=None,
@@ -456,6 +490,7 @@ class TestKMSFactory:
         from core.config import Settings
         from core.kms.factory import create_kms_provider
         from core.kms.base import KMSNotConfiguredError
+
         settings = Settings(field_encryption_backend="unknown-xyz")
         monkeypatch.setattr("core.config.get_settings", lambda: settings)
         with pytest.raises(KMSNotConfiguredError):
@@ -464,6 +499,7 @@ class TestKMSFactory:
     def test_factory_caches_singleton(self, monkeypatch):
         from core.config import Settings
         from core.kms.factory import create_kms_provider
+
         settings = Settings(
             field_encryption_backend="local",
             field_encryption_key=_make_key(),

@@ -17,107 +17,177 @@ setup_logging()
 from api.admin.prompts import router as admin_prompts_router  # noqa: E402
 from api.admin.tools import router as admin_tools_router  # noqa: E402
 from api.admin.debug import router as admin_debug_router  # noqa: E402
+
 # P2 深水区: Provider CRUD + Playground SSE
 from api.admin.providers import router as admin_providers_router  # noqa: E402
 from api.admin.playground import router as admin_playground_router  # noqa: E402
+
 # P1-1: 知识库管理 UI 全栈(文档 CRUD + 重建索引 + 检索测试台 + 分块配置)
 from api.admin.kb import router as admin_kb_router  # noqa: E402
+
 # P2-2: Rerank Provider 抽象与测试台(对标 Dify Rerank)
 from api.admin.rerank import router as admin_rerank_router  # noqa: E402
+
 # P3-1: 自定义工具上传(OpenAPI Schema 导入,对标 Dify Custom Tool)
 from api.admin.custom_tools import router as admin_custom_tools_router  # noqa: E402
+
 # P3-2: Feature Flag 系统(应用级功能开关,对标 Langfuse Feature Flag)
 from api.admin.feature_flags import router as admin_feature_flags_router  # noqa: E402
+
 # API Key 管理(外部调用方鉴权, CRUD + 轮换 + 用量统计)
 from api.admin.api_keys import router as admin_api_keys_router  # noqa: E402
+
 # 用户管理 CRUD(列表/详情/更新/禁用/删除/批量导入)
 from api.admin.users import router as admin_users_router  # noqa: E402
+
 # P4-1: 多 Agent 协作(supervisor 模式,对标 Coze Multi-Agent)
 from api.admin.multi_agent import router as admin_multi_agent_router  # noqa: E402
+
 # P4-2: 工作流可视化编排(对标 Dify Workflow / Coze Bot 编排)
 from api.admin.workflows import router as admin_workflows_router  # noqa: E402
+
 # P2-1: Token/成本趋势看板(Prometheus 时序聚合 + DB 评估统计)
 from api.admin import analytics as admin_analytics  # noqa: E402
+
 # 定时任务调度管理 (APScheduler, 增删改查 + 手动触发 + 执行历史)
 from api.admin.scheduler import router as admin_scheduler_router  # noqa: E402
+
 # 混合检索管理 (向量 + BM25 全文检索 + RRF 融合 + 增量更新 + 检索配置)
 from api.admin.search_routes import router as admin_search_router  # noqa: E402
+
 # 租户配额管理 (日请求/token 配额 + 用量统计 + 重置)
 from api.admin.quota_routes import router as admin_quota_router  # noqa: E402
+
 # 成本预算告警 (月度/日度预算 + 阈值告警通知)
 from api.admin.budget_routes import router as admin_budget_router  # noqa: E402
+
 # API 计费账单 (汇总 + 按用户/端点聚合 + CSV/JSON 导出)
 from api.admin.billing_routes import router as admin_billing_router  # noqa: E402
+
 # Agent 版本管理 (版本 CRUD + 发布 + 回滚 + 对比 + 归档)
-from api.admin.agent_version_routes import router as admin_agent_version_router  # noqa: E402
+from api.admin.agent_version_routes import (
+    router as admin_agent_version_router,
+)  # noqa: E402
+
 # 多渠道发布 (飞书/微信/钉钉/Web/API)
 from api.admin.publish_routes import router as admin_publish_router  # noqa: E402
+
 # 工具配置 (超时管理)
-from api.admin.tool_config_routes import router as admin_tool_config_router  # noqa: E402
+from api.admin.tool_config_routes import (
+    router as admin_tool_config_router,
+)  # noqa: E402
+
 # 敏感词字典管理 (增删改查 + 文本审核 + 导入导出)
-from api.admin.sensitive_word_routes import router as admin_sensitive_word_router  # noqa: E402
+from api.admin.sensitive_word_routes import (
+    router as admin_sensitive_word_router,
+)  # noqa: E402
+
 # 告警通知通道 (创建/通知/确认/解决/统计)
 from api.admin.alert_routes import router as admin_alert_router  # noqa: E402
+
 # 模型 Fallback 策略 (对标阿里百炼 AI 网关秒级容灾)
-from api.admin.model_fallback_routes import router as admin_model_fallback_router  # noqa: E402
+from api.admin.model_fallback_routes import (
+    router as admin_model_fallback_router,
+)  # noqa: E402
+
 # 会话分析看板 (对标 Langfuse Token 分析 / Dashboard)
-from api.admin.analytics_v2_routes import router as admin_analytics_v2_router  # noqa: E402
+from api.admin.analytics_v2_routes import (
+    router as admin_analytics_v2_router,
+)  # noqa: E402
+
 # API 健康监控 (对标 Langfuse 延迟监控 / 告警系统)
 from api.admin.api_health_routes import router as admin_api_health_router  # noqa: E402
+
 # 数据集管理 (对标 Langfuse 数据集管理 + 阿里百炼训练集/评测集)
 from api.admin.dataset_routes import router as admin_dataset_router  # noqa: E402
+
 # LLM-as-a-Judge 自动评测 (对标 Langfuse LLM-as-a-Judge + Dify 日志回放)
 from api.admin.llm_judge_routes import router as admin_llm_judge_router  # noqa: E402
+
 # RAG 质量评测 (对标 RagFlow 检索测试 + 压力测试)
 from api.admin.rag_eval_routes import router as admin_rag_eval_router  # noqa: E402
+
 # 人工标注工具 (对标 Langfuse Human-in-the-loop)
 from api.admin.annotation_routes import router as admin_annotation_router  # noqa: E402
+
 # SSO 单点登录 (对标 Dify SSO / Bisheng SSO, OAuth2/SAML/LDAP)
 from api.admin.sso_routes import router as admin_sso_router  # noqa: E402
+
 # Agent 模板市场 (对标 Coze 插件市场 / LobeChat 助手市场)
-from api.admin.agent_template_routes import router as admin_agent_template_router  # noqa: E402
+from api.admin.agent_template_routes import (
+    router as admin_agent_template_router,
+)  # noqa: E402
+
 # NL2SQL 自然语言转 SQL (对标 RagFlow NL2SQL)
 from api.admin.nl2sql_routes import router as admin_nl2sql_router  # noqa: E402
+
 # 深度文档解析 (对标 RagFlow DeepDoc, 表格提取 + 版面分析)
-from api.admin.doc_parsing_routes import router as admin_doc_parsing_router  # noqa: E402
+from api.admin.doc_parsing_routes import (
+    router as admin_doc_parsing_router,
+)  # noqa: E402
+
 # GraphRAG 知识图谱 (对标 RagFlow GraphRAG + RAPTOR, 实体关系抽取 + 图增强检索)
 from api.admin.graph_rag_routes import router as admin_graph_rag_router  # noqa: E402
+
 # 灰度发布 / 蓝绿部署 (对标 Bisheng/Langfuse Canary 发布)
-from api.admin.gray_release_routes import router as admin_gray_release_router  # noqa: E402
+from api.admin.gray_release_routes import (
+    router as admin_gray_release_router,
+)  # noqa: E402
+
 # 多环境管理 (对标 Bisheng/Langfuse 环境隔离, dev/staging/prod 配置隔离)
-from api.admin.environment_routes import router as admin_environment_router  # noqa: E402
+from api.admin.environment_routes import (
+    router as admin_environment_router,
+)  # noqa: E402
+
 # 知识库自动同步 (对标 RagFlow 自动同步 / 阿里百炼数据源管理)
 from api.admin.kb_sync_routes import router as admin_kb_sync_router  # noqa: E402
+
 # Prompt 优化建议 (对标 Langfuse LLM Playground 交互测试)
-from api.admin.prompt_optimization_routes import router as admin_prompt_optimization_router  # noqa: E402
+from api.admin.prompt_optimization_routes import (
+    router as admin_prompt_optimization_router,
+)  # noqa: E402
+
 # 模型负载均衡 (对标阿里百炼 AI 网关 GPU 感知负载均衡)
-from api.admin.model_load_balancer_routes import router as admin_model_lb_router  # noqa: E402
+from api.admin.model_load_balancer_routes import (
+    router as admin_model_lb_router,
+)  # noqa: E402
 from api.deps import AppState  # noqa: E402
 from api.auth_routes import router as auth_router  # noqa: E402
 from api.analytics_routes import router as analytics_router  # noqa: E402
 from api.middleware import ApiKeyMiddleware, TenantMiddleware  # noqa: E402
 from api.routes import router  # noqa: E402
+
 # HR 评估增强: 360° 环评 + 校准会
 from api.review_routes import router as review_router  # noqa: E402
 from api.calibration_routes import router as calibration_router  # noqa: E402
+
 # 提示词模板库 + Agent预设 (对标 LobeChat/Open WebUI 模板 + ChatGPT GPTs)
 from api.preset_routes import router as preset_router  # noqa: E402
+
 # 语音 TTS / STT API (OpenAI TTS + Whisper, 降级 Web Speech API)
 from api.voice_routes import router as voice_router  # noqa: E402
+
 # Artifacts 可视化 (对标 Claude Artifacts / ChatGPT Canvas)
 from api.artifact_routes import router as artifact_router  # noqa: E402
+
 # 对话式HR洞察 (自然语言查询 → SQL → 图表建议)
 from api.insights_routes import router as insights_router  # noqa: E402
+
 # Skills 系统 (对标 Claude Skills / Trae Skills)
 from api.skill_routes import router as skill_router  # noqa: E402
+
 # Chat 流式对话 API（移植 opencode session prompt + SSE 事件推送）
 from api.chat import router as chat_router  # noqa: E402
+
 # Evidence 引用 API（暴露 EvidenceRef 查询）
 from api.evidence import router as evidence_router  # noqa: E402
+
 # Webhook 接收路由（飞书/GitLab/自定义,无需 JWT,用签名/token 验证）
 from api.webhook_routes import router as webhook_router  # noqa: E402
+
 # 站内通知系统（列表/未读数/已读/删除）
 from api.notification_routes import router as notification_router  # noqa: E402
+
 # 数据导出 (评估/审计/分析/通知, CSV/Excel/JSON)
 from api.export_routes import router as export_router  # noqa: E402
 from core.config import get_settings  # noqa: E402
@@ -153,6 +223,7 @@ async def lifespan(app: FastAPI):
     # 避免每次 retrieve_context 都 new 新实例(导致 60s LRU 缓存失效 + 双实例并存)
     try:
         from agent.graph import set_app_state_for_graph
+
         set_app_state_for_graph(app.state.app_state)
     except Exception:
         pass

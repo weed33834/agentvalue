@@ -102,6 +102,7 @@ class EnvelopeCipher:
         try:
             # 本地 AES-GCM 加密
             from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
             nonce = os.urandom(_NONCE_BYTES)
             ct = AESGCM(plaintext_dek).encrypt(nonce, plaintext_bytes, None)
             # ct 末尾自动追加 _TAG_BYTES (16B) tag
@@ -151,7 +152,7 @@ class EnvelopeCipher:
             return ciphertext
 
         # 解析 envelope 格式
-        raw = raw[len(_ENVELOPE_VERSION):]
+        raw = raw[len(_ENVELOPE_VERSION) :]
         if len(raw) < _NONCE_BYTES + 4:
             raise KMSProviderError(
                 f"envelope 密文损坏:长度不足 (raw_len={len(raw)})",
@@ -178,6 +179,7 @@ class EnvelopeCipher:
 
         try:
             from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
             pt = AESGCM(plaintext_dek).decrypt(nonce, ct, None)
             return pt.decode("utf-8")
         except Exception as e:

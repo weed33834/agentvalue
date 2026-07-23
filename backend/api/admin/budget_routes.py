@@ -50,21 +50,13 @@ class BudgetCreate(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    budget_type: str = Field(
-        description="预算类型: monthly / daily"
-    )
-    budget_limit: float = Field(
-        gt=0, description="预算上限（美元）"
-    )
+    budget_type: str = Field(description="预算类型: monthly / daily")
+    budget_limit: float = Field(gt=0, description="预算上限（美元）")
     alert_threshold: float = Field(
         default=0.8, gt=0, le=1, description="告警阈值 (0-1, 默认 0.8)"
     )
-    period_start: Optional[datetime] = Field(
-        default=None, description="周期开始时间"
-    )
-    period_end: Optional[datetime] = Field(
-        default=None, description="周期结束时间"
-    )
+    period_start: Optional[datetime] = Field(default=None, description="周期开始时间")
+    period_end: Optional[datetime] = Field(default=None, description="周期结束时间")
 
 
 class BudgetUpdate(BaseModel):

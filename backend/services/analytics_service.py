@@ -525,7 +525,9 @@ class AnalyticsService:
                         "period": ev.period,
                         "type": fb.type,
                         "content": fb.content,
-                        "created_at": fb.created_at.isoformat() if fb.created_at else None,
+                        "created_at": (
+                            fb.created_at.isoformat() if fb.created_at else None
+                        ),
                     }
                 )
         except Exception:

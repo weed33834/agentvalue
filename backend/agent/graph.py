@@ -149,7 +149,10 @@ def _get_rerank_provider():
     避免每次 retrieve_context 都重建。初始化失败时降级 DummyRerankProvider。
     """
     # review 修复: 优先复用 app_state.rerank_provider(消除双实例并存)
-    if _app_state_ref is not None and getattr(_app_state_ref, "rerank_provider", None) is not None:
+    if (
+        _app_state_ref is not None
+        and getattr(_app_state_ref, "rerank_provider", None) is not None
+    ):
         return _app_state_ref.rerank_provider
     global _rerank_provider_singleton
     if _rerank_provider_singleton is not None:
@@ -188,9 +191,7 @@ async def _rerank_kb_if_enabled(query: str, documents: list) -> list:
         from core.config import get_settings
 
         settings = get_settings()
-        provider_name = (
-            getattr(settings, "rerank_provider", None) or "dummy"
-        ).lower()
+        provider_name = (getattr(settings, "rerank_provider", None) or "dummy").lower()
 
         # P3-2 集成示例: 检查 Feature Flag "use_rerank_v2"
         # 启用时强制走 rerank 路径(灰度新模型), 即便 settings 是 dummy
@@ -198,12 +199,16 @@ async def _rerank_kb_if_enabled(query: str, documents: list) -> list:
         try:
             # review 修复: 优先复用 app_state.feature_flag_service(60s LRU 缓存有效),
             # 而非每次 new FeatureFlagService(缓存形同虚设, DB 重复查询)
-            if _app_state_ref is not None and getattr(_app_state_ref, "feature_flag_service", None) is not None:
+            if (
+                _app_state_ref is not None
+                and getattr(_app_state_ref, "feature_flag_service", None) is not None
+            ):
                 flag_service = _app_state_ref.feature_flag_service
             else:
                 # 测试 / 单元调用降级路径
                 from core.database import AsyncSessionLocal
                 from core.feature_flag import FeatureFlagService
+
                 flag_service = FeatureFlagService(AsyncSessionLocal)
             use_rerank_v2 = await flag_service.is_enabled("use_rerank_v2")
         except Exception as flag_err:
@@ -473,7 +478,11 @@ def create_evaluation_graph(
                     content = (fb or {}).get("content", "")
                     lines.append(f"- [{fb_type}] {content}")
                 prompt = prompt + "\n".join(lines)
-            return {**state, "prompt": prompt, "prompt_version_info": prompt_version_info}
+            return {
+                **state,
+                "prompt": prompt,
+                "prompt_version_info": prompt_version_info,
+            }
 
     async def call_llm(state: EvaluationState) -> EvaluationState:
         """调用 LLM 生成评估"""
@@ -528,7 +537,9 @@ def create_evaluation_graph(
                 + ["evidence_first", "dual_view_separation"],
                 "processing_time_ms": processing_time_ms,
                 # P1 调试增强: 记录实际使用的 prompt 版本 (DB 或文件)
-                "prompt_version": pvi.get("prompt_version", prompt_loader.version(prompt_name)),
+                "prompt_version": pvi.get(
+                    "prompt_version", prompt_loader.version(prompt_name)
+                ),
                 "prompt_source": pvi.get("source", "file"),
                 "prompt_version_id": pvi.get("prompt_version_id"),
             }

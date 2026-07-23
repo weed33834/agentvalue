@@ -52,21 +52,15 @@ class SensitiveWord(Base):
         String(32), nullable=False, default="custom", index=True
     )
     # 严重程度: low / medium / high
-    severity: Mapped[str] = mapped_column(
-        String(16), nullable=False, default="medium"
-    )
+    severity: Mapped[str] = mapped_column(String(16), nullable=False, default="medium")
     # 处理动作: block / replace / mask
-    action: Mapped[str] = mapped_column(
-        String(16), nullable=False, default="mask"
-    )
+    action: Mapped[str] = mapped_column(String(16), nullable=False, default="mask")
     # 替换文本 (action=replace 时使用)
     replacement: Mapped[Optional[str]] = mapped_column(
         String(256), nullable=True, default="***"
     )
     # 是否启用
-    is_active: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True
-    )
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     # 创建人 (用户 ID)
     created_by: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -101,10 +95,6 @@ class SensitiveWordCategory(Base):
     # 分类描述
     description: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     # 是否启用
-    is_active: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True
-    )
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
-    __table_args__ = (
-        Index("ix_sensitive_category_active", "is_active"),
-    )
+    __table_args__ = (Index("ix_sensitive_category_active", "is_active"),)

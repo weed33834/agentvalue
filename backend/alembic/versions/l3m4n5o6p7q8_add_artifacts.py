@@ -70,9 +70,7 @@ def upgrade() -> None:
             sa.Column("language", sa.String(length=32), nullable=True),
             sa.Column("content", sa.Text(), nullable=False),
             sa.Column("metadata", sa.JSON(), nullable=True),
-            sa.Column(
-                "version", sa.Integer(), nullable=False, server_default="1"
-            ),
+            sa.Column("version", sa.Integer(), nullable=False, server_default="1"),
             sa.Column(
                 "created_at",
                 sa.DateTime(),
@@ -87,18 +85,12 @@ def upgrade() -> None:
             ),
         )
         if not _has_index(inspector, _ARTIFACTS, op.f("ix_chat_artifacts_id")):
-            op.create_index(
-                op.f("ix_chat_artifacts_id"), _ARTIFACTS, ["id"]
-            )
-        if not _has_index(
-            inspector, _ARTIFACTS, op.f("ix_chat_artifacts_session_id")
-        ):
+            op.create_index(op.f("ix_chat_artifacts_id"), _ARTIFACTS, ["id"])
+        if not _has_index(inspector, _ARTIFACTS, op.f("ix_chat_artifacts_session_id")):
             op.create_index(
                 op.f("ix_chat_artifacts_session_id"), _ARTIFACTS, ["session_id"]
             )
-        if not _has_index(
-            inspector, _ARTIFACTS, op.f("ix_chat_artifacts_message_id")
-        ):
+        if not _has_index(inspector, _ARTIFACTS, op.f("ix_chat_artifacts_message_id")):
             op.create_index(
                 op.f("ix_chat_artifacts_message_id"),
                 _ARTIFACTS,

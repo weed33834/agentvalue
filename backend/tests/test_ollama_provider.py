@@ -18,6 +18,7 @@ MODULE = "core.providers.ollama_provider"
 # Helpers
 # ============================================================
 
+
 async def _aiter(lines):
     """把字符串列表变成异步生成器,模拟 httpx aiter_lines(NDJSON 每行一个 JSON)。"""
     for line in lines:
@@ -87,6 +88,7 @@ def _provider(**overrides):
 # ============================================================
 # Tests
 # ============================================================
+
 
 def test_init():
     provider = _provider(base_url="http://custom:11434/")

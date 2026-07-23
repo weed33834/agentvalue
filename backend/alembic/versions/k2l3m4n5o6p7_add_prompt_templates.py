@@ -69,12 +69,8 @@ def upgrade() -> None:
             ),
             sa.Column("content", sa.Text(), nullable=False),
             sa.Column("variables", sa.JSON(), nullable=True),
-            sa.Column(
-                "is_builtin", sa.Boolean(), nullable=False, server_default="0"
-            ),
-            sa.Column(
-                "is_public", sa.Boolean(), nullable=False, server_default="1"
-            ),
+            sa.Column("is_builtin", sa.Boolean(), nullable=False, server_default="0"),
+            sa.Column("is_public", sa.Boolean(), nullable=False, server_default="1"),
             sa.Column("created_by", sa.Integer(), nullable=True),
             sa.Column(
                 "created_at",
@@ -89,9 +85,7 @@ def upgrade() -> None:
                 server_default=sa.func.now(),
             ),
         )
-        op.create_index(
-            op.f("ix_prompt_templates_id"), _PROMPT_TEMPLATES, ["id"]
-        )
+        op.create_index(op.f("ix_prompt_templates_id"), _PROMPT_TEMPLATES, ["id"])
         op.create_index(
             op.f("ix_prompt_templates_category"),
             _PROMPT_TEMPLATES,
@@ -126,18 +120,10 @@ def upgrade() -> None:
                 server_default="L1",
             ),
             sa.Column("enabled_tools", sa.JSON(), nullable=True),
-            sa.Column(
-                "temperature", sa.Integer(), nullable=False, server_default="70"
-            ),
-            sa.Column(
-                "is_builtin", sa.Boolean(), nullable=False, server_default="0"
-            ),
-            sa.Column(
-                "is_public", sa.Boolean(), nullable=False, server_default="1"
-            ),
-            sa.Column(
-                "use_count", sa.Integer(), nullable=False, server_default="0"
-            ),
+            sa.Column("temperature", sa.Integer(), nullable=False, server_default="70"),
+            sa.Column("is_builtin", sa.Boolean(), nullable=False, server_default="0"),
+            sa.Column("is_public", sa.Boolean(), nullable=False, server_default="1"),
+            sa.Column("use_count", sa.Integer(), nullable=False, server_default="0"),
             sa.Column("created_by", sa.Integer(), nullable=True),
             sa.Column(
                 "created_at",
@@ -152,12 +138,8 @@ def upgrade() -> None:
                 server_default=sa.func.now(),
             ),
         )
-        op.create_index(
-            op.f("ix_agent_presets_id"), _AGENT_PRESETS, ["id"]
-        )
-        op.create_index(
-            op.f("ix_agent_presets_category"), _AGENT_PRESETS, ["category"]
-        )
+        op.create_index(op.f("ix_agent_presets_id"), _AGENT_PRESETS, ["id"])
+        op.create_index(op.f("ix_agent_presets_category"), _AGENT_PRESETS, ["category"])
         op.create_index(
             op.f("ix_agent_presets_is_public"), _AGENT_PRESETS, ["is_public"]
         )

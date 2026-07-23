@@ -45,10 +45,15 @@ def upgrade() -> None:
             "chat_sessions",
             sa.Column("id", sa.String(length=64), primary_key=True),
             sa.Column(
-                "tenant_id", sa.String(length=64), nullable=False, server_default="default"
+                "tenant_id",
+                sa.String(length=64),
+                nullable=False,
+                server_default="default",
             ),
             sa.Column("user_id", sa.String(length=64), nullable=False),
-            sa.Column("title", sa.String(length=256), nullable=False, server_default="新对话"),
+            sa.Column(
+                "title", sa.String(length=256), nullable=False, server_default="新对话"
+            ),
             sa.Column(
                 "model_name",
                 sa.String(length=128),
@@ -57,7 +62,10 @@ def upgrade() -> None:
             ),
             sa.Column("provider", sa.String(length=64), nullable=True),
             sa.Column(
-                "agent_name", sa.String(length=64), nullable=False, server_default="assistant"
+                "agent_name",
+                sa.String(length=64),
+                nullable=False,
+                server_default="assistant",
             ),
             sa.Column(
                 "created_at",
@@ -73,7 +81,9 @@ def upgrade() -> None:
             ),
             sa.ForeignKeyConstraint(["user_id"], ["users.user_id"]),
         )
-        op.create_index("ix_chat_session_tenant_user", "chat_sessions", ["tenant_id", "user_id"])
+        op.create_index(
+            "ix_chat_session_tenant_user", "chat_sessions", ["tenant_id", "user_id"]
+        )
         op.create_index("ix_chat_sessions_tenant_id", "chat_sessions", ["tenant_id"])
 
     # 2. chat_messages
@@ -91,7 +101,10 @@ def upgrade() -> None:
             sa.Column("finish_reason", sa.String(length=32), nullable=True),
             sa.Column("error", sa.JSON(), nullable=True),
             sa.Column(
-                "tenant_id", sa.String(length=64), nullable=False, server_default="default"
+                "tenant_id",
+                sa.String(length=64),
+                nullable=False,
+                server_default="default",
             ),
             sa.Column(
                 "created_at",
@@ -126,7 +139,10 @@ def upgrade() -> None:
             sa.Column("step_index", sa.Integer(), nullable=True),
             sa.Column("metadata", sa.JSON(), nullable=True),
             sa.Column(
-                "tenant_id", sa.String(length=64), nullable=False, server_default="default"
+                "tenant_id",
+                sa.String(length=64),
+                nullable=False,
+                server_default="default",
             ),
             sa.Column(
                 "created_at",

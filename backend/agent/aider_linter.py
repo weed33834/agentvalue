@@ -54,7 +54,9 @@ _FLAKE8_AVAILABLE: bool = importlib.util.find_spec("flake8") is not None
 # 其次 tree_sitter_language_pack / tree_sitter_languages (仅 get_parser，需自行实现 filename_to_lang)
 # 都不可用时降级为 compile() + flake8
 _TREE_SITTER_AVAILABLE: bool = False
-_TREE_SITTER_BACKEND: Optional[str] = None  # "grep_ast" | "tree_sitter_language_pack" | "tree_sitter_languages" | None
+_TREE_SITTER_BACKEND: Optional[str] = (
+    None  # "grep_ast" | "tree_sitter_language_pack" | "tree_sitter_languages" | None
+)
 _ts_get_parser: Optional[Callable[[str], Any]] = None
 _TreeContext: Optional[type] = None
 _filename_to_lang: Optional[Callable[[str], Optional[str]]] = None
@@ -316,7 +318,7 @@ def lint_python_compile(fname: str, code: str) -> Optional[LintResult]:
                 last_file_i = i
                 break
 
-        tb_lines = tb_lines[:1] + tb_lines[last_file_i + 1:]
+        tb_lines = tb_lines[:1] + tb_lines[last_file_i + 1 :]
 
         res = "".join(tb_lines)
         return LintResult(text=res, lines=line_numbers)
@@ -398,7 +400,9 @@ class Linter:
 
         return self.errors_to_lint_result(rel_fname, res)
 
-    def errors_to_lint_result(self, rel_fname: str, errors: str) -> Optional[LintResult]:
+    def errors_to_lint_result(
+        self, rel_fname: str, errors: str
+    ) -> Optional[LintResult]:
         if not errors:
             return None
 
@@ -410,7 +414,9 @@ class Linter:
 
         return LintResult(text=errors, lines=linenums)
 
-    def lint(self, fname: str, cmd: Optional[Union[str, Callable]] = None) -> Optional[str]:
+    def lint(
+        self, fname: str, cmd: Optional[Union[str, Callable]] = None
+    ) -> Optional[str]:
         """对单个文件执行 lint，返回带上下文标记的错误文本 (无错误返回 None)。
 
         Args:

@@ -332,7 +332,14 @@ async def seed_demo_users(
     eval_service = EvaluationService(session)
     # (user_id, name, email, role, dept, manager_id) —— manager_id 用于 RBAC 团队归属校验
     demo_accounts = [
-        ("E1001", "张三（员工）", "employee@agentvalue.ai", "employee", "研发部", "M001"),
+        (
+            "E1001",
+            "张三（员工）",
+            "employee@agentvalue.ai",
+            "employee",
+            "研发部",
+            "M001",
+        ),
         (
             "E1002",
             "李四（员工）",
@@ -465,6 +472,7 @@ async def change_password(
     # 使该用户所有现有 Token 失效（强制重新登录）
     try:
         from auth.token_blacklist import blacklist_all_user_tokens
+
         await blacklist_all_user_tokens(user_id)
     except Exception:
         pass  # token_blacklist 是可选依赖，失败不影响密码修改

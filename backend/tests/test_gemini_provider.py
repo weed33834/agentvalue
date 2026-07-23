@@ -18,6 +18,7 @@ MODULE = "core.providers.gemini_provider"
 # Helpers
 # ============================================================
 
+
 async def _aiter(lines):
     """把字符串列表变成异步生成器,模拟 httpx aiter_lines。"""
     for line in lines:
@@ -91,6 +92,7 @@ def _provider(**overrides):
 # ============================================================
 # Tests
 # ============================================================
+
 
 def test_init():
     provider = _provider(api_key="gem-key", base_url="https://custom.example.com/")
@@ -258,9 +260,7 @@ async def test_health_check_failure(monkeypatch):
 @pytest.mark.asyncio
 async def test_health_check_non_200(monkeypatch):
     """非 200 响应应视为不可用。"""
-    _patch_client(
-        monkeypatch, get_response=_make_response({}, status_code=500)
-    )
+    _patch_client(monkeypatch, get_response=_make_response({}, status_code=500))
     provider = _provider()
     assert await provider.health_check() is False
 
@@ -278,9 +278,7 @@ async def test_vision_completion(monkeypatch):
     _, kwargs = mock_client.post.call_args
     parts = kwargs["json"]["contents"][0]["parts"]
     assert {"text": "describe"} in parts
-    assert {
-        "inlineData": {"mimeType": "image/jpeg", "data": "BASE64DATA"}
-    } in parts
+    assert {"inlineData": {"mimeType": "image/jpeg", "data": "BASE64DATA"}} in parts
 
 
 @pytest.mark.asyncio

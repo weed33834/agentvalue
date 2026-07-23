@@ -709,7 +709,9 @@ def generate_all(output_dir: Path, seed: int = 42) -> list[dict]:
 # CLI
 # ---------------------------------------------------------------------------
 def main(argv: Optional[list[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="AgentValue-AI 多规模公司试点数据生成器")
+    parser = argparse.ArgumentParser(
+        description="AgentValue-AI 多规模公司试点数据生成器"
+    )
     parser.add_argument(
         "--scale",
         required=True,

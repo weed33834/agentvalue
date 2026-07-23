@@ -12,6 +12,7 @@
 - SkillExecutor 负责"实例化"一个 Skill 为临时 Agent 并执行
 - 输出若声明了 output_schema, 会尝试 JSON 解析校验
 """
+
 from __future__ import annotations
 
 import json
@@ -188,7 +189,7 @@ def _extract_json(text: str) -> Optional[dict]:
     cleaned = text.strip()
     # 去除 markdown 代码块包裹
     if cleaned.startswith("```json"):
-        cleaned = cleaned[len("```json"):]
+        cleaned = cleaned[len("```json") :]
     elif cleaned.startswith("```"):
         cleaned = cleaned[3:]
     if cleaned.endswith("```"):
@@ -266,7 +267,9 @@ class SkillExecutor:
 
             # 3. 注入 Skill 温度(0-100 -> 0.0-1.0), 仅当 skill.temperature 有效时覆盖
             try:
-                temp_value = int(skill.temperature) if skill.temperature is not None else None
+                temp_value = (
+                    int(skill.temperature) if skill.temperature is not None else None
+                )
                 if temp_value is not None and 0 <= temp_value <= 100:
                     # ProviderConfig 是 dataclass, 直接 mutate 即可;
                     # get_provider 每次返回新实例, 不会污染全局
@@ -302,7 +305,9 @@ class SkillExecutor:
                 "tokens_used": tokens_used,
             }
         except Exception as e:
-            logger.exception("Skill 执行失败 skill_id=%s: %s", getattr(skill, "id", None), e)
+            logger.exception(
+                "Skill 执行失败 skill_id=%s: %s", getattr(skill, "id", None), e
+            )
             return {
                 "output": "",
                 "parsed": None,
@@ -370,10 +375,14 @@ class SkillExecutor:
             async with get_db_session() as session:  # type: AsyncSession
                 # 检查是否已有内置 Skill
                 existing = (
-                    await session.execute(
-                        select(Skill).where(Skill.is_builtin.is_(True))
+                    (
+                        await session.execute(
+                            select(Skill).where(Skill.is_builtin.is_(True))
+                        )
                     )
-                ).scalars().all()
+                    .scalars()
+                    .all()
+                )
                 existing_names = {s.name for s in existing}
                 inserted = 0
                 for skill_data in _BUILTIN_SKILLS:

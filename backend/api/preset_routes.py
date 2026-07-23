@@ -117,9 +117,7 @@ class UpdateAgentPresetPayload(BaseModel):
     name: Optional[str] = Field(default=None, max_length=_MAX_NAME_LENGTH)
     description: Optional[str] = Field(default=None, max_length=_MAX_TEXT_LENGTH)
     avatar: Optional[str] = Field(default=None, max_length=512)
-    system_prompt: Optional[str] = Field(
-        default=None, max_length=_MAX_TEXT_LENGTH
-    )
+    system_prompt: Optional[str] = Field(default=None, max_length=_MAX_TEXT_LENGTH)
     category: Optional[str] = Field(default=None, max_length=_MAX_CATEGORY_LENGTH)
     tags: Optional[List[str]] = None
     model_tier: Optional[str] = Field(default=None, max_length=10)
@@ -388,14 +386,19 @@ async def _ensure_seed() -> None:
         async with get_db_session() as session:
             # 检查内置模板是否已存在
             existing_templates = (
-                await session.execute(
-                    select(PromptTemplate).where(
-                        PromptTemplate.is_builtin.is_(True)
+                (
+                    await session.execute(
+                        select(PromptTemplate).where(
+                            PromptTemplate.is_builtin.is_(True)
+                        )
                     )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             if len(existing_templates) == 0:
                 import uuid
+
                 for tpl_data in _builtin_templates():
                     tpl = PromptTemplate(
                         id=uuid.uuid4().hex,
@@ -413,10 +416,14 @@ async def _ensure_seed() -> None:
 
             # 检查内置预设是否已存在
             existing_presets = (
-                await session.execute(
-                    select(AgentPreset).where(AgentPreset.is_builtin.is_(True))
+                (
+                    await session.execute(
+                        select(AgentPreset).where(AgentPreset.is_builtin.is_(True))
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             if len(existing_presets) == 0:
                 for preset_data in _builtin_presets():
                     preset = AgentPreset(
@@ -473,6 +480,7 @@ async def create_template(
 ):
     """创建提示词模板(需认证)"""
     import uuid
+
     tpl = PromptTemplate(
         id=uuid.uuid4().hex,
         name=payload.name,
@@ -504,9 +512,7 @@ async def update_template(
         )
     ).scalar_one_or_none()
     if tpl is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="模板不存在"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="模板不存在")
 
     # 内置模板不允许修改
     if tpl.is_builtin:
@@ -545,9 +551,7 @@ async def delete_template(
         )
     ).scalar_one_or_none()
     if tpl is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="模板不存在"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="模板不存在")
 
     if tpl.is_builtin:
         raise HTTPException(
@@ -573,9 +577,7 @@ async def instantiate_template(
         )
     ).scalar_one_or_none()
     if tpl is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="模板不存在"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="模板不存在")
 
     instantiated = _instantiate_content(tpl.content, payload.variables)
     return {
@@ -618,14 +620,10 @@ async def get_agent(
     await _ensure_seed()
 
     preset = (
-        await session.execute(
-            select(AgentPreset).where(AgentPreset.id == agent_id)
-        )
+        await session.execute(select(AgentPreset).where(AgentPreset.id == agent_id))
     ).scalar_one_or_none()
     if preset is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="预设不存在"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="预设不存在")
     return _serialize_preset(preset, include_config=True)
 
 
@@ -666,14 +664,10 @@ async def update_agent(
 ):
     """更新Agent预设"""
     preset = (
-        await session.execute(
-            select(AgentPreset).where(AgentPreset.id == agent_id)
-        )
+        await session.execute(select(AgentPreset).where(AgentPreset.id == agent_id))
     ).scalar_one_or_none()
     if preset is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="预设不存在"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="预设不存在")
 
     if preset.is_builtin:
         raise HTTPException(
@@ -710,14 +704,10 @@ async def delete_agent(
 ):
     """删除Agent预设"""
     preset = (
-        await session.execute(
-            select(AgentPreset).where(AgentPreset.id == agent_id)
-        )
+        await session.execute(select(AgentPreset).where(AgentPreset.id == agent_id))
     ).scalar_one_or_none()
     if preset is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="预设不存在"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="预设不存在")
 
     if preset.is_builtin:
         raise HTTPException(
@@ -739,14 +729,10 @@ async def use_agent(
     await _ensure_seed()
 
     preset = (
-        await session.execute(
-            select(AgentPreset).where(AgentPreset.id == agent_id)
-        )
+        await session.execute(select(AgentPreset).where(AgentPreset.id == agent_id))
     ).scalar_one_or_none()
     if preset is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="预设不存在"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="预设不存在")
 
     # use_count + 1
     preset.use_count = (preset.use_count or 0) + 1

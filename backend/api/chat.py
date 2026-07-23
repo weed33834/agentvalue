@@ -232,7 +232,12 @@ async def send_message(
     )
 
 
-async def _stream(req: SendMessageRequest, session_dict: dict, app_state: AppState, http_request: Request):
+async def _stream(
+    req: SendMessageRequest,
+    session_dict: dict,
+    app_state: AppState,
+    http_request: Request,
+):
     """SSE 流式输出（复用 playground _run_stream 三段式结构）。
 
     结构：queue + producer + disconnect 检查 + 25s ping + CancelledError reraise
@@ -521,7 +526,9 @@ def _message_to_dict(msg) -> Dict[str, Any]:
     }
 
 
-async def _get_user_message_text(chat_svc: ChatService, message_id: str) -> Optional[str]:
+async def _get_user_message_text(
+    chat_svc: ChatService, message_id: str
+) -> Optional[str]:
     """取出指定 message 的所有 text part 并拼接为完整文本。"""
     parts = await chat_svc.list_parts_by_message(message_id)
     text_parts = [p for p in parts if p.type == "text"]
@@ -632,8 +639,6 @@ async def feedback_message(
     """
     from sqlalchemy import select
 
-    from models.chat_models import ChatMessage
-
     session = await chat_svc.get_session(session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="会话不存在")
@@ -682,8 +687,6 @@ async def delete_message(
     删除 message 后其关联 parts 会被自动级联删除。
     """
     from sqlalchemy import select
-
-    from models.chat_models import ChatMessage
 
     session = await chat_svc.get_session(session_id)
     if session is None:
@@ -746,7 +749,11 @@ async def auto_title(
     for msg in messages:
         if first_user is None and msg.role == "user":
             first_user = msg
-        elif first_user is not None and msg.role == "assistant" and first_assistant is None:
+        elif (
+            first_user is not None
+            and msg.role == "assistant"
+            and first_assistant is None
+        ):
             first_assistant = msg
             break
 
@@ -761,7 +768,9 @@ async def auto_title(
     # 获取 assistant 文本（可选）
     assistant_text = ""
     if first_assistant is not None:
-        assistant_text = await _get_user_message_text(chat_svc, first_assistant.id) or ""
+        assistant_text = (
+            await _get_user_message_text(chat_svc, first_assistant.id) or ""
+        )
 
     # 尝试调用 LLM 生成标题
     title: Optional[str] = None
@@ -790,7 +799,9 @@ async def auto_title(
                 if not title:
                     title = None
     except Exception as e:
-        logger.warning("auto-title LLM 调用失败，将回退到截取用户消息: %s", e, exc_info=True)
+        logger.warning(
+            "auto-title LLM 调用失败，将回退到截取用户消息: %s", e, exc_info=True
+        )
         title = None
 
     # 回退：截取用户消息前 20 字

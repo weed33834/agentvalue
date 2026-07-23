@@ -93,9 +93,7 @@ class WorkflowRunRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    inputs: Dict[str, Any] = Field(
-        default_factory=dict, description="输入变量值"
-    )
+    inputs: Dict[str, Any] = Field(default_factory=dict, description="输入变量值")
     thread_id: Optional[str] = Field(
         default=None, description="线程 ID (可关联 trace, 不传则自动生成)"
     )
@@ -120,6 +118,7 @@ def _gen_id(prefix: str = "wf") -> str:
     """生成主键 (uuid4 hex 带前缀)"""
     # review 优化: 复用 admin/_common.gen_id,统一 ID 生成逻辑
     from api.admin._common import gen_id
+
     return gen_id(prefix=prefix)
 
 
@@ -150,9 +149,9 @@ def _run_entity_to_dict(entity: WorkflowRun) -> Dict[str, Any]:
         "outputs": entity.outputs,
         "node_states": entity.node_states or {},
         "created_at": entity.created_at.isoformat() if entity.created_at else None,
-        "completed_at": entity.completed_at.isoformat()
-        if entity.completed_at
-        else None,
+        "completed_at": (
+            entity.completed_at.isoformat() if entity.completed_at else None
+        ),
     }
 
 
@@ -181,9 +180,7 @@ async def list_workflows(
     stmt = select(Workflow)
     if search:
         kw = f"%{search}%"
-        stmt = stmt.where(
-            or_(Workflow.name.ilike(kw), Workflow.description.ilike(kw))
-        )
+        stmt = stmt.where(or_(Workflow.name.ilike(kw), Workflow.description.ilike(kw)))
     if tenant_id:
         stmt = stmt.where(Workflow.tenant_id == tenant_id)
     stmt = stmt.order_by(Workflow.created_at.desc())

@@ -78,9 +78,7 @@ class CircuitState:
             self._failure_count = 0
             self._probe_in_flight = False
             if self.state in ("open", "half_open"):
-                logger.info(
-                    "熔断器恢复: %s → closed (success probe)", self.state
-                )
+                logger.info("熔断器恢复: %s → closed (success probe)", self.state)
             self.state = "closed"
 
     async def record_failure(self) -> None:
@@ -180,9 +178,7 @@ async def call_with_circuit(
     3. HALF_OPEN: acquire_probe 抢探针资格,抢到才调;抢不到 fast_fail
     """
     if circuit.is_open():
-        raise fast_fail_exc(
-            f"熔断器处于 OPEN 状态,fast-fail (state={circuit.state})"
-        )
+        raise fast_fail_exc(f"熔断器处于 OPEN 状态,fast-fail (state={circuit.state})")
     if circuit.state == "half_open":
         # 仅放一个探针
         if not await circuit.acquire_probe():

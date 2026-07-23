@@ -44,7 +44,9 @@ class ApiHealthMetric(Base):
 
     __table_args__ = (
         # 按租户 + 端点 + 时间检索（端点统计与 SLO 计算主索引）
-        Index("ix_api_health_tenant_endpoint_time", "tenant_id", "endpoint", "timestamp"),
+        Index(
+            "ix_api_health_tenant_endpoint_time", "tenant_id", "endpoint", "timestamp"
+        ),
     )
 
 
@@ -68,7 +70,9 @@ class SloDefinition(Base):
     # 目标延迟上限（毫秒），P95 应低于此值
     target_latency_ms: Mapped[float] = mapped_column(Float, nullable=False)
     # 目标成功率（0-1，如 0.99 表示 99% 请求成功）
-    target_success_rate: Mapped[float] = mapped_column(Float, nullable=False, default=0.99)
+    target_success_rate: Mapped[float] = mapped_column(
+        Float, nullable=False, default=0.99
+    )
     # 统计窗口（分钟）
     window_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
     # 是否启用

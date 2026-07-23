@@ -76,13 +76,9 @@ def upgrade() -> None:
                 nullable=False,
                 server_default=sa.text("CURRENT_TIMESTAMP"),
             ),
-            sa.UniqueConstraint(
-                "tenant_id", "name", name="uix_tenant_prompt_name"
-            ),
+            sa.UniqueConstraint("tenant_id", "name", name="uix_tenant_prompt_name"),
         )
-        op.create_index(
-            "ix_prompt_templates_tenant", "prompt_templates", ["tenant_id"]
-        )
+        op.create_index("ix_prompt_templates_tenant", "prompt_templates", ["tenant_id"])
 
     # 2) prompt_versions
     if not _has_table(inspector, "prompt_versions"):
@@ -148,9 +144,7 @@ def upgrade() -> None:
                 "template_id", "label", name="uix_prompt_template_label"
             ),
         )
-        op.create_index(
-            "ix_prompt_labels_template", "prompt_labels", ["template_id"]
-        )
+        op.create_index("ix_prompt_labels_template", "prompt_labels", ["template_id"])
 
     # 4) prompt_eval_runs
     if not _has_table(inspector, "prompt_eval_runs"):

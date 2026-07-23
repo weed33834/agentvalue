@@ -47,7 +47,10 @@ class AgentVersion(Base):
     )
     # 关联的 Agent 预设 ID (软关联 AgentPreset.id, 不加外键避免循环依赖)
     agent_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("agent_presets.id", ondelete="CASCADE"), index=True, nullable=False
+        Integer,
+        ForeignKey("agent_presets.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
     )
     # 版本号 (同一 agent_id 下自增, 从 1 开始)
     version_number: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -97,20 +100,24 @@ class AgentPublishTarget(Base):
     )
     # 关联的 Agent 预设 ID
     agent_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("agent_presets.id", ondelete="CASCADE"), index=True, nullable=False
+        Integer,
+        ForeignKey("agent_presets.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
     )
     # 关联的版本 ID
     version_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("agent_versions.id", ondelete="CASCADE"), index=True, nullable=False
+        Integer,
+        ForeignKey("agent_versions.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
     )
     # 发布渠道: feishu / wechat / dingtalk / web / api
     channel: Mapped[str] = mapped_column(String(16), nullable=False)
     # 渠道配置 (JSON, 存储渠道接入信息如 webhook_url / app_id / api_key 等)
     config: Mapped[dict] = mapped_column(JSON, default=dict)
     # 发布状态: pending / published / failed
-    status: Mapped[str] = mapped_column(
-        String(16), nullable=False, default="pending"
-    )
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
     # 发布时间
     published_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True

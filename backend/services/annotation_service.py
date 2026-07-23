@@ -84,7 +84,9 @@ class AnnotationService:
         )
         self.session.add(entity)
         await self.session.flush()
-        logger.info("创建标注任务: %s (来源: %s, 租户: %s)", name, source_type, tenant_id)
+        logger.info(
+            "创建标注任务: %s (来源: %s, 租户: %s)", name, source_type, tenant_id
+        )
         return entity
 
     async def get_task(
@@ -147,8 +149,10 @@ class AnnotationService:
 
         offset = (page - 1) * size
         rows = (
-            await self.session.execute(base.offset(offset).limit(size))
-        ).scalars().all()
+            (await self.session.execute(base.offset(offset).limit(size)))
+            .scalars()
+            .all()
+        )
 
         return {
             "items": [self._task_to_dict(t) for t in rows],
@@ -200,7 +204,9 @@ class AnnotationService:
             entity.priority = priority
         if status is not None:
             if status not in VALID_TASK_STATUSES:
-                raise ValueError(f"无效的任务状态: {status}, 可选: {VALID_TASK_STATUSES}")
+                raise ValueError(
+                    f"无效的任务状态: {status}, 可选: {VALID_TASK_STATUSES}"
+                )
             entity.status = status
             if status == "completed":
                 from datetime import datetime, timezone
@@ -210,9 +216,7 @@ class AnnotationService:
         await self.session.flush()
         return entity
 
-    async def delete_task(
-        self, task_id: int, *, tenant_id: str = "default"
-    ) -> bool:
+    async def delete_task(self, task_id: int, *, tenant_id: str = "default") -> bool:
         """删除标注任务 (同时删除所有标注)
 
         Args:
@@ -228,13 +232,17 @@ class AnnotationService:
 
         # 删除所有关联标注
         annotations = (
-            await self.session.execute(
-                select(Annotation).where(
-                    Annotation.task_id == task_id,
-                    Annotation.tenant_id == tenant_id,
+            (
+                await self.session.execute(
+                    select(Annotation).where(
+                        Annotation.task_id == task_id,
+                        Annotation.tenant_id == tenant_id,
+                    )
                 )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         for ann in annotations:
             await self.session.delete(ann)
 
@@ -338,15 +346,19 @@ class AnnotationService:
             标注列表 [{id, annotator_id, label, score, feedback, ...}]
         """
         rows = (
-            await self.session.execute(
-                select(Annotation)
-                .where(
-                    Annotation.task_id == task_id,
-                    Annotation.tenant_id == tenant_id,
+            (
+                await self.session.execute(
+                    select(Annotation)
+                    .where(
+                        Annotation.task_id == task_id,
+                        Annotation.tenant_id == tenant_id,
+                    )
+                    .order_by(Annotation.created_at.desc())
                 )
-                .order_by(Annotation.created_at.desc())
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         return [self._annotation_to_dict(a) for a in rows]
 
@@ -434,13 +446,17 @@ class AnnotationService:
 
         # 获取所有评测结果
         results = (
-            await self.session.execute(
-                select(EvaluationResult).where(
-                    EvaluationResult.task_id == eval_task_id,
-                    EvaluationResult.tenant_id == tenant_id,
+            (
+                await self.session.execute(
+                    select(EvaluationResult).where(
+                        EvaluationResult.task_id == eval_task_id,
+                        EvaluationResult.tenant_id == tenant_id,
+                    )
                 )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         created = 0
         skipped = 0

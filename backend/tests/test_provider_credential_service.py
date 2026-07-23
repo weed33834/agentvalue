@@ -357,9 +357,7 @@ async def test_list_health_checks_empty(db_session):
 @pytest.mark.asyncio
 async def test_record_health_check(db_session):
     svc = ProviderCredentialService(db_session)
-    await svc.record_health_check(
-        TENANT_ID, PROVIDER, status="healthy", latency_ms=50
-    )
+    await svc.record_health_check(TENANT_ID, PROVIDER, status="healthy", latency_ms=50)
     checks = await svc.list_health_checks(TENANT_ID, PROVIDER)
     assert len(checks) == 1
     assert checks[0].status == "healthy"
@@ -419,6 +417,8 @@ async def test_set_default_model_different_types(db_session):
     """不同 model_type 各自独立"""
     svc = ProviderCredentialService(db_session)
     await svc.set_default_model(TENANT_ID, "llm", "openai", "gpt-4o")
-    await svc.set_default_model(TENANT_ID, "embedding", "openai", "text-embedding-3-small")
+    await svc.set_default_model(
+        TENANT_ID, "embedding", "openai", "text-embedding-3-small"
+    )
     models = await svc.list_default_models(TENANT_ID)
     assert len(models) == 2

@@ -182,9 +182,7 @@ async def list_tenant_providers(
         tp = tenant_providers.get(tmpl.provider)
         creds = creds_by_provider.get(tmpl.provider, [])
         models = models_by_provider.get(tmpl.provider, [])
-        data.append(
-            _serialize_tenant_provider_view(tmpl, tp, creds, models)
-        )
+        data.append(_serialize_tenant_provider_view(tmpl, tp, creds, models))
     return {"data": data}
 
 
@@ -242,8 +240,12 @@ async def list_credentials(
                 "is_valid": c.is_valid,
                 "in_cooldown": svc._is_in_cooldown(c),
                 "failure_count": c.failure_count,
-                "last_validated_at": c.last_validated_at.isoformat() if c.last_validated_at else None,
-                "cooldown_until": c.cooldown_until.isoformat() if c.cooldown_until else None,
+                "last_validated_at": (
+                    c.last_validated_at.isoformat() if c.last_validated_at else None
+                ),
+                "cooldown_until": (
+                    c.cooldown_until.isoformat() if c.cooldown_until else None
+                ),
                 "credentials_masked": masked,
                 "created_at": c.created_at.isoformat() if c.created_at else None,
             }
@@ -451,9 +453,7 @@ async def create_tenant_model(
     return {"result": "success", "model_id": row.id}, status.HTTP_201_CREATED
 
 
-@router.delete(
-    "/workspaces/current/providers/{provider}/models/{model_id}"
-)
+@router.delete("/workspaces/current/providers/{provider}/models/{model_id}")
 async def delete_tenant_model(
     provider: str,
     model_id: str,
@@ -475,9 +475,7 @@ async def delete_tenant_model(
     return {"result": "success"}
 
 
-@router.post(
-    "/workspaces/current/providers/{provider}/models/{model_id}/toggle"
-)
+@router.post("/workspaces/current/providers/{provider}/models/{model_id}/toggle")
 async def toggle_model(
     provider: str,
     model_id: str,
@@ -528,9 +526,7 @@ async def toggle_load_balancing(
 # ============================================================
 
 
-@router.get(
-    "/workspaces/current/providers/{provider}/models/{model_id}/credentials"
-)
+@router.get("/workspaces/current/providers/{provider}/models/{model_id}/credentials")
 async def list_model_credentials(
     provider: str,
     model_id: str,
@@ -580,9 +576,7 @@ async def list_model_credentials(
     return {"data": data}
 
 
-@router.post(
-    "/workspaces/current/providers/{provider}/models/{model_id}/credentials"
-)
+@router.post("/workspaces/current/providers/{provider}/models/{model_id}/credentials")
 async def create_model_credential(
     provider: str,
     model_id: str,
@@ -743,9 +737,7 @@ async def list_default_models(
     tenant_id: str = Depends(get_current_tenant),
 ):
     """取默认模型列表"""
-    stmt = select(TenantDefaultModel).where(
-        TenantDefaultModel.tenant_id == tenant_id
-    )
+    stmt = select(TenantDefaultModel).where(TenantDefaultModel.tenant_id == tenant_id)
     result = await session.execute(stmt)
     rows = result.scalars().all()
     return {
@@ -903,8 +895,7 @@ def _serialize_tenant_provider_view(
                 "is_active": c.id == active_cred_id,
                 "is_valid": c.is_valid,
                 "in_cooldown": bool(
-                    c.cooldown_until
-                    and c.cooldown_until.timestamp() > time.time()
+                    c.cooldown_until and c.cooldown_until.timestamp() > time.time()
                 ),
                 "failure_count": c.failure_count,
                 "credentials_masked": masked,
@@ -959,9 +950,7 @@ async def _validate_provider_credentials(
     try:
         if provider == "openai":
             api_key = credentials.get("api_key")
-            api_base = credentials.get(
-                "api_base", "https://api.openai.com/v1"
-            )
+            api_base = credentials.get("api_base", "https://api.openai.com/v1")
             if not api_key:
                 return False
             import httpx
@@ -1007,9 +996,7 @@ async def _validate_provider_credentials(
                 )
                 return resp.status_code == 200
         elif provider == "ollama":
-            api_base = credentials.get(
-                "api_base", "http://localhost:11434"
-            )
+            api_base = credentials.get("api_base", "http://localhost:11434")
             import httpx
 
             async with httpx.AsyncClient(timeout=10) as client:
@@ -1017,7 +1004,9 @@ async def _validate_provider_credentials(
                 return resp.status_code == 200
         return False
     except Exception as e:
-        logger.warning("validate_provider_credentials 失败 provider=%s err=%s", provider, e)
+        logger.warning(
+            "validate_provider_credentials 失败 provider=%s err=%s", provider, e
+        )
         return False
 
 

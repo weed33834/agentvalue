@@ -52,7 +52,10 @@ class TemplateCreate(BaseModel):
 
     name: str = Field(..., description="模板名称")
     description: Optional[str] = None
-    category: str = Field(default="general", description="分类: hr/recruitment/evaluation/training/general")
+    category: str = Field(
+        default="general",
+        description="分类: hr/recruitment/evaluation/training/general",
+    )
     template_config: dict = Field(default_factory=dict, description="模板配置 JSON")
     author: Optional[str] = None
     version: str = "1.0.0"
@@ -134,9 +137,7 @@ async def create_template(
             tenant_id=tenant_id,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     await session.commit()
     return AgentTemplateService._template_to_dict(template)
 
@@ -157,7 +158,11 @@ async def list_templates(
     service = AgentTemplateService(session)
     if keyword:
         return await service.search_templates(
-            keyword=keyword, category=category, page=page, size=size, tenant_id=tenant_id
+            keyword=keyword,
+            category=category,
+            page=page,
+            size=size,
+            tenant_id=tenant_id,
         )
     return await service.list_templates(
         category=category, page=page, size=size, tenant_id=tenant_id
@@ -205,9 +210,7 @@ async def update_template(
             tenant_id=tenant_id,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     await session.commit()
     return AgentTemplateService._template_to_dict(template)
 
@@ -241,14 +244,16 @@ async def install_template(
     try:
         result = await service.install_template(template_id, tenant_id=tenant_id)
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     await session.commit()
     return result
 
 
-@router.post("/{template_id}/review", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{template_id}/review",
+    response_model=Dict[str, Any],
+    status_code=status.HTTP_201_CREATED,
+)
 async def add_review(
     template_id: int,
     payload: ReviewCreate,
@@ -267,9 +272,7 @@ async def add_review(
             tenant_id=tenant_id,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     await session.commit()
     return AgentTemplateService._review_to_dict(review)
 

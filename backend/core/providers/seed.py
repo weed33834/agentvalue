@@ -220,6 +220,7 @@ PROVIDER_TEMPLATES: List[Dict[str, Any]] = [
 # 模型模板 (ModelTemplate)
 # ============================================================
 
+
 def _llm_param_rules() -> List[Dict[str, Any]]:
     """LLM 通用推理参数规则"""
     return [
@@ -262,7 +263,11 @@ MODEL_TEMPLATES: List[Dict[str, Any]] = [
         "label": {"zh": "GPT-4o", "en": "GPT-4o"},
         "model_type": "llm",
         "features": ["chat", "vision", "function_calling", "stream_tool_call"],
-        "model_properties": {"mode": "chat", "context_size": 128000, "max_tokens": 16384},
+        "model_properties": {
+            "mode": "chat",
+            "context_size": 128000,
+            "max_tokens": 16384,
+        },
         "parameter_rules": _llm_param_rules(),
         "pricing": {
             "input_per_1k": 0.0025,
@@ -276,7 +281,11 @@ MODEL_TEMPLATES: List[Dict[str, Any]] = [
         "label": {"zh": "GPT-4o mini", "en": "GPT-4o mini"},
         "model_type": "llm",
         "features": ["chat", "vision", "function_calling", "stream_tool_call"],
-        "model_properties": {"mode": "chat", "context_size": 128000, "max_tokens": 16384},
+        "model_properties": {
+            "mode": "chat",
+            "context_size": 128000,
+            "max_tokens": 16384,
+        },
         "parameter_rules": _llm_param_rules(),
         "pricing": {
             "input_per_1k": 0.00015,
@@ -311,7 +320,11 @@ MODEL_TEMPLATES: List[Dict[str, Any]] = [
         "label": {"zh": "Claude 3.5 Sonnet", "en": "Claude 3.5 Sonnet"},
         "model_type": "llm",
         "features": ["chat", "vision", "function_calling", "stream_tool_call"],
-        "model_properties": {"mode": "chat", "context_size": 200000, "max_tokens": 8192},
+        "model_properties": {
+            "mode": "chat",
+            "context_size": 200000,
+            "max_tokens": 8192,
+        },
         "parameter_rules": _llm_param_rules(),
         "pricing": {
             "input_per_1k": 0.003,
@@ -325,7 +338,11 @@ MODEL_TEMPLATES: List[Dict[str, Any]] = [
         "label": {"zh": "Claude 3.5 Haiku", "en": "Claude 3.5 Haiku"},
         "model_type": "llm",
         "features": ["chat", "vision", "function_calling"],
-        "model_properties": {"mode": "chat", "context_size": 200000, "max_tokens": 8192},
+        "model_properties": {
+            "mode": "chat",
+            "context_size": 200000,
+            "max_tokens": 8192,
+        },
         "parameter_rules": _llm_param_rules(),
         "pricing": {
             "input_per_1k": 0.0008,
@@ -339,7 +356,11 @@ MODEL_TEMPLATES: List[Dict[str, Any]] = [
         "label": {"zh": "Claude 3 Opus", "en": "Claude 3 Opus"},
         "model_type": "llm",
         "features": ["chat", "vision", "function_calling"],
-        "model_properties": {"mode": "chat", "context_size": 200000, "max_tokens": 4096},
+        "model_properties": {
+            "mode": "chat",
+            "context_size": 200000,
+            "max_tokens": 4096,
+        },
         "parameter_rules": _llm_param_rules(),
         "pricing": {
             "input_per_1k": 0.015,
@@ -354,7 +375,11 @@ MODEL_TEMPLATES: List[Dict[str, Any]] = [
         "label": {"zh": "Gemini 1.5 Pro", "en": "Gemini 1.5 Pro"},
         "model_type": "llm",
         "features": ["chat", "vision", "function_calling", "stream_tool_call"],
-        "model_properties": {"mode": "chat", "context_size": 2000000, "max_tokens": 8192},
+        "model_properties": {
+            "mode": "chat",
+            "context_size": 2000000,
+            "max_tokens": 8192,
+        },
         "parameter_rules": _llm_param_rules(),
         "pricing": {
             "input_per_1k": 0.00125,
@@ -368,7 +393,11 @@ MODEL_TEMPLATES: List[Dict[str, Any]] = [
         "label": {"zh": "Gemini 1.5 Flash", "en": "Gemini 1.5 Flash"},
         "model_type": "llm",
         "features": ["chat", "vision", "function_calling"],
-        "model_properties": {"mode": "chat", "context_size": 1000000, "max_tokens": 8192},
+        "model_properties": {
+            "mode": "chat",
+            "context_size": 1000000,
+            "max_tokens": 8192,
+        },
         "parameter_rules": _llm_param_rules(),
         "pricing": {
             "input_per_1k": 0.000075,

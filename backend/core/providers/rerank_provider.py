@@ -366,9 +366,7 @@ class BGERerankProvider(RerankProvider):
         pairs = [(query, t) for t in texts]
         # CrossEncoder.predict 是同步 CPU 操作, 放到线程池避免阻塞事件循环
         scores = await asyncio.to_thread(self._encoder.predict, pairs)
-        scored: List[tuple[int, float]] = [
-            (i, float(s)) for i, s in enumerate(scores)
-        ]
+        scored: List[tuple[int, float]] = [(i, float(s)) for i, s in enumerate(scores)]
         scored.sort(key=lambda x: x[1], reverse=True)
         scored = scored[:top_k] if top_k and top_k > 0 else scored
         out: List[Dict[str, Any]] = []

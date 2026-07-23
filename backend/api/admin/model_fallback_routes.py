@@ -95,7 +95,9 @@ class ChainTestRequest(BaseModel):
 # ============================================================
 
 
-@router.post("/chains", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/chains", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED
+)
 async def create_chain(
     payload: ChainCreate,
     session: AsyncSession = Depends(get_db),

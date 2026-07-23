@@ -59,9 +59,7 @@ class EvaluationTask(Base):
         Integer, ForeignKey("evaluation_datasets.id"), nullable=False, index=True
     )
     # 评判模型档位
-    judge_model: Mapped[str] = mapped_column(
-        String(32), nullable=False, default="L0"
-    )
+    judge_model: Mapped[str] = mapped_column(String(32), nullable=False, default="L0")
     # 评判提示词模板
     judge_prompt_template: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # 评测维度

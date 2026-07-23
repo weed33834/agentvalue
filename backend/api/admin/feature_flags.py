@@ -61,7 +61,9 @@ class FeatureFlagCreate(BaseModel):
     target_user_ids: List[str] = Field(
         default_factory=list, description="精确受众用户列表"
     )
-    category: str = Field(default="general", description="分类: general/model/agent/feature")
+    category: str = Field(
+        default="general", description="分类: general/model/agent/feature"
+    )
 
 
 class FeatureFlagUpdate(BaseModel):

@@ -176,7 +176,9 @@ class Settings(BaseSettings):
     vault_namespace: Optional[str] = None
     vault_kv_mount: str = "secret"  # KV v2 mount point
     vault_transit_mount: str = "transit"  # Transit engine mount point
-    vault_field_kek_name: str = "agentvalue-field-kek"  # Transit key name for field encryption
+    vault_field_kek_name: str = (
+        "agentvalue-field-kek"  # Transit key name for field encryption
+    )
     vault_jwt_key_path: str = "agentvalue/jwt-signing-key"  # KV v2 path for JWT secret
     vault_verify_tls: bool = True
 

@@ -48,9 +48,7 @@ class SourceCreate(BaseModel):
     source_type: str = Field(
         ..., description="数据源类型: local_dir|s3|url|database|git"
     )
-    config: Dict[str, Any] = Field(
-        ..., description="数据源配置（按类型不同结构不同）"
-    )
+    config: Dict[str, Any] = Field(..., description="数据源配置（按类型不同结构不同）")
     collection_name: str = Field(..., min_length=1, description="关联向量库 collection")
     sync_interval_minutes: int = Field(
         default=60, ge=0, description="同步间隔（分钟），0 表示仅手动同步"

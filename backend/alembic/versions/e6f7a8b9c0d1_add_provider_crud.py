@@ -144,7 +144,9 @@ def upgrade() -> None:
             ),
         )
         op.create_index(
-            "ix_tenant_providers_tid_provider", "tenant_providers", ["tenant_id", "provider"]
+            "ix_tenant_providers_tid_provider",
+            "tenant_providers",
+            ["tenant_id", "provider"],
         )
 
     # 3) tenant_provider_credentials: 多凭证存储
@@ -165,9 +167,7 @@ def upgrade() -> None:
             ),
             sa.Column("last_validated_at", sa.DateTime(timezone=True), nullable=True),
             sa.Column("cooldown_until", sa.DateTime(timezone=True), nullable=True),
-            sa.Column(
-                "failure_count", sa.Integer, nullable=False, server_default="0"
-            ),
+            sa.Column("failure_count", sa.Integer, nullable=False, server_default="0"),
             sa.Column(
                 "created_at",
                 sa.DateTime(timezone=True),
@@ -245,9 +245,7 @@ def upgrade() -> None:
                 "is_valid", sa.Boolean, nullable=False, server_default=sa.text("0")
             ),
             sa.Column("cooldown_until", sa.DateTime(timezone=True), nullable=True),
-            sa.Column(
-                "failure_count", sa.Integer, nullable=False, server_default="0"
-            ),
+            sa.Column("failure_count", sa.Integer, nullable=False, server_default="0"),
             sa.Column(
                 "created_at",
                 sa.DateTime(timezone=True),

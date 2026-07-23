@@ -142,9 +142,7 @@ def _oas_type_to_py(oas_type: Optional[str]) -> type:
     return _OAS_TYPE_PY.get(oas_type, str)
 
 
-def _extract_parameters(
-    spec: dict, operation: dict, path: str
-) -> List[Dict[str, Any]]:
+def _extract_parameters(spec: dict, operation: dict, path: str) -> List[Dict[str, Any]]:
     """提取 operation 的所有参数 (path/query/header/cookie)
 
     每个参数返回:
@@ -188,9 +186,7 @@ def _extract_parameters(
     return result
 
 
-def _extract_body_parameter(
-    spec: dict, operation: dict
-) -> Optional[Dict[str, Any]]:
+def _extract_body_parameter(spec: dict, operation: dict) -> Optional[Dict[str, Any]]:
     """提取 requestBody 第一个 JSON body 作为单个 'body' 参数
 
     OpenAPI requestBody 在 OpenAPI 3.x 是 content.<media-type>.schema。
@@ -350,9 +346,7 @@ def _render_url_with_path_params(url: str, kwargs: Dict[str, Any]) -> str:
     return rendered
 
 
-def build_langchain_tool(
-    tool_spec: ToolSpec, auth: Optional[AuthConfig] = None
-) -> Any:
+def build_langchain_tool(tool_spec: ToolSpec, auth: Optional[AuthConfig] = None) -> Any:
     """把 ToolSpec 包装为 LangChain BaseTool (执行时用 httpx 调 HTTP endpoint)
 
     Args:
@@ -378,7 +372,9 @@ def build_langchain_tool(
     url = tool_spec.url
     auth_cfg = auth or AuthConfig()
     # location → 参数名映射 (运行时分离 path/query/header/body)
-    param_locations: Dict[str, str] = {p["name"]: p["location"] for p in tool_spec.parameters}
+    param_locations: Dict[str, str] = {
+        p["name"]: p["location"] for p in tool_spec.parameters
+    }
 
     def _do_call(**kwargs: Any) -> str:
         import httpx

@@ -28,7 +28,11 @@ from auth.rbac import Role, require_role
 from core.database import get_db
 from core.tenant_context import get_current_tenant
 from models.evaluation_models import EvaluationTask
-from services.llm_judge_service import DEFAULT_JUDGE_PROMPT_TEMPLATE, DEFAULT_METRICS, LLMJudgeService
+from services.llm_judge_service import (
+    DEFAULT_JUDGE_PROMPT_TEMPLATE,
+    DEFAULT_METRICS,
+    LLMJudgeService,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -51,10 +55,12 @@ class EvalTaskCreate(BaseModel):
     dataset_id: int = Field(..., description="关联数据集 ID")
     judge_model: str = Field(default="L0", description="评判模型档位 (L0/L1/L2/L3)")
     metrics: Optional[List[str]] = Field(
-        default=None, description="评测维度列表 (默认: accuracy/relevance/completeness/fluency)"
+        default=None,
+        description="评测维度列表 (默认: accuracy/relevance/completeness/fluency)",
     )
     judge_prompt_template: Optional[str] = Field(
-        default=None, description="评判提示词模板 (支持 {input}/{expected_output}/{output}/{metrics} 占位符)"
+        default=None,
+        description="评判提示词模板 (支持 {input}/{expected_output}/{output}/{metrics} 占位符)",
     )
 
 
@@ -63,7 +69,9 @@ class EvalTaskCreate(BaseModel):
 # ============================================================
 
 
-@router.post("/tasks", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/tasks", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED
+)
 async def create_task(
     payload: EvalTaskCreate,
     request: Request,
@@ -92,7 +100,9 @@ async def create_task(
 async def list_tasks(
     request: Request,
     session: AsyncSession = Depends(get_db),
-    task_status: Optional[str] = Query(default=None, alias="status", description="按状态过滤"),
+    task_status: Optional[str] = Query(
+        default=None, alias="status", description="按状态过滤"
+    ),
     page: int = Query(default=1, ge=1, description="页码"),
     size: int = Query(default=20, ge=1, le=100, description="每页条数"),
 ):

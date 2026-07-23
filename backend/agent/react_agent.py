@@ -154,9 +154,7 @@ async def _load_custom_tools(tools: List[Any]) -> int:
                         e,
                     )
         except Exception as e:
-            logger.warning(
-                "解析自定义工具 %s 的 OpenAPI spec 失败: %s", entity.name, e
-            )
+            logger.warning("解析自定义工具 %s 的 OpenAPI spec 失败: %s", entity.name, e)
     return count
 
 
@@ -227,7 +225,9 @@ def create_evaluation_react_agent(
             default_sp = system_prompt
 
         # 5) 迭代上限
-        max_iter = getattr(settings, "react_agent_max_iterations", 10) if settings else 10
+        max_iter = (
+            getattr(settings, "react_agent_max_iterations", 10) if settings else 10
+        )
 
         # 6) 创建 ReAct Agent
         agent = create_react_agent(
@@ -345,7 +345,10 @@ async def invoke_react_agent(
 
     return {
         "messages": [
-            {"role": getattr(m, "type", "unknown"), "content": getattr(m, "content", "")}
+            {
+                "role": getattr(m, "type", "unknown"),
+                "content": getattr(m, "content", ""),
+            }
             for m in messages
         ],
         "final_answer": final_answer,

@@ -10,7 +10,11 @@ from collections import deque
 from dataclasses import dataclass
 from typing import Any, Deque, Dict, List, Literal, Optional, Tuple
 
-from .circuit_breaker import CircuitBreakerRegistry, call_with_circuit, get_global_registry
+from .circuit_breaker import (
+    CircuitBreakerRegistry,
+    call_with_circuit,
+    get_global_registry,
+)
 from .config import Settings, get_settings
 from .metrics import set_provider_health_score
 from .providers.base import BaseProvider, ProviderConfig
@@ -281,9 +285,7 @@ class ModelRouter:
             circuit_key = f"{tier}"
             circuit = self._circuit_registry.get_or_create(circuit_key)
             if circuit.is_open():
-                logger.info(
-                    "档位 %s 熔断器 OPEN,跳过降级到下一档", tier
-                )
+                logger.info("档位 %s 熔断器 OPEN,跳过降级到下一档", tier)
                 continue
 
             provider = self.get_provider(tier)
@@ -302,21 +304,15 @@ class ModelRouter:
             if healthy:
                 # 二次检查熔断器(可能在 health_check 期间被其他请求触发熔断)
                 if circuit.is_open():
-                    logger.info(
-                        "档位 %s 健康检查通过但熔断器已 OPEN,跳过", tier
-                    )
+                    logger.info("档位 %s 健康检查通过但熔断器已 OPEN,跳过", tier)
                     continue
                 logger.info(f"ModelRouter 选择档位: {tier}")
                 return provider, tier
             else:
                 # 健康检查失败: 触发熔断器 record_failure
                 await circuit.record_failure()
-                last_error = RuntimeError(
-                    f"档位 {tier} 健康检查失败"
-                )
-                logger.warning(
-                    f"档位 {tier} 健康检查失败,熔断器失败计数 +1"
-                )
+                last_error = RuntimeError(f"档位 {tier} 健康检查失败")
+                logger.warning(f"档位 {tier} 健康检查失败,熔断器失败计数 +1")
 
         # 如果全部失败，返回首选让调用方在运行时重试/报错
         logger.error(

@@ -58,7 +58,10 @@ class ExtractionTaskCreate(BaseModel):
 
     name: str = Field(..., min_length=1, max_length=256, description="任务名称")
     collection_name: str = Field(
-        ..., min_length=1, max_length=128, description="ChromaDB collection 名称 (文档来源)"
+        ...,
+        min_length=1,
+        max_length=128,
+        description="ChromaDB collection 名称 (文档来源)",
     )
     document_ids: Optional[List[str]] = Field(
         default=None,
@@ -93,9 +96,7 @@ async def create_task(
             tenant_id=tenant_id,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     await session.commit()
     return GraphRAGService._task_to_dict(task)
 
@@ -104,7 +105,9 @@ async def create_task(
 async def list_tasks(
     tenant_id: str = Depends(get_current_tenant),
     task_status: Optional[str] = Query(
-        default=None, alias="status", description="按状态过滤 (pending/processing/completed/failed)"
+        default=None,
+        alias="status",
+        description="按状态过滤 (pending/processing/completed/failed)",
     ),
     page: int = Query(default=1, ge=1, description="页码"),
     size: int = Query(default=20, ge=1, le=100, description="每页条数"),
@@ -194,9 +197,7 @@ async def run_task(
         kb_store = None
 
     # 启动后台任务 (独立 session + tenant_scope)
-    service.schedule_run(
-        task_id, model_router, kb_store, tenant_id=tenant_id
-    )
+    service.schedule_run(task_id, model_router, kb_store, tenant_id=tenant_id)
     logger.info("启动知识图谱抽取任务 %s (后台执行)", task_id)
 
     return {
@@ -347,7 +348,9 @@ async def list_relations(
 async def graph_search(
     request: Request,
     query: str = Query(..., min_length=1, description="查询文本"),
-    collection_name: str = Query(..., min_length=1, description="ChromaDB collection 名称"),
+    collection_name: str = Query(
+        ..., min_length=1, description="ChromaDB collection 名称"
+    ),
     depth: int = Query(default=2, ge=0, le=5, description="图遍历深度 (跳数)"),
     top_k: int = Query(default=5, ge=1, le=50, description="向量检索返回文档数"),
     tenant_id: str = Depends(get_current_tenant),

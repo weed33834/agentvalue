@@ -869,7 +869,9 @@ def test_auth_logout_revokes_token(client, mock_app_state):
 
 def test_auth_logout_idempotent(client, mock_app_state):
     """重复登出同一 token 应返回 200(幂等)"""
-    token = _register_and_login(client, user_id="E3002", email="idempotent@agentvalue.ai")
+    token = _register_and_login(
+        client, user_id="E3002", email="idempotent@agentvalue.ai"
+    )
 
     resp1 = client.post(
         "/api/v1/auth/logout", headers={"Authorization": f"Bearer {token}"}

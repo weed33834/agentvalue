@@ -72,7 +72,9 @@ class TTSRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    text: str = Field(min_length=1, max_length=_MAX_TTS_TEXT_LENGTH, description="要合成的文本")
+    text: str = Field(
+        min_length=1, max_length=_MAX_TTS_TEXT_LENGTH, description="要合成的文本"
+    )
     voice: Optional[str] = Field(
         default=None,
         description="音色: alloy/echo/fable/onyx/nova/shimmer",
@@ -88,9 +90,7 @@ class TTSResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     success: bool
-    audio: Optional[str] = Field(
-        default=None, description="base64 编码的音频数据"
-    )
+    audio: Optional[str] = Field(default=None, description="base64 编码的音频数据")
     format: Optional[str] = Field(default=None, description="音频格式: mp3")
     fallback: Optional[bool] = Field(
         default=None, description="是否降级到浏览器 Web Speech API"
@@ -116,7 +116,9 @@ def _get_openai_settings():
     try:
         settings = get_settings()
         key = getattr(settings, "openai_api_key", None)
-        base_url = getattr(settings, "openai_base_url", None) or "https://api.openai.com/v1"
+        base_url = (
+            getattr(settings, "openai_base_url", None) or "https://api.openai.com/v1"
+        )
         return key, base_url
     except Exception as e:
         logger.warning("获取 OpenAI 配置失败: %s", e)
@@ -176,9 +178,7 @@ async def text_to_speech(payload: TTSRequest):
 
         if resp.status_code != 200:
             err_text = resp.text[:500] if resp.text else ""
-            logger.warning(
-                "OpenAI TTS 返回 %s: %s", resp.status_code, err_text
-            )
+            logger.warning("OpenAI TTS 返回 %s: %s", resp.status_code, err_text)
             # API 调用失败也降级到浏览器
             return TTSResponse(
                 success=False,
@@ -274,9 +274,7 @@ async def speech_to_text(file: UploadFile = File(..., description="音频文件 
 
     # 调用 OpenAI Audio Transcriptions API (Whisper)
     stt_url = (
-        f"{base_url.rstrip('/')}/audio/transcriptions"
-        if base_url
-        else _OPENAI_STT_URL
+        f"{base_url.rstrip('/')}/audio/transcriptions" if base_url else _OPENAI_STT_URL
     )
     headers = {"Authorization": f"Bearer {api_key}"}
 
@@ -291,9 +289,7 @@ async def speech_to_text(file: UploadFile = File(..., description="音频文件 
     elif filename.endswith(".ogg"):
         ext = ".ogg"
     upload_filename = filename or f"audio{ext}"
-    if not upload_filename.endswith(
-        (".wav", ".webm", ".mp3", ".m4a", ".ogg", ".mp4")
-    ):
+    if not upload_filename.endswith((".wav", ".webm", ".mp3", ".m4a", ".ogg", ".mp4")):
         upload_filename = f"audio{ext}"
 
     try:

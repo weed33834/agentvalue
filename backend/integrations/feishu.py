@@ -13,6 +13,7 @@
 - 注册 webhook 接收路由(api/v1/webhooks/feishu)
 - 用 CodeRepoAdapter 模式同理
 """
+
 from typing import Any, Dict, Optional
 
 from .base import IMAdapter, IMMessage, IMRecipient

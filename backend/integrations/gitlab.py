@@ -11,6 +11,7 @@
 - 配置 GITLAB_BASE_URL + GITLAB_TOKEN + GITLAB_WEBHOOK_SECRET
 - 注册 webhook 接收路由(api/v1/webhooks/gitlab)
 """
+
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 

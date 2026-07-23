@@ -61,9 +61,7 @@ class Alert(Base):
     # 元数据 (JSON, 存储附加信息如 agent_id / error_stack / threshold 等)
     # 注意: "metadata" 在 SQLAlchemy Declarative API 中是保留字, 用 Python 属性名 metadata_
     # 映射到数据库列名 metadata
-    metadata_: Mapped[Optional[dict]] = mapped_column(
-        "metadata", JSON, default=dict
-    )
+    metadata_: Mapped[Optional[dict]] = mapped_column("metadata", JSON, default=dict)
     # 创建时间
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now_utc

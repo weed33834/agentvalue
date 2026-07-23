@@ -49,7 +49,9 @@ class ProviderTemplate(Base):
     __tablename__ = "provider_templates"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    provider: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
+    provider: Mapped[str] = mapped_column(
+        String(64), nullable=False, unique=True, index=True
+    )
     label: Mapped[dict] = mapped_column(JSON, nullable=False)
     description: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     icon_small: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
@@ -86,13 +88,19 @@ class TenantProvider(Base):
         String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
     )
     provider: Mapped[str] = mapped_column(String(64), nullable=False)
-    provider_type: Mapped[str] = mapped_column(String(16), nullable=False, default="custom")
+    provider_type: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="custom"
+    )
     is_valid: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     last_used_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    active_credential_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    preferred_type: Mapped[str] = mapped_column(String(16), nullable=False, default="custom")
+    active_credential_id: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True
+    )
+    preferred_type: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="custom"
+    )
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=now_utc
@@ -146,9 +154,7 @@ class TenantProviderCredential(Base):
         DateTime(timezone=True), default=now_utc, onupdate=now_utc
     )
 
-    __table_args__ = (
-        Index("ix_tpc_tid_provider", "tenant_id", "provider"),
-    )
+    __table_args__ = (Index("ix_tpc_tid_provider", "tenant_id", "provider"),)
 
 
 class TenantProviderModel(Base):
@@ -169,7 +175,9 @@ class TenantProviderModel(Base):
     provider: Mapped[str] = mapped_column(String(64), nullable=False)
     model_name: Mapped[str] = mapped_column(String(128), nullable=False)
     model_type: Mapped[str] = mapped_column(String(32), nullable=False)
-    active_credential_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    active_credential_id: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True
+    )
     is_valid: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     load_balancing_enabled: Mapped[bool] = mapped_column(
@@ -290,9 +298,7 @@ class ModelTemplate(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint(
-            "provider", "model", "model_type", name="uix_model_template"
-        ),
+        UniqueConstraint("provider", "model", "model_type", name="uix_model_template"),
     )
 
 

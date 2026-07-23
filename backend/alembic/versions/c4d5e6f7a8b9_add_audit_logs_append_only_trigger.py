@@ -48,18 +48,14 @@ def _is_postgresql(bind) -> bool:
 
 def _trigger_exists(bind, trigger_name: str) -> bool:
     """检测 PG trigger 是否已存在(幂等保护)"""
-    sql = sa.text(
-        "SELECT 1 FROM pg_trigger WHERE tgname = :name LIMIT 1"
-    )
+    sql = sa.text("SELECT 1 FROM pg_trigger WHERE tgname = :name LIMIT 1")
     result = bind.execute(sql, {"name": trigger_name}).scalar()
     return result is not None
 
 
 def _function_exists(bind, function_name: str) -> bool:
     """检测 PG function 是否已存在(幂等保护)"""
-    sql = sa.text(
-        "SELECT 1 FROM pg_proc WHERE proname = :name LIMIT 1"
-    )
+    sql = sa.text("SELECT 1 FROM pg_proc WHERE proname = :name LIMIT 1")
     result = bind.execute(sql, {"name": function_name}).scalar()
     return result is not None
 

@@ -116,13 +116,9 @@ def upgrade() -> None:
                 "status IN ('pending','submitted')",
                 name="ck_review_status_valid",
             ),
-            sa.UniqueConstraint(
-                "review_id", name=op.f("uq_review_cycles_review_id")
-            ),
+            sa.UniqueConstraint("review_id", name=op.f("uq_review_cycles_review_id")),
         )
-        op.create_index(
-            op.f("ix_review_cycles_id"), _REVIEW_CYCLES, ["id"]
-        )
+        op.create_index(op.f("ix_review_cycles_id"), _REVIEW_CYCLES, ["id"])
         op.create_index(
             op.f("ix_review_cycles_review_id"),
             _REVIEW_CYCLES,
@@ -247,9 +243,7 @@ def upgrade() -> None:
             sa.Column(
                 "session_id",
                 sa.String(length=128),
-                sa.ForeignKey(
-                    "calibration_sessions.session_id", ondelete="CASCADE"
-                ),
+                sa.ForeignKey("calibration_sessions.session_id", ondelete="CASCADE"),
                 nullable=False,
             ),
             sa.Column(
@@ -267,9 +261,7 @@ def upgrade() -> None:
             sa.Column("original_score", sa.Float(), nullable=False),
             sa.Column("calibrated_score", sa.Float(), nullable=True),
             sa.Column("adjustment_reason", sa.Text(), nullable=True),
-            sa.Column(
-                "applied", sa.Integer(), nullable=False, server_default="0"
-            ),
+            sa.Column("applied", sa.Integer(), nullable=False, server_default="0"),
             sa.Column(
                 "tenant_id",
                 sa.String(length=64),
@@ -297,13 +289,9 @@ def upgrade() -> None:
                 "(calibrated_score >= 0 AND calibrated_score <= 100)",
                 name="ck_calibration_item_calibrated_score_range",
             ),
-            sa.UniqueConstraint(
-                "item_id", name=op.f("uq_calibration_items_item_id")
-            ),
+            sa.UniqueConstraint("item_id", name=op.f("uq_calibration_items_item_id")),
         )
-        op.create_index(
-            op.f("ix_calibration_items_id"), _CALIBRATION_ITEMS, ["id"]
-        )
+        op.create_index(op.f("ix_calibration_items_id"), _CALIBRATION_ITEMS, ["id"])
         op.create_index(
             op.f("ix_calibration_items_item_id"),
             _CALIBRATION_ITEMS,

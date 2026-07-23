@@ -117,6 +117,3 @@ def test_setup_logging_respects_level():
     setup_logging(level="WARNING", json_logs=False, fmt=DEFAULT_FMT)
     root = logging.getLogger()
     assert root.level == logging.WARNING
-
-
-

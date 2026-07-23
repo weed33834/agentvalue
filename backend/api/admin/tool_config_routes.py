@@ -39,9 +39,7 @@ router = APIRouter(
 class TimeoutUpdate(BaseModel):
     """设置工具超时请求"""
 
-    timeout: int = Field(
-        ..., ge=1, le=3600, description="超时秒数 (1-3600)"
-    )
+    timeout: int = Field(..., ge=1, le=3600, description="超时秒数 (1-3600)")
 
 
 # ============================================================
@@ -79,7 +77,12 @@ async def get_tool_timeouts(
                 "default_timeout": 60,
                 "command_tool_timeout": 30,
                 "command_keywords": [
-                    "bash", "command", "shell", "exec", "terminal", "cmd"
+                    "bash",
+                    "command",
+                    "shell",
+                    "exec",
+                    "terminal",
+                    "cmd",
                 ],
             },
             "loaded": False,
@@ -137,9 +140,7 @@ async def set_tool_timeout(
     try:
         tool_registry.set_tool_timeout(tool_name, payload.timeout)
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     await audit_service.log(
         actor_id=current_user_id,

@@ -95,9 +95,7 @@ class AlertService:
             创建的 Alert 对象。
         """
         if severity not in ALERT_SEVERITIES:
-            raise ValueError(
-                f"无效的告警级别: {severity}, 可选: {ALERT_SEVERITIES}"
-            )
+            raise ValueError(f"无效的告警级别: {severity}, 可选: {ALERT_SEVERITIES}")
         if not title or not title.strip():
             raise ValueError("告警标题不能为空")
         if not message or not message.strip():
@@ -146,7 +144,11 @@ class AlertService:
         Returns:
             {"items": [...], "total": N, "page": P, "size": S}
         """
-        base = select(Alert).where(Alert.tenant_id == tenant_id).order_by(Alert.created_at.desc())
+        base = (
+            select(Alert)
+            .where(Alert.tenant_id == tenant_id)
+            .order_by(Alert.created_at.desc())
+        )
         if severity:
             base = base.where(Alert.severity == severity)
         if source:
@@ -162,8 +164,10 @@ class AlertService:
 
         offset = (page - 1) * size
         rows = (
-            await self.session.execute(base.offset(offset).limit(size))
-        ).scalars().all()
+            (await self.session.execute(base.offset(offset).limit(size)))
+            .scalars()
+            .all()
+        )
 
         return {
             "items": [self._alert_to_dict(a) for a in rows],
@@ -172,7 +176,9 @@ class AlertService:
             "size": size,
         }
 
-    async def get_alert(self, alert_id: int, *, tenant_id: str = "default") -> Optional[Alert]:
+    async def get_alert(
+        self, alert_id: int, *, tenant_id: str = "default"
+    ) -> Optional[Alert]:
         """获取告警实体 (内部使用)"""
         return (
             await self.session.execute(
@@ -346,9 +352,7 @@ class AlertService:
         else:
             results["webhook"] = False
 
-        logger.info(
-            "告警通知发送完成 id=%s results=%s", alert.id, results
-        )
+        logger.info("告警通知发送完成 id=%s results=%s", alert.id, results)
         return results
 
     async def send_feishu_alert(self, alert: Alert) -> bool:
@@ -371,7 +375,10 @@ class AlertService:
             "msg_type": "interactive",
             "card": {
                 "header": {
-                    "title": {"tag": "plain_text", "content": f"[{severity_label}] {alert.title}"},
+                    "title": {
+                        "tag": "plain_text",
+                        "content": f"[{severity_label}] {alert.title}",
+                    },
                     "template": SEVERITY_COLORS.get(alert.severity, "blue"),
                 },
                 "elements": [
@@ -497,9 +504,7 @@ class AlertService:
             "source": alert.source,
             "status": alert.status,
             "metadata": alert.metadata_,
-            "created_at": alert.created_at.isoformat()
-            if alert.created_at
-            else None,
+            "created_at": alert.created_at.isoformat() if alert.created_at else None,
         }
 
         try:
@@ -570,9 +575,9 @@ class AlertService:
             "status": a.status,
             "metadata": a.metadata_,
             "created_at": a.created_at.isoformat() if a.created_at else None,
-            "acknowledged_at": a.acknowledged_at.isoformat()
-            if a.acknowledged_at
-            else None,
+            "acknowledged_at": (
+                a.acknowledged_at.isoformat() if a.acknowledged_at else None
+            ),
             "acknowledged_by": a.acknowledged_by,
             "resolved_at": a.resolved_at.isoformat() if a.resolved_at else None,
             "resolved_by": a.resolved_by,

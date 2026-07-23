@@ -7,6 +7,7 @@
 - 飞书(ADR-001): FEISHU_APP_ID / FEISHU_APP_SECRET / FEISHU_WEBHOOK_SECRET
 - GitLab(ADR-002): GITLAB_BASE_URL / GITLAB_TOKEN / GITLAB_WEBHOOK_SECRET
 """
+
 from functools import lru_cache
 from typing import Optional
 

@@ -292,7 +292,9 @@ def _check_kms_configured(settings: Settings) -> dict:
             if not settings.vault_k8s_role:
                 missing.append("VAULT_K8S_ROLE")
         elif settings.vault_auth_method == "token":
-            if not settings.vault_token and not __import__("os").environ.get("VAULT_TOKEN"):
+            if not settings.vault_token and not __import__("os").environ.get(
+                "VAULT_TOKEN"
+            ):
                 missing.append("VAULT_TOKEN")
         if missing:
             status = "FAIL" if is_production else "WARN"

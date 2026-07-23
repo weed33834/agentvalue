@@ -112,9 +112,7 @@ def generate_case(idx: int) -> dict:
 
     # 只选择确实出现在报告中的关键词作为 expected_contains
     present_keywords = [kw for kw in info["keywords"] if kw in report]
-    expected_contains = random.sample(
-        present_keywords, k=min(2, len(present_keywords))
-    )
+    expected_contains = random.sample(present_keywords, k=min(2, len(present_keywords)))
 
     return {
         "employee_id": employee_id,
@@ -160,8 +158,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="批量生成回归测试数据集（scripts 模块）"
     )
-    parser.add_argument(
-        "--count", type=int, default=50, help="生成用例数量（默认 50）"
-    )
+    parser.add_argument("--count", type=int, default=50, help="生成用例数量（默认 50）")
     args = parser.parse_args()
     main(count=args.count)

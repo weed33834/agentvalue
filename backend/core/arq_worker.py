@@ -54,7 +54,9 @@ def _build_redis_settings() -> RedisSettings:
     if not s.redis_url:
         # 默认 localhost:6379,与 arq 默认行为一致
         # 仅 FastAPI 进程惰性 import 本模块但实际不启动 worker 的场景下使用
-        logger.debug("未配置 REDIS_URL,arq_worker 使用默认 RedisSettings(localhost:6379)")
+        logger.debug(
+            "未配置 REDIS_URL,arq_worker 使用默认 RedisSettings(localhost:6379)"
+        )
         return RedisSettings()
     # arq 支持 redis:// rediss:// unix:// URL
     return RedisSettings.from_dsn(s.redis_url)

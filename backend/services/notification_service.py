@@ -57,9 +57,7 @@ class NotificationService:
             创建的 Notification 对象。
         """
         if type not in NOTIFICATION_TYPES:
-            raise ValueError(
-                f"无效的通知类型: {type}, 可选: {NOTIFICATION_TYPES}"
-            )
+            raise ValueError(f"无效的通知类型: {type}, 可选: {NOTIFICATION_TYPES}")
 
         notification = Notification(
             notification_id=f"NTF-{uuid.uuid4().hex[:16]}",
@@ -74,9 +72,7 @@ class NotificationService:
         )
         self.session.add(notification)
         await self.session.flush()
-        logger.info(
-            "通知已创建 user_id=%s type=%s title=%s", user_id, type, title
-        )
+        logger.info("通知已创建 user_id=%s type=%s title=%s", user_id, type, title)
         return notification
 
     async def list_notifications(
@@ -146,7 +142,9 @@ class NotificationService:
             "items": [self._serialize(n) for n in rows],
         }
 
-    async def mark_as_read(self, notification_id: str, user_id: str | None = None) -> bool:
+    async def mark_as_read(
+        self, notification_id: str, user_id: str | None = None
+    ) -> bool:
         """标记单条通知为已读（不 commit）
 
         Args:
@@ -157,12 +155,9 @@ class NotificationService:
             True 表示成功标记，False 表示通知不存在。
         """
         tenant_id = get_current_tenant()
-        stmt = (
-            select(Notification)
-            .where(
-                Notification.notification_id == notification_id,
-                Notification.tenant_id == tenant_id,
-            )
+        stmt = select(Notification).where(
+            Notification.notification_id == notification_id,
+            Notification.tenant_id == tenant_id,
         )
         if user_id is not None:
             stmt = stmt.where(Notification.user_id == user_id)
@@ -197,12 +192,12 @@ class NotificationService:
         )
         result = await self.session.execute(stmt)
         affected = result.rowcount or 0
-        logger.info(
-            "批量标记已读 user_id=%s count=%d", user_id, affected
-        )
+        logger.info("批量标记已读 user_id=%s count=%d", user_id, affected)
         return affected
 
-    async def delete_notification(self, notification_id: str, user_id: str | None = None) -> bool:
+    async def delete_notification(
+        self, notification_id: str, user_id: str | None = None
+    ) -> bool:
         """删除单条通知（不 commit）
 
         Args:
@@ -213,12 +208,9 @@ class NotificationService:
             True 表示已删除，False 表示通知不存在。
         """
         tenant_id = get_current_tenant()
-        stmt = (
-            select(Notification)
-            .where(
-                Notification.notification_id == notification_id,
-                Notification.tenant_id == tenant_id,
-            )
+        stmt = select(Notification).where(
+            Notification.notification_id == notification_id,
+            Notification.tenant_id == tenant_id,
         )
         if user_id is not None:
             stmt = stmt.where(Notification.user_id == user_id)
@@ -261,10 +253,10 @@ class NotificationService:
             "content": notification.content,
             "link": notification.link,
             "is_read": notification.is_read,
-            "read_at": notification.read_at.isoformat()
-            if notification.read_at
-            else None,
-            "created_at": notification.created_at.isoformat()
-            if notification.created_at
-            else None,
+            "read_at": (
+                notification.read_at.isoformat() if notification.read_at else None
+            ),
+            "created_at": (
+                notification.created_at.isoformat() if notification.created_at else None
+            ),
         }

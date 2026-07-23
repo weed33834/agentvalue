@@ -133,6 +133,7 @@ def _gen_id() -> str:
     """生成主键 (uuid4 hex,32 字符)"""
     # review 优化: 复用 admin/_common.gen_id,统一 ID 生成逻辑
     from api.admin._common import gen_id
+
     return gen_id()
 
 
@@ -177,9 +178,7 @@ def _spec_to_dict(tool_spec: ToolSpec) -> Dict[str, Any]:
     }
 
 
-def _entity_to_dict(
-    entity: CustomTool, include_tools: bool = False
-) -> Dict[str, Any]:
+def _entity_to_dict(entity: CustomTool, include_tools: bool = False) -> Dict[str, Any]:
     """CustomTool entity → dict (不含敏感凭证,可附带解析出的 tools)"""
     result: Dict[str, Any] = {
         "id": entity.id,
@@ -195,9 +194,7 @@ def _entity_to_dict(
     }
     if include_tools:
         try:
-            specs = parse_openapi_to_tools_safe(
-                entity.openapi_schema, entity.base_url
-            )
+            specs = parse_openapi_to_tools_safe(entity.openapi_schema, entity.base_url)
             result["tools"] = [_spec_to_dict(s) for s in specs]
         except Exception as e:
             result["tools"] = []
@@ -205,9 +202,7 @@ def _entity_to_dict(
     return result
 
 
-def parse_openapi_to_tools_safe(
-    spec: Dict[str, Any], base_url: str
-) -> List[ToolSpec]:
+def parse_openapi_to_tools_safe(spec: Dict[str, Any], base_url: str) -> List[ToolSpec]:
     """安全解析 (API 层调用,捕获 ValueError 转为 422)"""
     from core.tools.openapi_parser import parse_openapi_to_tools
 
@@ -407,9 +402,7 @@ async def update_custom_tool(
     if payload.openapi_schema is not None:
         # 更新 spec 前先校验解析通过 (避免存入无效 spec)
         try:
-            parse_openapi_to_tools_safe(
-                payload.openapi_schema, entity.base_url
-            )
+            parse_openapi_to_tools_safe(payload.openapi_schema, entity.base_url)
         except ValueError as e:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -494,9 +487,7 @@ async def test_custom_tool(
         )
 
     try:
-        specs = parse_openapi_to_tools_safe(
-            entity.openapi_schema, entity.base_url
-        )
+        specs = parse_openapi_to_tools_safe(entity.openapi_schema, entity.base_url)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

@@ -154,7 +154,10 @@ class TestWorkflowEngineValidate:
         """缺少 start 节点"""
         engine = WorkflowEngine()
         graph = {
-            "nodes": [_node("n1", "code", {"source": "result = 1"}), _node("n2", "end")],
+            "nodes": [
+                _node("n1", "code", {"source": "result = 1"}),
+                _node("n2", "end"),
+            ],
             "edges": [_edge("n1", "n2")],
         }
         errors = engine.validate(graph)
@@ -164,7 +167,11 @@ class TestWorkflowEngineValidate:
         """未知节点类型"""
         engine = WorkflowEngine()
         graph = {
-            "nodes": [_node("n1", "start"), _node("n2", "unknown_type"), _node("n3", "end")],
+            "nodes": [
+                _node("n1", "start"),
+                _node("n2", "unknown_type"),
+                _node("n3", "end"),
+            ],
             "edges": [_edge("n1", "n2"), _edge("n2", "n3")],
         }
         errors = engine.validate(graph)
@@ -297,8 +304,10 @@ class TestWorkflowEngineExecute:
         # n2 应 failed
         assert result["status"] == "failed"
         assert result["node_states"]["n2"]["status"] == "failed"
-        assert "builtins" in result["node_states"]["n2"]["error"].lower() or \
-            "name" in result["node_states"]["n2"]["error"].lower()
+        assert (
+            "builtins" in result["node_states"]["n2"]["error"].lower()
+            or "name" in result["node_states"]["n2"]["error"].lower()
+        )
 
     @pytest.mark.asyncio
     async def test_execute_code_node_allowed_builtins(self):
@@ -337,8 +346,10 @@ class TestWorkflowEngineExecute:
         result = await engine.execute(graph, inputs={})
         assert result["status"] == "failed"
         assert result["node_states"]["n2"]["status"] == "failed"
-        assert "ZeroDivisionError" in result["node_states"]["n2"]["error"] or \
-            "division" in result["node_states"]["n2"]["error"]
+        assert (
+            "ZeroDivisionError" in result["node_states"]["n2"]["error"]
+            or "division" in result["node_states"]["n2"]["error"]
+        )
         # n3 / n4 应 skipped
         assert result["node_states"]["n3"]["status"] == "skipped"
         assert result["node_states"]["n4"]["status"] == "skipped"
@@ -382,9 +393,7 @@ class TestWorkflowEngineExecute:
             ],
             "edges": [_edge("n1", "n2"), _edge("n2", "n3")],
         }
-        result = await engine.execute(
-            graph, inputs={"name": "Alice", "score": 95}
-        )
+        result = await engine.execute(graph, inputs={"name": "Alice", "score": 95})
         assert result["status"] == "completed"
         # 验证 prompt 已渲染
         called_args = mock_provider.chat_completion.call_args
@@ -438,7 +447,11 @@ class TestWorkflowEngineExecute:
         call_args = mock_client.request.call_args
         # method 是位置参数 args[0]
         method = call_args.args[0] if call_args.args else call_args.kwargs.get("method")
-        url = call_args.args[1] if len(call_args.args) > 1 else call_args.kwargs.get("url")
+        url = (
+            call_args.args[1]
+            if len(call_args.args) > 1
+            else call_args.kwargs.get("url")
+        )
         assert method == "POST"
         assert "alice" in url or "users" in url
         # body 应模板化 (content kwarg)
@@ -454,9 +467,7 @@ class TestWorkflowEngineExecute:
     async def test_execute_knowledge_node_with_mock_kb(self):
         """knowledge 节点: mock kb_store.query"""
         mock_kb = MagicMock()
-        mock_kb.query = AsyncMock(
-            return_value=[{"title": "Doc1", "content": "hello"}]
-        )
+        mock_kb.query = AsyncMock(return_value=[{"title": "Doc1", "content": "hello"}])
         mock_app_state = MagicMock()
         mock_app_state.get_kb_store.return_value = mock_kb
 
@@ -480,7 +491,9 @@ class TestWorkflowEngineExecute:
         assert result["status"] == "completed"
         # 验证 query 模板化
         called_args = mock_kb.query.call_args
-        query = called_args.args[0] if called_args.args else called_args.kwargs.get("query")
+        query = (
+            called_args.args[0] if called_args.args else called_args.kwargs.get("query")
+        )
         assert "workflow" in query
         # top_k
         top_k = called_args.kwargs.get("top_k")
@@ -577,7 +590,11 @@ def temp_db(monkeypatch):
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
         db_url = f"sqlite+aiosqlite:///{tmp.name}"
 
-    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+    from sqlalchemy.ext.asyncio import (
+        AsyncSession,
+        async_sessionmaker,
+        create_async_engine,
+    )
     from core import database as db_module
 
     engine = create_async_engine(
@@ -601,6 +618,7 @@ def temp_db(monkeypatch):
 @pytest.fixture
 async def initialized_db(temp_db):
     from core.database import close_db, init_db
+
     await init_db()
     yield
     await close_db()
@@ -639,7 +657,9 @@ class TestWorkflowAdminAPI:
                 "name": "wf1",
                 "description": "test workflow",
                 "graph": _linear_graph(),
-                "input_schema": {"variables": [{"name": "x", "type": "int", "default": 0}]},
+                "input_schema": {
+                    "variables": [{"name": "x", "type": "int", "default": 0}]
+                },
             },
             headers=_admin_headers(),
         )
@@ -666,7 +686,11 @@ class TestWorkflowAdminAPI:
         for i in range(2):
             client.post(
                 "/api/v1/admin/workflows",
-                json={"name": f"wf_list_{i}", "description": "", "graph": _linear_graph()},
+                json={
+                    "name": f"wf_list_{i}",
+                    "description": "",
+                    "graph": _linear_graph(),
+                },
                 headers=_admin_headers(),
             )
         resp = client.get("/api/v1/admin/workflows", headers=_admin_headers())
@@ -684,9 +708,7 @@ class TestWorkflowAdminAPI:
             headers=_admin_headers(),
         )
         wid = create.json()["id"]
-        resp = client.get(
-            f"/api/v1/admin/workflows/{wid}", headers=_admin_headers()
-        )
+        resp = client.get(f"/api/v1/admin/workflows/{wid}", headers=_admin_headers())
         assert resp.status_code == 200
         assert resp.json()["id"] == wid
 
@@ -716,14 +738,10 @@ class TestWorkflowAdminAPI:
             headers=_admin_headers(),
         )
         wid = create.json()["id"]
-        resp = client.delete(
-            f"/api/v1/admin/workflows/{wid}", headers=_admin_headers()
-        )
+        resp = client.delete(f"/api/v1/admin/workflows/{wid}", headers=_admin_headers())
         assert resp.status_code == 200
         # 再 GET 应 404
-        resp2 = client.get(
-            f"/api/v1/admin/workflows/{wid}", headers=_admin_headers()
-        )
+        resp2 = client.get(f"/api/v1/admin/workflows/{wid}", headers=_admin_headers())
         assert resp2.status_code == 404
 
     def test_toggle_workflow(self, client):

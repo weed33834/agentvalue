@@ -129,21 +129,16 @@ class BillingService:
 
         session = await self._get_session()
         try:
-            stmt = (
-                select(
-                    func.count(BillingRecord.id).label("total_requests"),
-                    func.coalesce(func.sum(BillingRecord.tokens_used), 0).label(
-                        "total_tokens"
-                    ),
-                    func.coalesce(func.sum(BillingRecord.cost_usd), 0).label(
-                        "total_cost"
-                    ),
-                )
-                .where(
-                    BillingRecord.tenant_id == tenant_id,
-                    BillingRecord.billed_at >= period_start,
-                    BillingRecord.billed_at <= period_end,
-                )
+            stmt = select(
+                func.count(BillingRecord.id).label("total_requests"),
+                func.coalesce(func.sum(BillingRecord.tokens_used), 0).label(
+                    "total_tokens"
+                ),
+                func.coalesce(func.sum(BillingRecord.cost_usd), 0).label("total_cost"),
+            ).where(
+                BillingRecord.tenant_id == tenant_id,
+                BillingRecord.billed_at >= period_start,
+                BillingRecord.billed_at <= period_end,
             )
             result = await session.execute(stmt)
             row = result.one()
@@ -186,12 +181,12 @@ class BillingService:
                 select(
                     BillingRecord.user_id,
                     func.count(BillingRecord.id).label("request_count"),
-                    func.coalesce(
-                        func.sum(BillingRecord.tokens_used), 0
-                    ).label("total_tokens"),
-                    func.coalesce(
-                        func.sum(BillingRecord.cost_usd), 0
-                    ).label("total_cost"),
+                    func.coalesce(func.sum(BillingRecord.tokens_used), 0).label(
+                        "total_tokens"
+                    ),
+                    func.coalesce(func.sum(BillingRecord.cost_usd), 0).label(
+                        "total_cost"
+                    ),
                 )
                 .where(
                     BillingRecord.tenant_id == tenant_id,
@@ -245,12 +240,12 @@ class BillingService:
                     BillingRecord.api_endpoint,
                     BillingRecord.method,
                     func.count(BillingRecord.id).label("request_count"),
-                    func.coalesce(
-                        func.sum(BillingRecord.tokens_used), 0
-                    ).label("total_tokens"),
-                    func.coalesce(
-                        func.sum(BillingRecord.cost_usd), 0
-                    ).label("total_cost"),
+                    func.coalesce(func.sum(BillingRecord.tokens_used), 0).label(
+                        "total_tokens"
+                    ),
+                    func.coalesce(func.sum(BillingRecord.cost_usd), 0).label(
+                        "total_cost"
+                    ),
                 )
                 .where(
                     BillingRecord.tenant_id == tenant_id,

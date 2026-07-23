@@ -62,7 +62,12 @@ SEED_WORDS: List[Dict[str, Any]] = [
     {"word": "兼职刷", "category": "spam", "severity": "high", "action": "block"},
     {"word": "中奖了", "category": "spam", "severity": "high", "action": "block"},
     {"word": "恭喜获得", "category": "spam", "severity": "medium", "action": "mask"},
-    {"word": "点击领取奖励", "category": "spam", "severity": "medium", "action": "mask"},
+    {
+        "word": "点击领取奖励",
+        "category": "spam",
+        "severity": "medium",
+        "action": "mask",
+    },
     {"word": "您已被选中", "category": "spam", "severity": "medium", "action": "mask"},
     {"word": "退订回T", "category": "spam", "severity": "low", "action": "mask"},
     {"word": "回TD退订", "category": "spam", "severity": "low", "action": "mask"},
@@ -91,7 +96,9 @@ class SensitiveWordService:
 
     # ===================== 文本审核 =====================
 
-    async def check_text(self, text: str, *, tenant_id: str = "default") -> List[Dict[str, Any]]:
+    async def check_text(
+        self, text: str, *, tenant_id: str = "default"
+    ) -> List[Dict[str, Any]]:
         """检查文本中的敏感词
 
         使用 AC 自动机 (或简单匹配) 高效扫描文本, 返回所有命中的敏感词详情。
@@ -125,13 +132,15 @@ class SensitiveWordService:
                 word_info = self._automaton_word_map.get(word)
                 if word_info is None:
                     continue
-                matches.append({
-                    "word": word,
-                    "category": word_info["category"],
-                    "severity": word_info["severity"],
-                    "action": word_info["action"],
-                    "position": start_idx,
-                })
+                matches.append(
+                    {
+                        "word": word,
+                        "category": word_info["category"],
+                        "severity": word_info["severity"],
+                        "action": word_info["action"],
+                        "position": start_idx,
+                    }
+                )
         else:
             # 简单字符串匹配 (降级方案)
             for word, word_info in self._automaton_word_map.items():
@@ -143,13 +152,15 @@ class SensitiveWordService:
                     key = (idx, word)
                     if key not in seen_positions:
                         seen_positions.add(key)
-                        matches.append({
-                            "word": word,
-                            "category": word_info["category"],
-                            "severity": word_info["severity"],
-                            "action": word_info["action"],
-                            "position": idx,
-                        })
+                        matches.append(
+                            {
+                                "word": word,
+                                "category": word_info["category"],
+                                "severity": word_info["severity"],
+                                "action": word_info["action"],
+                                "position": idx,
+                            }
+                        )
                     start = idx + len(word)
 
         # 按位置排序
@@ -197,7 +208,9 @@ class SensitiveWordService:
             end = start + len(word)
             if m["action"] == "replace":
                 # 用 replacement 替换 (需要查库获取 replacement 字段)
-                replacement = await self._get_replacement(word, m["category"], tenant_id=tenant_id)
+                replacement = await self._get_replacement(
+                    word, m["category"], tenant_id=tenant_id
+                )
                 result = result[:start] + replacement + result[end:]
             else:  # mask
                 result = result[:start] + "***" + result[end:]
@@ -279,7 +292,11 @@ class SensitiveWordService:
         return entity
 
     async def batch_add_words(
-        self, words: List[Dict[str, Any]], created_by: Optional[str] = None, *, tenant_id: str = "default"
+        self,
+        words: List[Dict[str, Any]],
+        created_by: Optional[str] = None,
+        *,
+        tenant_id: str = "default",
     ) -> Dict[str, Any]:
         """批量添加敏感词
 
@@ -360,7 +377,11 @@ class SensitiveWordService:
         Returns:
             {"items": [...], "total": N, "page": P, "size": S}
         """
-        base = select(SensitiveWord).where(SensitiveWord.tenant_id == tenant_id).order_by(SensitiveWord.created_at.desc())
+        base = (
+            select(SensitiveWord)
+            .where(SensitiveWord.tenant_id == tenant_id)
+            .order_by(SensitiveWord.created_at.desc())
+        )
         if category:
             base = base.where(SensitiveWord.category == category)
 
@@ -372,8 +393,10 @@ class SensitiveWordService:
 
         offset = (page - 1) * size
         rows = (
-            await self.session.execute(base.offset(offset).limit(size))
-        ).scalars().all()
+            (await self.session.execute(base.offset(offset).limit(size)))
+            .scalars()
+            .all()
+        )
 
         return {
             "items": [self._word_to_dict(w) for w in rows],
@@ -416,13 +439,15 @@ class SensitiveWordService:
         if format.lower() == "csv":
             reader = csv.DictReader(io.StringIO(file_content))
             for row in reader:
-                words.append({
-                    "word": (row.get("word") or "").strip(),
-                    "category": (row.get("category") or "custom").strip(),
-                    "severity": (row.get("severity") or "medium").strip(),
-                    "action": (row.get("action") or "mask").strip(),
-                    "replacement": (row.get("replacement") or "").strip() or None,
-                })
+                words.append(
+                    {
+                        "word": (row.get("word") or "").strip(),
+                        "category": (row.get("category") or "custom").strip(),
+                        "severity": (row.get("severity") or "medium").strip(),
+                        "action": (row.get("action") or "mask").strip(),
+                        "replacement": (row.get("replacement") or "").strip() or None,
+                    }
+                )
         elif format.lower() == "json":
             data = json.loads(file_content)
             if not isinstance(data, list):
@@ -435,10 +460,16 @@ class SensitiveWordService:
         else:
             raise ValueError(f"不支持的格式: {format}, 可选: csv / json")
 
-        return await self.batch_add_words(words, created_by=created_by, tenant_id=tenant_id)
+        return await self.batch_add_words(
+            words, created_by=created_by, tenant_id=tenant_id
+        )
 
     async def export_words(
-        self, category: Optional[str] = None, format: str = "csv", *, tenant_id: str = "default"
+        self,
+        category: Optional[str] = None,
+        format: str = "csv",
+        *,
+        tenant_id: str = "default",
     ) -> str:
         """导出敏感词表
 
@@ -450,7 +481,11 @@ class SensitiveWordService:
         Returns:
             导出内容字符串。
         """
-        base = select(SensitiveWord).where(SensitiveWord.tenant_id == tenant_id).order_by(SensitiveWord.category, SensitiveWord.word)
+        base = (
+            select(SensitiveWord)
+            .where(SensitiveWord.tenant_id == tenant_id)
+            .order_by(SensitiveWord.category, SensitiveWord.word)
+        )
         if category:
             base = base.where(SensitiveWord.category == category)
         rows = (await self.session.execute(base)).scalars().all()
@@ -463,13 +498,15 @@ class SensitiveWordService:
             )
             writer.writeheader()
             for w in rows:
-                writer.writerow({
-                    "word": w.word,
-                    "category": w.category,
-                    "severity": w.severity,
-                    "action": w.action,
-                    "replacement": w.replacement or "",
-                })
+                writer.writerow(
+                    {
+                        "word": w.word,
+                        "category": w.category,
+                        "severity": w.severity,
+                        "action": w.action,
+                        "replacement": w.replacement or "",
+                    }
+                )
             return output.getvalue()
         elif format.lower() == "json":
             return json.dumps(
@@ -504,12 +541,14 @@ class SensitiveWordService:
                 )
             ).scalar_one_or_none()
             if existing is None:
-                self.session.add(SensitiveWordCategory(
-                    tenant_id=tenant_id,
-                    name=cat["name"],
-                    description=cat["description"],
-                    is_active=True,
-                ))
+                self.session.add(
+                    SensitiveWordCategory(
+                        tenant_id=tenant_id,
+                        name=cat["name"],
+                        description=cat["description"],
+                        is_active=True,
+                    )
+                )
                 categories_added += 1
 
         # 种子词
@@ -525,23 +564,23 @@ class SensitiveWordService:
                 )
             ).scalar_one_or_none()
             if existing is None:
-                self.session.add(SensitiveWord(
-                    tenant_id=tenant_id,
-                    word=word_data["word"],
-                    category=word_data["category"],
-                    severity=word_data["severity"],
-                    action=word_data["action"],
-                    replacement="***",
-                    is_active=True,
-                    created_by=created_by,
-                ))
+                self.session.add(
+                    SensitiveWord(
+                        tenant_id=tenant_id,
+                        word=word_data["word"],
+                        category=word_data["category"],
+                        severity=word_data["severity"],
+                        action=word_data["action"],
+                        replacement="***",
+                        is_active=True,
+                        created_by=created_by,
+                    )
+                )
                 words_added += 1
 
         await self.session.flush()
         self._automaton_dirty = True
-        logger.info(
-            "种子数据初始化: 分类 %d, 敏感词 %d", categories_added, words_added
-        )
+        logger.info("种子数据初始化: 分类 %d, 敏感词 %d", categories_added, words_added)
         return {"categories_added": categories_added, "words_added": words_added}
 
     # ===================== 内部方法 =====================
@@ -555,13 +594,17 @@ class SensitiveWordService:
 
         # 从数据库加载所有启用的敏感词 (按租户过滤)
         rows = (
-            await self.session.execute(
-                select(SensitiveWord).where(
-                    SensitiveWord.is_active == True,  # noqa: E712
-                    SensitiveWord.tenant_id == tenant_id,
+            (
+                await self.session.execute(
+                    select(SensitiveWord).where(
+                        SensitiveWord.is_active == True,  # noqa: E712
+                        SensitiveWord.tenant_id == tenant_id,
+                    )
                 )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         # 构建 word → info 映射
         self._automaton_word_map: Dict[str, Dict[str, Any]] = {}

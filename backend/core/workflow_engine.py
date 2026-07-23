@@ -103,12 +103,14 @@ def _safe_builtins() -> Dict[str, Any]:
 
 # 禁止访问的内网 / 本地地址段 (H7: HTTP 节点 SSRF 防护)
 _BLOCKED_NETWORKS = [
-    ipaddress.ip_network("10.0.0.0/8"),        # 私有网络 A 类
-    ipaddress.ip_network("172.16.0.0/12"),     # 私有网络 B 类
-    ipaddress.ip_network("192.168.0.0/16"),     # 私有网络 C 类
-    ipaddress.ip_network("169.254.0.0/16"),    # 链路本地地址 (含云元数据服务 169.254.169.254)
-    ipaddress.ip_network("127.0.0.0/8"),       # 环回地址
-    ipaddress.ip_network("::1/128"),           # IPv6 环回地址
+    ipaddress.ip_network("10.0.0.0/8"),  # 私有网络 A 类
+    ipaddress.ip_network("172.16.0.0/12"),  # 私有网络 B 类
+    ipaddress.ip_network("192.168.0.0/16"),  # 私有网络 C 类
+    ipaddress.ip_network(
+        "169.254.0.0/16"
+    ),  # 链路本地地址 (含云元数据服务 169.254.169.254)
+    ipaddress.ip_network("127.0.0.0/8"),  # 环回地址
+    ipaddress.ip_network("::1/128"),  # IPv6 环回地址
 ]
 
 
@@ -270,8 +272,15 @@ class WorkflowEngine:
 
     # 支持的节点类型 (与前端 NODE_TYPES 对齐)
     NODE_TYPES = {
-        "start", "llm", "http", "condition", "code", "knowledge", "end",
-        "loop", "parallel",
+        "start",
+        "llm",
+        "http",
+        "condition",
+        "code",
+        "knowledge",
+        "end",
+        "loop",
+        "parallel",
     }
 
     # H8: 循环节点单次最大迭代次数上限, 超出则拒绝执行 (防止资源耗尽 / 死循环)
@@ -444,9 +453,7 @@ class WorkflowEngine:
             # 并行节点: branches (分支列表, 每个分支含 nodes 子节点列表)
             branches = cfg.get("branches")
             if not isinstance(branches, list) or not branches:
-                errors.append(
-                    f"节点 {nid} (parallel) 缺少 config.branches (分支列表)"
-                )
+                errors.append(f"节点 {nid} (parallel) 缺少 config.branches (分支列表)")
             else:
                 for i, branch in enumerate(branches):
                     if not isinstance(branch, dict):
@@ -591,9 +598,7 @@ class WorkflowEngine:
         # 2. 校验 graph (执行前再次检查, 防止绕过 validate 直接运行)
         errors = self.validate(graph)
         if errors:
-            raise WorkflowValidationError(
-                f"工作流图校验失败: {'; '.join(errors)}"
-            )
+            raise WorkflowValidationError(f"工作流图校验失败: {'; '.join(errors)}")
 
         # 3. 应用 input_schema 默认值
         normalized_inputs = self._apply_input_schema(input_schema, inputs)
@@ -744,7 +749,9 @@ class WorkflowEngine:
 
     # ===================== 节点执行 =====================
 
-    async def _execute_node(self, node: dict, context: Dict[str, Any]) -> Dict[str, Any]:
+    async def _execute_node(
+        self, node: dict, context: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """执行单个节点, 返回 {output, branch?, error?}"""
         ntype = node.get("type")
         cfg = (node.get("data") or {}).get("config") or {}
@@ -847,9 +854,7 @@ class WorkflowEngine:
         timeout = float(cfg.get("timeout", 30.0))
 
         async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.request(
-                method, url, headers=headers, content=body
-            )
+            response = await client.request(method, url, headers=headers, content=body)
             # 尝试解析 JSON, 失败则返回 text
             try:
                 data = response.json()
@@ -873,7 +878,10 @@ class WorkflowEngine:
         result = self._eval_condition(expression, context)
         # branch 为 "true" / "false", 用于 source_handle 路由匹配
         branch = "true" if result else "false"
-        return {"output": {"expression": expression, "result": result}, "branch": branch}
+        return {
+            "output": {"expression": expression, "result": result},
+            "branch": branch,
+        }
 
     async def _node_code(
         self, node: dict, cfg: dict, context: Dict[str, Any]
@@ -911,7 +919,11 @@ class WorkflowEngine:
         # exec 时禁 builtins (传 {"__builtins__": {}} 阻止访问 __import__ 等)
         safe_globals: Dict[str, Any] = {"__builtins__": _CODE_ALLOWED_BUILTINS}
         try:
-            exec(compile(source, f"<workflow:{node.get('id', '?')}>", "exec"), safe_globals, local_vars)  # noqa: S102
+            exec(
+                compile(source, f"<workflow:{node.get('id', '?')}>", "exec"),
+                safe_globals,
+                local_vars,
+            )  # noqa: S102
         except Exception as e:
             raise WorkflowExecutionError(f"代码节点执行失败: {e}") from e
         result = local_vars.get("result")
@@ -990,7 +1002,9 @@ class WorkflowEngine:
             sub_context["loop_index"] = idx
 
             # 执行 body 子节点
-            iter_output = await self._execute_sub_nodes(body, sub_context, node.get("id", "?"))
+            iter_output = await self._execute_sub_nodes(
+                body, sub_context, node.get("id", "?")
+            )
 
             results.append(iter_output)
 
@@ -1039,9 +1053,7 @@ class WorkflowEngine:
             return branch_index, {"name": branch_name, "output": output}
 
         # 并行执行所有分支
-        tasks = [
-            _run_branch(i, branch) for i, branch in enumerate(branches)
-        ]
+        tasks = [_run_branch(i, branch) for i, branch in enumerate(branches)]
         completed = await asyncio.gather(*tasks, return_exceptions=True)
 
         branch_results: Dict[str, Any] = {}

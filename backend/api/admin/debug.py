@@ -38,7 +38,9 @@ router = APIRouter(
 )
 
 
-def _build_trace_spans(audit: Dict[str, Any], manager_view: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _build_trace_spans(
+    audit: Dict[str, Any], manager_view: Dict[str, Any]
+) -> List[Dict[str, Any]]:
     """从 audit / manager_view 推断 7 个节点级 span,对标 Langfuse 节点级 trace。
 
     数据有限时使用合理默认值:
@@ -98,100 +100,114 @@ def _build_trace_spans(audit: Dict[str, Any], manager_view: Dict[str, Any]) -> L
     spans: List[Dict[str, Any]] = []
 
     # 1. input_sanitizer —— InputGuard 耗时
-    spans.append({
-        "name": "input_sanitizer",
-        "start_ms": 0,
-        "duration_ms": input_sanitizer_ms,
-        "status": "warning" if triggered_rules else "success",
-        "attributes": {
-            "triggered_rules": triggered_rules,
-            "rules_count": len(triggered_rules),
-        },
-    })
+    spans.append(
+        {
+            "name": "input_sanitizer",
+            "start_ms": 0,
+            "duration_ms": input_sanitizer_ms,
+            "status": "warning" if triggered_rules else "success",
+            "attributes": {
+                "triggered_rules": triggered_rules,
+                "rules_count": len(triggered_rules),
+            },
+        }
+    )
 
     # 2. data_cleaning —— MultimodalCleaner
     multimodal_status = "success" if raw_data_refs else "skipped"
-    spans.append({
-        "name": "data_cleaning",
-        "start_ms": input_sanitizer_ms,
-        "duration_ms": data_cleaning_ms if raw_data_refs else 0,
-        "status": multimodal_status,
-        "attributes": {
-            "raw_data_refs": raw_data_refs,
-            "multimodal_input_count": len(raw_data_refs),
-        },
-    })
+    spans.append(
+        {
+            "name": "data_cleaning",
+            "start_ms": input_sanitizer_ms,
+            "duration_ms": data_cleaning_ms if raw_data_refs else 0,
+            "status": multimodal_status,
+            "attributes": {
+                "raw_data_refs": raw_data_refs,
+                "multimodal_input_count": len(raw_data_refs),
+            },
+        }
+    )
 
     # 3. retrieve_context —— RAG 检索
     retrieve_status = "skipped" if not retrieve_count else "success"
-    spans.append({
-        "name": "retrieve_context",
-        "start_ms": input_sanitizer_ms + data_cleaning_ms,
-        "duration_ms": retrieve_ms,
-        "status": retrieve_status,
-        "attributes": {
-            "retrieve_count": retrieve_count,
-        },
-    })
+    spans.append(
+        {
+            "name": "retrieve_context",
+            "start_ms": input_sanitizer_ms + data_cleaning_ms,
+            "duration_ms": retrieve_ms,
+            "status": retrieve_status,
+            "attributes": {
+                "retrieve_count": retrieve_count,
+            },
+        }
+    )
 
     # 4. build_prompt —— Prompt 渲染
-    spans.append({
-        "name": "build_prompt",
-        "start_ms": input_sanitizer_ms + data_cleaning_ms + retrieve_ms,
-        "duration_ms": build_prompt_ms,
-        "status": "success" if prompt_version else "warning",
-        "attributes": {
-            "prompt_version": prompt_version,
-            "prompt_source": prompt_source,
-            "prompt_version_id": prompt_version_id,
-        },
-    })
+    spans.append(
+        {
+            "name": "build_prompt",
+            "start_ms": input_sanitizer_ms + data_cleaning_ms + retrieve_ms,
+            "duration_ms": build_prompt_ms,
+            "status": "success" if prompt_version else "warning",
+            "attributes": {
+                "prompt_version": prompt_version,
+                "prompt_source": prompt_source,
+                "prompt_version_id": prompt_version_id,
+            },
+        }
+    )
 
     # 5. call_llm —— LLM 调用(占大头)
-    spans.append({
-        "name": "call_llm",
-        "start_ms": input_sanitizer_ms
-        + data_cleaning_ms
-        + retrieve_ms
-        + build_prompt_ms,
-        "duration_ms": call_llm_ms,
-        "status": "success" if call_llm_ms > 0 else "skipped",
-        "attributes": {
-            "model_name": model_name,
-            "model_tier": model_tier,
-        },
-    })
+    spans.append(
+        {
+            "name": "call_llm",
+            "start_ms": input_sanitizer_ms
+            + data_cleaning_ms
+            + retrieve_ms
+            + build_prompt_ms,
+            "duration_ms": call_llm_ms,
+            "status": "success" if call_llm_ms > 0 else "skipped",
+            "attributes": {
+                "model_name": model_name,
+                "model_tier": model_tier,
+            },
+        }
+    )
 
     # 6. parse_output —— OutputGuard
-    spans.append({
-        "name": "parse_output",
-        "start_ms": input_sanitizer_ms
-        + data_cleaning_ms
-        + retrieve_ms
-        + build_prompt_ms
-        + call_llm_ms,
-        "duration_ms": parse_output_ms,
-        "status": "success" if confidence_score is not None else "warning",
-        "attributes": {
-            "confidence_score": confidence_score,
-        },
-    })
+    spans.append(
+        {
+            "name": "parse_output",
+            "start_ms": input_sanitizer_ms
+            + data_cleaning_ms
+            + retrieve_ms
+            + build_prompt_ms
+            + call_llm_ms,
+            "duration_ms": parse_output_ms,
+            "status": "success" if confidence_score is not None else "warning",
+            "attributes": {
+                "confidence_score": confidence_score,
+            },
+        }
+    )
 
     # 7. persist —— 落库(固定小值)
-    spans.append({
-        "name": "persist",
-        "start_ms": input_sanitizer_ms
-        + data_cleaning_ms
-        + retrieve_ms
-        + build_prompt_ms
-        + call_llm_ms
-        + parse_output_ms,
-        "duration_ms": persist_ms,
-        "status": "success",
-        "attributes": {
-            "fixed_estimate": True,
-        },
-    })
+    spans.append(
+        {
+            "name": "persist",
+            "start_ms": input_sanitizer_ms
+            + data_cleaning_ms
+            + retrieve_ms
+            + build_prompt_ms
+            + call_llm_ms
+            + parse_output_ms,
+            "duration_ms": persist_ms,
+            "status": "success",
+            "attributes": {
+                "fixed_estimate": True,
+            },
+        }
+    )
 
     return spans
 
@@ -203,7 +219,9 @@ async def list_evaluations_for_trace(
     page_size: int = Query(20, ge=1, le=100, description="每页大小,1-100"),
     employee_id: Optional[str] = Query(None, description="按员工 ID 精确过滤"),
     period: Optional[str] = Query(None, description="按评估周期过滤,如 2026-W28"),
-    status: Optional[str] = Query(None, description="按评估状态过滤(ai_drafted/approved/...)"),
+    status: Optional[str] = Query(
+        None, description="按评估状态过滤(ai_drafted/approved/...)"
+    ),
 ):
     """评估分页列表(Trace 浏览器左侧列表使用)。
 
@@ -223,14 +241,16 @@ async def list_evaluations_for_trace(
     # 仅暴露列表所需字段,避免泄漏 manager_view / audit 等敏感字段
     items = []
     for ev in result["items"]:
-        items.append({
-            "evaluation_id": ev.evaluation_id,
-            "employee_id": ev.employee_id,
-            "period": ev.period,
-            "status": ev.status,
-            "overall_score": ev.overall_score,
-            "created_at": ev.created_at.isoformat() if ev.created_at else None,
-        })
+        items.append(
+            {
+                "evaluation_id": ev.evaluation_id,
+                "employee_id": ev.employee_id,
+                "period": ev.period,
+                "status": ev.status,
+                "overall_score": ev.overall_score,
+                "created_at": ev.created_at.isoformat() if ev.created_at else None,
+            }
+        )
 
     return {
         "items": items,
@@ -368,7 +388,11 @@ async def get_evaluation_trace(
                 "raw_data_refs": raw_data_refs,
             },
             "risk": {
-                "risk_flags": manager_view.get("risk_flags", []) if isinstance(manager_view, dict) else [],
+                "risk_flags": (
+                    manager_view.get("risk_flags", [])
+                    if isinstance(manager_view, dict)
+                    else []
+                ),
             },
         },
         # P1-2: 节点级 spans,对标 Langfuse trace 节点
@@ -441,15 +465,16 @@ async def system_health(
     # LangChain 工具
     tools_status: Dict[str, Any] = {}
     try:
-        from agent.langchain_tools import LANGCHAIN_TOOLS_AVAILABLE, list_available_tools
+        from agent.langchain_tools import (
+            LANGCHAIN_TOOLS_AVAILABLE,
+            list_available_tools,
+        )
         from agent.react_agent import REACT_AGENT_AVAILABLE
 
         tools_status = {
             "langchain_available": LANGCHAIN_TOOLS_AVAILABLE,
             "react_agent_available": REACT_AGENT_AVAILABLE,
-            "available_tools": [
-                t["name"] for t in list_available_tools()
-            ],
+            "available_tools": [t["name"] for t in list_available_tools()],
         }
     except Exception as e:
         tools_status = {"error": str(e)}

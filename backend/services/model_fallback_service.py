@@ -90,9 +90,7 @@ class ModelFallbackService:
         tid = tenant_id or get_current_tenant()
         chain = await self._select_chain(tid, tier)
         if chain is None or not chain.chain_config:
-            raise RuntimeError(
-                f"租户 {tid} 未配置可用的 fallback 链（tier={tier}）"
-            )
+            raise RuntimeError(f"租户 {tid} 未配置可用的 fallback 链（tier={tier}）")
 
         # 延迟导入避免循环依赖
         from core.model_router import ModelRouter
@@ -136,7 +134,9 @@ class ModelFallbackService:
             try:
                 provider = router.get_provider(entry_tier)  # type: ignore[arg-type]
                 chat_messages = [
-                    ChatMessage(role=m.get("role", "user"), content=m.get("content", ""))
+                    ChatMessage(
+                        role=m.get("role", "user"), content=m.get("content", "")
+                    )
                     for m in messages
                 ]
                 # 按 max_retries 重试
@@ -188,9 +188,7 @@ class ModelFallbackService:
             f"{[a.get('error') for a in attempts if a.get('status') == 'error']}"
         )
 
-    async def _select_chain(
-        self, tenant_id: str, tier: str
-    ) -> Optional[FallbackChain]:
+    async def _select_chain(self, tenant_id: str, tier: str) -> Optional[FallbackChain]:
         """选取当前租户匹配 tier 的最高优先级启用链。"""
         session = await self._get_session()
         try:
@@ -254,8 +252,12 @@ class ModelFallbackService:
     # ============================================================
 
     async def create_chain(
-        self, tenant_id: str, name: str, chain_config: List[Dict[str, Any]],
-        description: Optional[str] = None, enabled: bool = True,
+        self,
+        tenant_id: str,
+        name: str,
+        chain_config: List[Dict[str, Any]],
+        description: Optional[str] = None,
+        enabled: bool = True,
         priority: int = 0,
     ) -> Dict[str, Any]:
         """创建 fallback 链。"""
@@ -287,7 +289,11 @@ class ModelFallbackService:
     ) -> Optional[Dict[str, Any]]:
         """更新 fallback 链（仅允许更新本租户链）。"""
         allowed = {
-            "name", "description", "chain_config", "enabled", "priority",
+            "name",
+            "description",
+            "chain_config",
+            "enabled",
+            "priority",
         }
         session = await self._get_session()
         try:

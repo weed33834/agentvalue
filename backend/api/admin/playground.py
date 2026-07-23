@@ -57,6 +57,7 @@ router = APIRouter(
 
 try:
     from sse_starlette.sse import EventSourceResponse
+
     _SSE_AVAILABLE = True
 except ImportError:
     _SSE_AVAILABLE = False
@@ -71,7 +72,9 @@ except ImportError:
 class PlaygroundRunRequest(BaseModel):
     prompt_name: str = Field(..., description="Prompt 模板名")
     # 前端传 prompt_version,后端兼容 prompt_version 与 version 两种字段名
-    prompt_version: Optional[int] = Field(None, alias="prompt_version", description="版本号")
+    prompt_version: Optional[int] = Field(
+        None, alias="prompt_version", description="版本号"
+    )
     label: Optional[str] = Field("production", description="Label(二选一)")
     variables: Dict[str, Any] = Field(default_factory=dict, description="模板变量")
     model_overrides: Optional[Dict[str, Any]] = Field(
@@ -198,7 +201,9 @@ async def _execute_playground(req: PlaygroundRunRequest, queue: asyncio.Queue):
         await queue.put(
             _sse_event(
                 "error",
-                {"message": f"Prompt '{req.prompt_name}' 未找到版本 {req.prompt_version or req.label}"},
+                {
+                    "message": f"Prompt '{req.prompt_name}' 未找到版本 {req.prompt_version or req.label}"
+                },
             )
         )
         return
@@ -211,7 +216,11 @@ async def _execute_playground(req: PlaygroundRunRequest, queue: asyncio.Queue):
     # 3. 合并 config overrides (优先级: 顶层字段 > model_overrides > version.config > 默认)
     config = {**(version.config or {}), **(req.model_overrides or {})}
     model_name = req.model_name or config.get("model", "gpt-4o-mini")
-    temperature = req.temperature if req.temperature is not None else config.get("temperature", 0.3)
+    temperature = (
+        req.temperature
+        if req.temperature is not None
+        else config.get("temperature", 0.3)
+    )
     max_tokens = req.max_tokens or config.get("max_tokens", 4096)
 
     # 4. 发 trace 事件 (Langfuse trace URL)
@@ -235,7 +244,12 @@ async def _execute_playground(req: PlaygroundRunRequest, queue: asyncio.Queue):
 
     if provider is None:
         await queue.put(
-            _sse_event("error", {"message": f"无法获取模型 {model_name} 的 Provider,请先在 Provider 管理页配置对应凭证"})
+            _sse_event(
+                "error",
+                {
+                    "message": f"无法获取模型 {model_name} 的 Provider,请先在 Provider 管理页配置对应凭证"
+                },
+            )
         )
         return
 
@@ -256,9 +270,7 @@ async def _execute_playground(req: PlaygroundRunRequest, queue: asyncio.Queue):
             # 文本 token
             if chunk.content:
                 full_content += chunk.content
-                await queue.put(
-                    _sse_event("token", {"content": chunk.content})
-                )
+                await queue.put(_sse_event("token", {"content": chunk.content}))
 
             # tool_calls delta
             if chunk.tool_calls:
@@ -299,7 +311,9 @@ async def _execute_playground(req: PlaygroundRunRequest, queue: asyncio.Queue):
                         "index": final_calls.index(call),
                         "id": call.get("id", ""),
                         "name": call.get("name", ""),
-                        "args": json.dumps(call.get("arguments", {}), ensure_ascii=False, default=str),
+                        "args": json.dumps(
+                            call.get("arguments", {}), ensure_ascii=False, default=str
+                        ),
                     },
                 )
             )
@@ -389,14 +403,18 @@ async def _get_provider_for_playground(model_name: str):
 
     # 1. 先查 DB:tenant 是否为该 model 配置过凭证
     try:
-        provider_name, credentials = await _lookup_tenant_credential_for_model(model_name)
+        provider_name, credentials = await _lookup_tenant_credential_for_model(
+            model_name
+        )
     except Exception as e:
         logger.warning("_lookup_tenant_credential_for_model 失败: %s", e)
         provider_name, credentials = None, None
 
     # 2. 若 DB 未命中,按 model_name 前缀推断 provider + 从 settings 兜底
     if provider_name is None:
-        provider_name, credentials = _infer_provider_from_model_name(model_name, settings)
+        provider_name, credentials = _infer_provider_from_model_name(
+            model_name, settings
+        )
 
     if provider_name is None:
         logger.warning("无法识别 model_name=%s 的 provider 类型", model_name)
@@ -487,12 +505,22 @@ def _infer_provider_from_model_name(model_name: str, settings):
     """按 model_name 前缀推断 provider,凭证从 settings 兜底。"""
     name = (model_name or "").lower()
     if name.startswith("claude") or "anthropic" in name:
-        return "anthropic", {"api_key": getattr(settings, "anthropic_api_key", None) or ""}
+        return "anthropic", {
+            "api_key": getattr(settings, "anthropic_api_key", None) or ""
+        }
     if name.startswith("gemini") or "gemini" in name:
         return "gemini", {"api_key": getattr(settings, "gemini_api_key", None) or ""}
-    if name.startswith("llama") or name.startswith("qwen") or "ollama" in name or ":" in name:
+    if (
+        name.startswith("llama")
+        or name.startswith("qwen")
+        or "ollama" in name
+        or ":" in name
+    ):
         # Ollama 模型通常带 :tag(如 llama3.1:8b)
-        return "ollama", {"api_base": getattr(settings, "local_base_url", None) or "http://localhost:11434"}
+        return "ollama", {
+            "api_base": getattr(settings, "local_base_url", None)
+            or "http://localhost:11434"
+        }
     # 默认 OpenAI 兼容
     api_key = settings.cloud_api_key or settings.openai_api_key
     api_base = settings.cloud_base_url or settings.openai_base_url
@@ -513,7 +541,9 @@ async def _build_tools_schema(tool_names: List[str]):
                 "function": {
                     "name": t["name"],
                     "description": t.get("description", ""),
-                    "parameters": t.get("args_schema", {"type": "object", "properties": {}}),
+                    "parameters": t.get(
+                        "args_schema", {"type": "object", "properties": {}}
+                    ),
                 },
             }
             for t in tools_meta

@@ -3,6 +3,7 @@
 按 settings 选择实现,未配置时返回 Dummy。
 真实适配器(Feishu/GitLab)当前 raise NotImplementedError,工厂捕获后降级为 Dummy。
 """
+
 from .base import CodeRepoAdapter, IMAdapter
 from .dummy import DummyCodeRepoAdapter, DummyIMAdapter
 from .settings import get_integrations_settings
@@ -37,7 +38,9 @@ def create_coderepo_adapter() -> CodeRepoAdapter:
         try:
             from .gitlab import GitLabCodeRepoAdapter
 
-            return GitLabCodeRepoAdapter(s.gitlab_base_url, s.gitlab_token, s.gitlab_webhook_secret)
+            return GitLabCodeRepoAdapter(
+                s.gitlab_base_url, s.gitlab_token, s.gitlab_webhook_secret
+            )
         except NotImplementedError:
             pass  # 真实接入未实现,降级
     return DummyCodeRepoAdapter()

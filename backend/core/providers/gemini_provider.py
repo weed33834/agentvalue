@@ -132,7 +132,9 @@ class GeminiProvider(BaseProvider):
         payload: Dict[str, Any] = {
             "contents": contents,
             "generationConfig": {
-                "temperature": temperature if temperature is not None else self.config.temperature,
+                "temperature": (
+                    temperature if temperature is not None else self.config.temperature
+                ),
                 "maxOutputTokens": max_tokens or self.config.max_tokens,
             },
         }
@@ -170,9 +172,15 @@ class GeminiProvider(BaseProvider):
                             if usage_meta:
                                 yield StreamChunk(
                                     usage={
-                                        "prompt_tokens": usage_meta.get("promptTokenCount", 0),
-                                        "completion_tokens": usage_meta.get("candidatesTokenCount", 0),
-                                        "total_tokens": usage_meta.get("totalTokenCount", 0),
+                                        "prompt_tokens": usage_meta.get(
+                                            "promptTokenCount", 0
+                                        ),
+                                        "completion_tokens": usage_meta.get(
+                                            "candidatesTokenCount", 0
+                                        ),
+                                        "total_tokens": usage_meta.get(
+                                            "totalTokenCount", 0
+                                        ),
                                     }
                                 )
                             continue
@@ -184,7 +192,9 @@ class GeminiProvider(BaseProvider):
                                 yield StreamChunk(content=part["text"])
                             elif "functionCall" in part:
                                 fc = part["functionCall"]
-                                args_str = json.dumps(fc.get("args", {}), ensure_ascii=False)
+                                args_str = json.dumps(
+                                    fc.get("args", {}), ensure_ascii=False
+                                )
                                 yield StreamChunk(
                                     tool_calls=[
                                         ToolCallDelta(
@@ -203,9 +213,15 @@ class GeminiProvider(BaseProvider):
                             yield StreamChunk(
                                 finish_reason=_FINISH_MAP.get(finish, finish.lower()),
                                 usage={
-                                    "prompt_tokens": usage_meta.get("promptTokenCount", 0),
-                                    "completion_tokens": usage_meta.get("candidatesTokenCount", 0),
-                                    "total_tokens": usage_meta.get("totalTokenCount", 0),
+                                    "prompt_tokens": usage_meta.get(
+                                        "promptTokenCount", 0
+                                    ),
+                                    "completion_tokens": usage_meta.get(
+                                        "candidatesTokenCount", 0
+                                    ),
+                                    "total_tokens": usage_meta.get(
+                                        "totalTokenCount", 0
+                                    ),
                                 },
                             )
             record_llm_request(self._tier, "success")

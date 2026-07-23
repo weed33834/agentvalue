@@ -82,9 +82,13 @@ class SSOSession(Base):
     )
     provider_name: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     # 外部系统用户 ID (如 OAuth2 sub / SAML nameid / LDAP dn)
-    external_user_id: Mapped[str] = mapped_column(String(256), nullable=False, index=True)
+    external_user_id: Mapped[str] = mapped_column(
+        String(256), nullable=False, index=True
+    )
     # 内部系统用户 ID (关联 users.user_id)
-    internal_user_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    internal_user_id: Mapped[str] = mapped_column(
+        String(64), nullable=False, index=True
+    )
     # OAuth2 access_token / SAML assertion (脱敏存储)
     access_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     refresh_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

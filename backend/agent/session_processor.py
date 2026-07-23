@@ -144,9 +144,7 @@ class SessionProcessor:
             }
             # 更新 assistant message 的 tokens 用量
             self.assistant_msg.tokens = tokens
-            await self.chat_svc.update_message_tokens(
-                self.assistant_msg.id, tokens
-            )
+            await self.chat_svc.update_message_tokens(self.assistant_msg.id, tokens)
 
     # ============================================================
     # Text
@@ -261,7 +259,12 @@ class SessionProcessor:
                 sequence=self._next_seq(),
                 tool_name=event.name,
                 tool_call_id=event.id,
-                tool_state={"status": "running", "input": "", "output": None, "error": None},
+                tool_state={
+                    "status": "running",
+                    "input": "",
+                    "output": None,
+                    "error": None,
+                },
             )
             self._tool_parts[event.id] = part
         state = part.tool_state or {}

@@ -45,6 +45,7 @@ class Interrupted(BaseModel):
     type: str = "interrupted"
     message: str = "用户已停止生成"
 
+
 # 系统提示（对齐 opencode SystemPrompt.Service，简化版）
 _DEFAULT_SYSTEM_PROMPT = """你是 AgentValue AI 助手，一个专业、友好的员工价值评估系统助手。
 
@@ -179,9 +180,11 @@ class SessionPrompt:
             _settings = self.settings
             if _settings is None:
                 from core.config import get_settings
+
                 _settings = get_settings()
             if getattr(_settings, "mcp_servers", None):
                 from agent.mcp_client import get_global_mcp_manager
+
                 manager = get_global_mcp_manager(_settings.mcp_servers)
                 mcp_tools = await manager.get_tools()
                 if mcp_tools:
@@ -277,7 +280,9 @@ class SessionPrompt:
                     messages=history,
                     tools=tool_schemas or None,
                 )
-                async for event in stream_chunks_to_events(chunk_stream, step_index=step):
+                async for event in stream_chunks_to_events(
+                    chunk_stream, step_index=step
+                ):
                     # token 级中断检查
                     if should_stop and should_stop():
                         await self._emit(event_callback, Interrupted())

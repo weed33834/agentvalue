@@ -67,9 +67,7 @@ class PublishService:
             发布结果 dict (含渠道接入信息)。
         """
         if channel not in PUBLISH_CHANNELS:
-            raise ValueError(
-                f"不支持的渠道: {channel}, 可选: {PUBLISH_CHANNELS}"
-            )
+            raise ValueError(f"不支持的渠道: {channel}, 可选: {PUBLISH_CHANNELS}")
 
         dispatch = {
             "feishu": self.publish_to_feishu,
@@ -106,7 +104,9 @@ class PublishService:
         """
         # 生成飞书 webhook URL (基于 agent_id + 随机 token)
         token = secrets.token_hex(16)
-        webhook_url = f"https://open.feishu.cn/open-apis/bot/v2/hook/agent_{agent_id}_{token}"
+        webhook_url = (
+            f"https://open.feishu.cn/open-apis/bot/v2/hook/agent_{agent_id}_{token}"
+        )
 
         # 事件订阅配置指引
         event_config = {
@@ -241,9 +241,7 @@ class PublishService:
         """
         token = secrets.token_hex(16)
         robot_name = config.get("robot_name", f"Agent_{agent_id}")
-        webhook_url = (
-            f"https://oapi.dingtalk.com/robot/send?access_token=agent_{agent_id}_{token}"
-        )
+        webhook_url = f"https://oapi.dingtalk.com/robot/send?access_token=agent_{agent_id}_{token}"
 
         guide = (
             "钉钉机器人接入步骤:\n"
@@ -302,15 +300,15 @@ class PublishService:
 
         # 生成 iframe 嵌入代码
         embed_code = (
-            f'<!-- AgentValue Web 嵌入代码 -->\n'
-            f'<iframe\n'
+            f"<!-- AgentValue Web 嵌入代码 -->\n"
+            f"<iframe\n"
             f'  src="{embed_url}"\n'
             f'  width="{width}"\n'
             f'  height="{height}"\n'
             f'  frameborder="0"\n'
             f'  allow="microphone"\n'
             f'  style="border: none; border-radius: 8px;"\n'
-            f'></iframe>'
+            f"></iframe>"
         )
 
         guide = (
@@ -375,7 +373,7 @@ class PublishService:
         # 安全版本 (存入数据库, 使用占位符替代明文 Key)
         curl_example_safe = (
             f"# curl 调用示例\n"
-            f'curl -X POST {endpoint} \\\n'
+            f"curl -X POST {endpoint} \\\n"
             f'  -H "Authorization: Bearer <YOUR_API_KEY>" \\\n'
             f'  -H "Content-Type: application/json" \\\n'
             f'  -d \'{{"message": "你好", "stream": false}}\''
@@ -392,7 +390,7 @@ class PublishService:
         # 明文版本 (仅用于 API 响应, 一次性显示)
         curl_example_display = (
             f"# curl 调用示例\n"
-            f'curl -X POST {endpoint} \\\n'
+            f"curl -X POST {endpoint} \\\n"
             f'  -H "Authorization: Bearer {api_key}" \\\n'
             f'  -H "Content-Type: application/json" \\\n'
             f'  -d \'{{"message": "你好", "stream": false}}\''
@@ -448,11 +446,11 @@ class PublishService:
         Returns:
             {"agent_id": ..., "channel": ..., "unpublished": True}
         """
-        target = await self.version_service.get_publish_target(agent_id, channel, tenant_id=tenant_id)
+        target = await self.version_service.get_publish_target(
+            agent_id, channel, tenant_id=tenant_id
+        )
         if target is None:
-            raise ValueError(
-                f"Agent {agent_id} 未发布到渠道 {channel}"
-            )
+            raise ValueError(f"Agent {agent_id} 未发布到渠道 {channel}")
 
         # 保留记录但标记为已取消 (status=failed, 清除敏感配置)
         target.status = "failed"
@@ -471,7 +469,9 @@ class PublishService:
 
     # ===================== 发布状态查询 =====================
 
-    async def get_publish_status(self, agent_id: int, *, tenant_id: str = "default") -> Dict[str, Any]:
+    async def get_publish_status(
+        self, agent_id: int, *, tenant_id: str = "default"
+    ) -> Dict[str, Any]:
         """获取所有渠道发布状态
 
         Args:
@@ -481,7 +481,9 @@ class PublishService:
         Returns:
             {"agent_id": ..., "channels": {...}, "published_count": N}
         """
-        targets = await self.version_service.list_publish_targets(agent_id, tenant_id=tenant_id)
+        targets = await self.version_service.list_publish_targets(
+            agent_id, tenant_id=tenant_id
+        )
 
         channels: Dict[str, Any] = {}
         for target in targets:
@@ -492,9 +494,7 @@ class PublishService:
                 "error_message": target["error_message"],
             }
 
-        published_count = sum(
-            1 for t in targets if t["status"] == "published"
-        )
+        published_count = sum(1 for t in targets if t["status"] == "published")
         return {
             "agent_id": agent_id,
             "channels": channels,
@@ -517,7 +517,9 @@ class PublishService:
 
         将渠道配置存储到 AgentPublishTarget.config, 并将状态置为 published。
         """
-        target = await self.version_service.get_publish_target(agent_id, channel, tenant_id=tenant_id)
+        target = await self.version_service.get_publish_target(
+            agent_id, channel, tenant_id=tenant_id
+        )
         now = datetime.now(timezone.utc)
 
         if target is not None:

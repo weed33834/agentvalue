@@ -44,7 +44,11 @@ def temp_db(monkeypatch):
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
         db_url = f"sqlite+aiosqlite:///{tmp.name}"
 
-    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+    from sqlalchemy.ext.asyncio import (
+        AsyncSession,
+        async_sessionmaker,
+        create_async_engine,
+    )
     from core import database as db_module
 
     engine = create_async_engine(
@@ -266,7 +270,9 @@ class TestIsEnabledRules:
 
         hits, total = asyncio.run(_run())
         ratio = hits / total
-        assert 0.3 <= ratio <= 0.7, f"命中率 {ratio} 偏离 0.5 太多 (hits={hits}/{total})"
+        assert (
+            0.3 <= ratio <= 0.7
+        ), f"命中率 {ratio} 偏离 0.5 太多 (hits={hits}/{total})"
 
     def test_percentage_uses_tenant_id_when_no_user(self, initialized_db):
         """无 user_id 时, percentage 用 tenant_id 做分流"""
@@ -280,9 +286,7 @@ class TestIsEnabledRules:
                 enabled=True,
                 rollout_percentage=100,  # 100% 确保命中
             )
-            return await svc.is_enabled(
-                "tenant_percentage", tenant_id="tenant_x"
-            )
+            return await svc.is_enabled("tenant_percentage", tenant_id="tenant_x")
 
         # percentage=100 + tenant_id 提供时, 应命中
         assert asyncio.run(_run()) is True
@@ -362,9 +366,7 @@ class TestExplain:
         svc = FeatureFlagService(initialized_db)
 
         async def _run():
-            await svc.create_flag(
-                key="uhit", enabled=True, target_user_ids=["u1"]
-            )
+            await svc.create_flag(key="uhit", enabled=True, target_user_ids=["u1"])
             return await svc.explain("uhit", user_id="u1")
 
         r = asyncio.run(_run())
@@ -377,9 +379,7 @@ class TestExplain:
         svc = FeatureFlagService(initialized_db)
 
         async def _run():
-            await svc.create_flag(
-                key="thit", enabled=True, target_tenant_ids=["t1"]
-            )
+            await svc.create_flag(key="thit", enabled=True, target_tenant_ids=["t1"])
             return await svc.explain("thit", tenant_id="t1")
 
         r = asyncio.run(_run())
@@ -392,9 +392,7 @@ class TestExplain:
         svc = FeatureFlagService(initialized_db)
 
         async def _run():
-            await svc.create_flag(
-                key="rh", enabled=True, rollout_percentage=100
-            )
+            await svc.create_flag(key="rh", enabled=True, rollout_percentage=100)
             return await svc.explain("rh", user_id="u1")
 
         r = asyncio.run(_run())
@@ -409,9 +407,7 @@ class TestExplain:
         svc = FeatureFlagService(initialized_db)
 
         async def _run():
-            await svc.create_flag(
-                key="rm", enabled=True, rollout_percentage=0
-            )
+            await svc.create_flag(key="rm", enabled=True, rollout_percentage=0)
             return await svc.explain("rm", user_id="u1")
 
         r = asyncio.run(_run())
@@ -977,10 +973,11 @@ class TestRBAC:
 class TestIntegrationWithGraph:
     """验证 _rerank_kb_if_enabled 通过 Feature Flag 控制 rerank 行为"""
 
-    def test_flag_use_rerank_v2_not_exists_skips_rerank_in_dummy_mode(self, initialized_db):
+    def test_flag_use_rerank_v2_not_exists_skips_rerank_in_dummy_mode(
+        self, initialized_db
+    ):
         """flag 不存在 + dummy 模式 → 不调 rerank, 返回原 documents"""
         from agent.graph import _rerank_kb_if_enabled
-        from core.config import get_settings
 
         # 测试默认 settings.rerank_provider = "dummy" (conftest 没改这个字段)
         # 但保险起见, 显式设为 dummy
@@ -1018,7 +1015,6 @@ class TestIntegrationWithGraph:
         # 现在 flag 启用了, _rerank_kb_if_enabled 应该尝试调用 reranker
         # 由于 DummyRerankProvider.rerank 返回原列表 (验证不抛异常即可)
         from agent.graph import _rerank_kb_if_enabled
-        from core.config import get_settings
 
         settings = get_settings()
         original_rerank = getattr(settings, "rerank_provider", None)

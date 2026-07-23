@@ -33,7 +33,11 @@ _COMMAND_TOOL_KEYWORDS = {"bash", "command", "shell", "exec", "terminal", "cmd"}
 class ToolRegistry:
     """工具注册表（对齐 opencode ToolRegistry + SessionTools.resolve）"""
 
-    def __init__(self, toolkit: Optional[AgentToolkit] = None, settings: Optional[Settings] = None):
+    def __init__(
+        self,
+        toolkit: Optional[AgentToolkit] = None,
+        settings: Optional[Settings] = None,
+    ):
         self.toolkit = toolkit
         self.settings = settings
         self._tools: List[Any] = []
@@ -49,7 +53,11 @@ class ToolRegistry:
             self._tools = await build_all_tools(self.toolkit, self.settings)
             self._tools_by_name = {t.name: t for t in self._tools if hasattr(t, "name")}
             self._loaded = True
-            logger.info("ToolRegistry 加载 %d 个工具: %s", len(self._tools), list(self._tools_by_name.keys()))
+            logger.info(
+                "ToolRegistry 加载 %d 个工具: %s",
+                len(self._tools),
+                list(self._tools_by_name.keys()),
+            )
         return self._tools
 
     async def resolve_schemas(self) -> List[Dict[str, Any]]:
@@ -155,7 +163,11 @@ def _convert_tool_to_openai_schema(tool: Any) -> Optional[Dict[str, Any]]:
 
         return convert_to_openai_tool(tool)
     except Exception as e:
-        logger.debug("convert_to_openai_tool 失败 %s: %s, 手动构造", getattr(tool, "name", "?"), e)
+        logger.debug(
+            "convert_to_openai_tool 失败 %s: %s, 手动构造",
+            getattr(tool, "name", "?"),
+            e,
+        )
         # 手动构造兜底
         name = getattr(tool, "name", None)
         if not name:

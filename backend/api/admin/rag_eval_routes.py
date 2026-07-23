@@ -97,7 +97,9 @@ def _resolve_collection_name(
 # ============================================================
 
 
-@router.post("/tasks", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/tasks", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED
+)
 async def create_task(
     payload: RagEvalTaskCreate,
     request: Request,
@@ -128,7 +130,9 @@ async def create_task(
 async def list_tasks(
     request: Request,
     session: AsyncSession = Depends(get_db),
-    task_status: Optional[str] = Query(default=None, alias="status", description="按状态过滤"),
+    task_status: Optional[str] = Query(
+        default=None, alias="status", description="按状态过滤"
+    ),
     page: int = Query(default=1, ge=1, description="页码"),
     size: int = Query(default=20, ge=1, le=100, description="每页条数"),
 ):
@@ -166,7 +170,9 @@ async def run_task(
     task_id: int,
     request: Request,
     session: AsyncSession = Depends(get_db),
-    top_k: int = Query(default=DEFAULT_TOP_K, ge=1, le=50, description="检索返回的文档数"),
+    top_k: int = Query(
+        default=DEFAULT_TOP_K, ge=1, le=50, description="检索返回的文档数"
+    ),
 ):
     """启动 RAG 评测任务 (异步后台执行, 不阻塞 API 响应)
 

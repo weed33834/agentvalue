@@ -126,11 +126,34 @@ TABLE calibration_items (校准项):
 
 # 禁止的 SQL 关键词 (DML/DDL/事务控制/系统命令)
 _FORBIDDEN_KEYWORDS = [
-    "INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE",
-    "TRUNCATE", "GRANT", "REVOKE", "ATTACH", "DETACH", "PRAGMA",
-    "REPLACE", "MERGE", "CALL", "EXEC", "EXECUTE", "COMMIT",
-    "ROLLBACK", "SAVEPOINT", "VACUUM", "REINDEX", "BEGIN",
-    "END", "DETACH", "LOAD", "IMPORT", "EXPORT",
+    "INSERT",
+    "UPDATE",
+    "DELETE",
+    "DROP",
+    "ALTER",
+    "CREATE",
+    "TRUNCATE",
+    "GRANT",
+    "REVOKE",
+    "ATTACH",
+    "DETACH",
+    "PRAGMA",
+    "REPLACE",
+    "MERGE",
+    "CALL",
+    "EXEC",
+    "EXECUTE",
+    "COMMIT",
+    "ROLLBACK",
+    "SAVEPOINT",
+    "VACUUM",
+    "REINDEX",
+    "BEGIN",
+    "END",
+    "DETACH",
+    "LOAD",
+    "IMPORT",
+    "EXPORT",
 ]
 
 
@@ -140,7 +163,9 @@ _FORBIDDEN_KEYWORDS = [
 class InsightQuery(BaseModel):
     """自然语言HR查询请求"""
 
-    question: str = Field(..., description="自然语言问题, 如 '研发部绩效最高的5个人是谁?'")
+    question: str = Field(
+        ..., description="自然语言问题, 如 '研发部绩效最高的5个人是谁?'"
+    )
     context: Optional[Dict[str, Any]] = Field(
         None, description="额外上下文, 如 {period: '2026-W20'}"
     )
@@ -150,7 +175,9 @@ class ExportRequest(BaseModel):
     """导出洞察报告请求"""
 
     data: List[Dict[str, Any]] = Field(..., description="结构化数据(表格行)")
-    columns: List[Dict[str, Any]] = Field(..., description="列定义 [{key, label, type}]")
+    columns: List[Dict[str, Any]] = Field(
+        ..., description="列定义 [{key, label, type}]"
+    )
     format: str = Field("csv", description="导出格式: csv 或 json")
     filename: Optional[str] = Field(None, description="文件名(不含扩展名)")
 
@@ -497,9 +524,7 @@ async def query_insights(
     try:
         # 步骤1: LLM 将自然语言转换为 SQL
         try:
-            raw_sql = await _generate_sql(
-                app_state, question, tenant_id, body.context
-            )
+            raw_sql = await _generate_sql(app_state, question, tenant_id, body.context)
         except RuntimeError as e:
             logger.error("LLM Provider 不可用: %s", e)
             raise HTTPException(
@@ -539,9 +564,7 @@ async def query_insights(
 
         # 步骤5: LLM 生成自然语言回答 + 图表建议
         try:
-            llm_result = await _generate_answer(
-                app_state, question, rows, columns
-            )
+            llm_result = await _generate_answer(app_state, question, rows, columns)
             answer = llm_result.get("answer", "")
             chart_suggestion = llm_result.get("chart_suggestion")
         except Exception as e:
@@ -691,9 +714,7 @@ async def get_dashboard(
     )
 
     # trend: 与上期对比趋势 (SQL 查询)
-    trend = await _get_period_trend(
-        session, period, tenant_id, member_id_list
-    )
+    trend = await _get_period_trend(session, period, tenant_id, member_id_list)
 
     return {
         "period": period,
@@ -791,9 +812,9 @@ async def _get_period_trend(
             "current_eval_count": int(current.get("eval_count") or 0) if current else 0,
             "previous_period": previous.get("period") if previous else None,
             "previous_avg_score": round(previous_avg, 2) if previous else None,
-            "previous_eval_count": int(previous.get("eval_count") or 0)
-            if previous
-            else 0,
+            "previous_eval_count": (
+                int(previous.get("eval_count") or 0) if previous else 0
+            ),
             "delta": delta,
             "direction": direction,
         }

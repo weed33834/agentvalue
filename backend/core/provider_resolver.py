@@ -39,14 +39,18 @@ async def get_provider_for_model(model_name: str) -> Optional[BaseProvider]:
 
     # 1. 先查 DB：tenant 是否为该 model 配置过凭证
     try:
-        provider_name, credentials = await _lookup_tenant_credential_for_model(model_name)
+        provider_name, credentials = await _lookup_tenant_credential_for_model(
+            model_name
+        )
     except Exception as e:
         logger.warning("_lookup_tenant_credential_for_model 失败: %s", e)
         provider_name, credentials = None, None
 
     # 2. 若 DB 未命中，按 model_name 前缀推断 provider + 从 settings 兜底
     if provider_name is None:
-        provider_name, credentials = _infer_provider_from_model_name(model_name, settings)
+        provider_name, credentials = _infer_provider_from_model_name(
+            model_name, settings
+        )
 
     if provider_name is None:
         logger.warning("无法识别 model_name=%s 的 provider 类型", model_name)
@@ -69,7 +73,9 @@ async def get_provider_for_model(model_name: str) -> Optional[BaseProvider]:
     return _instantiate_provider(provider_name, config)
 
 
-def _instantiate_provider(provider_name: str, config: ProviderConfig) -> Optional[BaseProvider]:
+def _instantiate_provider(
+    provider_name: str, config: ProviderConfig
+) -> Optional[BaseProvider]:
     """按 provider_name 实例化对应 Provider。"""
     from core.providers import (
         AnthropicProvider,
@@ -150,7 +156,9 @@ def _infer_provider_from_model_name(
     """按 model_name 前缀推断 provider，凭证从 settings 兜底。"""
     name = (model_name or "").lower()
     if name.startswith("claude") or "anthropic" in name:
-        return "anthropic", {"api_key": getattr(settings, "anthropic_api_key", None) or ""}
+        return "anthropic", {
+            "api_key": getattr(settings, "anthropic_api_key", None) or ""
+        }
     if name.startswith("gemini") or "gemini" in name:
         return "gemini", {"api_key": getattr(settings, "gemini_api_key", None) or ""}
     if (
@@ -160,7 +168,8 @@ def _infer_provider_from_model_name(
         or ":" in name
     ):
         return "ollama", {
-            "api_base": getattr(settings, "local_base_url", None) or "http://localhost:11434"
+            "api_base": getattr(settings, "local_base_url", None)
+            or "http://localhost:11434"
         }
     # 默认 OpenAI 兼容
     api_key = settings.cloud_api_key or getattr(settings, "openai_api_key", None)

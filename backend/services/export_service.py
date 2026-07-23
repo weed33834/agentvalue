@@ -108,15 +108,11 @@ class ExportService:
                     "overall_score": ev.overall_score,
                     "status": ev.status,
                     "archived": ev.archived,
-                    "created_at": ev.created_at.isoformat()
-                    if ev.created_at
-                    else None,
-                    "updated_at": ev.updated_at.isoformat()
-                    if ev.updated_at
-                    else None,
-                    "approved_at": ev.approved_at.isoformat()
-                    if ev.approved_at
-                    else None,
+                    "created_at": ev.created_at.isoformat() if ev.created_at else None,
+                    "updated_at": ev.updated_at.isoformat() if ev.updated_at else None,
+                    "approved_at": (
+                        ev.approved_at.isoformat() if ev.approved_at else None
+                    ),
                     "approver_id": ev.approver_id,
                 }
             )
@@ -163,13 +159,15 @@ class ExportService:
                     "action": log.action,
                     "evaluation_id": log.evaluation_id,
                     "employee_id": log.employee_id,
-                    "details": json.dumps(log.details, ensure_ascii=False)
-                    if log.details
-                    else "",
+                    "details": (
+                        json.dumps(log.details, ensure_ascii=False)
+                        if log.details
+                        else ""
+                    ),
                     "ip_address": log.ip_address,
-                    "created_at": log.created_at.isoformat()
-                    if log.created_at
-                    else None,
+                    "created_at": (
+                        log.created_at.isoformat() if log.created_at else None
+                    ),
                 }
             )
         return rows
@@ -244,9 +242,7 @@ class ExportService:
                     "category": n.category,
                     "is_read": n.is_read,
                     "read_at": n.read_at.isoformat() if n.read_at else None,
-                    "created_at": n.created_at.isoformat()
-                    if n.created_at
-                    else None,
+                    "created_at": n.created_at.isoformat() if n.created_at else None,
                 }
             )
         return rows
@@ -302,9 +298,7 @@ class ExportService:
                     "period": ev.period,
                     "overall_score": ev.overall_score,
                     "status": ev.status,
-                    "created_at": ev.created_at.isoformat()
-                    if ev.created_at
-                    else None,
+                    "created_at": ev.created_at.isoformat() if ev.created_at else None,
                 }
             )
         return rows
@@ -327,8 +321,10 @@ class ExportService:
 
         rows: List[Dict[str, Any]] = []
         for emp_id, ev in latest_by_emp.items():
-            risk_level = "high" if ev.overall_score < 60 else (
-                "medium" if ev.overall_score < 70 else "low"
+            risk_level = (
+                "high"
+                if ev.overall_score < 60
+                else ("medium" if ev.overall_score < 70 else "low")
             )
             rows.append(
                 {

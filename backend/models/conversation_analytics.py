@@ -35,9 +35,13 @@ class ConversationMetrics(Base):
         String(128), index=True, nullable=False
     )
     # 发起用户 ID
-    user_id: Mapped[Optional[str]] = mapped_column(String(64), index=True, nullable=True)
+    user_id: Mapped[Optional[str]] = mapped_column(
+        String(64), index=True, nullable=True
+    )
     # 处理该会话的 Agent ID
-    agent_id: Mapped[Optional[str]] = mapped_column(String(64), index=True, nullable=True)
+    agent_id: Mapped[Optional[str]] = mapped_column(
+        String(64), index=True, nullable=True
+    )
     # 调用的模型名（如 gpt-4o-mini）
     model: Mapped[Optional[str]] = mapped_column(String(128), index=True, nullable=True)
     # 输入 token 数

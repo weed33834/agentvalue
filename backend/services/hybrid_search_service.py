@@ -106,9 +106,7 @@ class _PurePythonBM25Okapi:
                 idf = self.idf.get(token, 0.0)
                 # BM25 分数公式
                 if self.avgdl > 0:
-                    denom = tf + self.k1 * (
-                        1 - self.b + self.b * doc_len / self.avgdl
-                    )
+                    denom = tf + self.k1 * (1 - self.b + self.b * doc_len / self.avgdl)
                 else:
                     denom = tf + self.k1
                 scores[i] += idf * tf * (self.k1 + 1) / denom
@@ -165,7 +163,9 @@ class HybridSearchService:
         settings: Optional[Settings] = None,
     ):
         self.kb_store = kb_store
-        self.settings = settings or getattr(kb_store, "settings", None) or get_settings()
+        self.settings = (
+            settings or getattr(kb_store, "settings", None) or get_settings()
+        )
         # BM25 索引缓存：{collection_name: (bm25_instance, doc_list, doc_id_list, doc_meta_list)}
         # 每次 incremental_update 或文档变更后清除缓存，下次检索时重建
         self._bm25_cache: Dict[str, Tuple[Any, List[str], List[str], List[dict]]] = {}
@@ -401,8 +401,8 @@ class HybridSearchService:
         对查询打分后按 metadata_filter 过滤。
         """
         # 获取或构建 BM25 索引
-        bm25_instance, doc_texts, doc_ids, doc_metas = await self._get_or_build_bm25_index(
-            collection_name
+        bm25_instance, doc_texts, doc_ids, doc_metas = (
+            await self._get_or_build_bm25_index(collection_name)
         )
 
         if not doc_texts:
@@ -590,7 +590,9 @@ class HybridSearchService:
                     {
                         "id": doc_id,
                         "content": documents[i] if i < len(documents) else "",
-                        "metadata": metadatas[i] if i < len(metadatas) and metadatas[i] else {},
+                        "metadata": (
+                            metadatas[i] if i < len(metadatas) and metadatas[i] else {}
+                        ),
                     }
                 )
         except Exception as e:
@@ -612,9 +614,11 @@ class HybridSearchService:
                         {
                             "id": doc_id,
                             "content": documents[i] if i < len(documents) else "",
-                            "metadata": metadatas[i]
-                            if i < len(metadatas) and metadatas[i]
-                            else {},
+                            "metadata": (
+                                metadatas[i]
+                                if i < len(metadatas) and metadatas[i]
+                                else {}
+                            ),
                         }
                     )
             except Exception as e:
@@ -869,7 +873,9 @@ class HybridSearchService:
                 raise
         await asyncio.to_thread(collection.upsert, **upsert_kwargs)
 
-    def _chunk_text(self, content: str, chunk_size: int, chunk_overlap: int) -> List[str]:
+    def _chunk_text(
+        self, content: str, chunk_size: int, chunk_overlap: int
+    ) -> List[str]:
         """按 chunk_size 切分文本，带 chunk_overlap 重叠"""
         if chunk_size <= 0 or len(content) <= chunk_size:
             return [content] if content.strip() else []
@@ -930,9 +936,7 @@ class HybridSearchService:
         """
         if not metadata_filter:
             return None
-        conditions = [
-            {k: v for k, v in metadata_filter.items() if v is not None}
-        ]
+        conditions = [{k: v for k, v in metadata_filter.items() if v is not None}]
         conditions = [c for c in conditions if c]
         if not conditions:
             return None

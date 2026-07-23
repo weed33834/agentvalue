@@ -56,9 +56,7 @@ class ChatSession(Base):
     user_id: Mapped[str] = mapped_column(
         String(64), ForeignKey("users.user_id"), index=True, nullable=False
     )
-    title: Mapped[str] = mapped_column(
-        String(256), nullable=False, default="新对话"
-    )
+    title: Mapped[str] = mapped_column(String(256), nullable=False, default="新对话")
     model_name: Mapped[str] = mapped_column(
         String(128), nullable=False, default="glm-4.7"
     )
@@ -77,9 +75,7 @@ class ChatSession(Base):
         DateTime(timezone=True), default=now_utc, onupdate=now_utc
     )
 
-    __table_args__ = (
-        Index("ix_chat_session_tenant_user", "tenant_id", "user_id"),
-    )
+    __table_args__ = (Index("ix_chat_session_tenant_user", "tenant_id", "user_id"),)
 
 
 class ChatMessage(Base):
@@ -120,9 +116,7 @@ class ChatMessage(Base):
         DateTime(timezone=True), nullable=True
     )
 
-    __table_args__ = (
-        Index("ix_chat_msg_session_created", "session_id", "created_at"),
-    )
+    __table_args__ = (Index("ix_chat_msg_session_created", "session_id", "created_at"),)
 
 
 class ChatPart(Base):
@@ -179,6 +173,4 @@ class ChatPart(Base):
         DateTime(timezone=True), default=now_utc, onupdate=now_utc
     )
 
-    __table_args__ = (
-        Index("ix_chat_part_msg_seq", "message_id", "sequence"),
-    )
+    __table_args__ = (Index("ix_chat_part_msg_seq", "message_id", "sequence"),)

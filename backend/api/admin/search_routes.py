@@ -44,7 +44,10 @@ router = APIRouter(
 # ============================================================
 
 _DEFAULT_CONFIG_MAP = {
-    "default_alpha": {"value": "0.5", "description": "混合检索默认权重（0=纯BM25, 1=纯向量, 0.5=等权混合）"},
+    "default_alpha": {
+        "value": "0.5",
+        "description": "混合检索默认权重（0=纯BM25, 1=纯向量, 0.5=等权混合）",
+    },
     "bm25_enabled": {"value": "true", "description": "是否启用 BM25 全文检索"},
     "rrf_k": {"value": "60", "description": "RRF (Reciprocal Rank Fusion) 常数 k"},
     "bm25_k1": {"value": "1.5", "description": "BM25 参数 k1（词频饱和度）"},
@@ -68,7 +71,7 @@ class HybridSearchRequest(BaseModel):
         default=0.5, ge=0.0, le=1.0, description="向量/BM25权重（0=纯BM25, 1=纯向量）"
     )
     metadata_filter: Optional[Dict[str, Any]] = Field(
-        default=None, description="元数据过滤条件，如 {\"source\": \"hr_manual\"}"
+        default=None, description='元数据过滤条件，如 {"source": "hr_manual"}'
     )
     collection_name: Optional[str] = Field(
         default=None, max_length=128, description="ChromaDB collection 名称"
@@ -116,9 +119,7 @@ class UpdateSearchConfigRequest(BaseModel):
     bm25_enabled: Optional[bool] = Field(
         default=None, description="是否启用 BM25 全文检索"
     )
-    rrf_k: Optional[int] = Field(
-        default=None, ge=1, le=1000, description="RRF 常数 k"
-    )
+    rrf_k: Optional[int] = Field(default=None, ge=1, le=1000, description="RRF 常数 k")
     bm25_k1: Optional[float] = Field(
         default=None, ge=0.0, le=10.0, description="BM25 参数 k1"
     )
@@ -132,10 +133,10 @@ class IncrementalUpdateRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    content: str = Field(..., min_length=1, max_length=100000, description="新的文档全文")
-    metadata: Optional[Dict[str, Any]] = Field(
-        default=None, description="文档元数据"
+    content: str = Field(
+        ..., min_length=1, max_length=100000, description="新的文档全文"
     )
+    metadata: Optional[Dict[str, Any]] = Field(default=None, description="文档元数据")
 
 
 # ============================================================

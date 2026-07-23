@@ -41,7 +41,9 @@ class PromptOptimizationTask(Base):
     # 优化后 Prompt（优化完成后填充）
     optimized_prompt: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # 任务类型: improve | simplify | translate | specialize
-    task_type: Mapped[str] = mapped_column(String(32), nullable=False, default="improve")
+    task_type: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="improve"
+    )
     # 使用的模型档位（L0/L1/L2/L3 或模型名）
     model_used: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     # 优化建议列表: [{"type": "clarity", "comment": "..."}, ...]

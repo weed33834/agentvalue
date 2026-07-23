@@ -45,9 +45,7 @@ class CustomTool(Base):
         String(32), nullable=False, default="none", server_default="none"
     )
     # 加密后的凭证 (FieldCipher 加密后 base64 字符串,none 时为 None)
-    auth_credentials: Mapped[Optional[str]] = mapped_column(
-        String(512), nullable=True
-    )
+    auth_credentials: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     # 启用状态 (禁用的工具不会加载到 ReAct Agent)
     enabled: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default="1"

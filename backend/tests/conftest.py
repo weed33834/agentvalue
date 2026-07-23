@@ -22,9 +22,7 @@ def test_settings(monkeypatch):
     # SettingsConfigDict 是 dict 子类，但 .copy() 不接受 keyword 参数，用 unpacking 重建
     from pydantic_settings import SettingsConfigDict
 
-    new_config = SettingsConfigDict(
-        **{**Settings.model_config, "env_file": None}
-    )
+    new_config = SettingsConfigDict(**{**Settings.model_config, "env_file": None})
     monkeypatch.setattr(Settings, "model_config", new_config)
     # 注意：不调用 get_settings.cache_clear()，避免破坏 e2e module-scope fixture
     # 持有的 settings 实例引用（e2e_demo_mode 直接修改该实例的 jwt_secret_key）。

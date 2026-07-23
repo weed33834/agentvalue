@@ -208,15 +208,51 @@ SAMPLE_BYTES = 4096
 # 二进制文件扩展名黑名单 (参考 opencode read.ts isBinaryFile)
 BINARY_EXTENSIONS = frozenset(
     {
-        ".zip", ".tar", ".gz", ".exe", ".dll", ".so",
-        ".class", ".jar", ".war", ".7z",
-        ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
-        ".odt", ".ods", ".odp",
-        ".bin", ".dat", ".obj", ".o", ".a", ".lib",
-        ".wasm", ".pyc", ".pyo",
-        ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico",
-        ".bmp", ".tiff", ".mp3", ".mp4", ".avi", ".mov",
-        ".pdf", ".eot", ".ttf", ".woff", ".woff2",
+        ".zip",
+        ".tar",
+        ".gz",
+        ".exe",
+        ".dll",
+        ".so",
+        ".class",
+        ".jar",
+        ".war",
+        ".7z",
+        ".doc",
+        ".docx",
+        ".xls",
+        ".xlsx",
+        ".ppt",
+        ".pptx",
+        ".odt",
+        ".ods",
+        ".odp",
+        ".bin",
+        ".dat",
+        ".obj",
+        ".o",
+        ".a",
+        ".lib",
+        ".wasm",
+        ".pyc",
+        ".pyo",
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".webp",
+        ".ico",
+        ".bmp",
+        ".tiff",
+        ".mp3",
+        ".mp4",
+        ".avi",
+        ".mov",
+        ".pdf",
+        ".eot",
+        ".ttf",
+        ".woff",
+        ".woff2",
     }
 )
 
@@ -364,7 +400,9 @@ def _generate_diff(old_content: str, new_content: str, file_path: str) -> str:
     return result if result else "(无差异)"
 
 
-def _find_similar_lines(target: str, content: str, max_suggestions: int = 3) -> List[str]:
+def _find_similar_lines(
+    target: str, content: str, max_suggestions: int = 3
+) -> List[str]:
     """在文件内容中查找与目标相似的行。
 
     使用 difflib.get_close_matches 进行模糊匹配。
@@ -629,10 +667,7 @@ async def read_file(file_path: str, offset: int = 1, limit: int = 2000) -> str:
             except OSError:
                 entries = []
             for entry in entries:
-                if (
-                    base.lower() in entry.lower()
-                    or entry.lower() in base.lower()
-                ):
+                if base.lower() in entry.lower() or entry.lower() in base.lower():
                     suggestions.append(os.path.join(parent, entry))
         if suggestions:
             hint = "\n\n你是否想读取以下文件?\n" + "\n".join(suggestions[:3])
@@ -666,9 +701,7 @@ async def read_file(file_path: str, offset: int = 1, limit: int = 2000) -> str:
     end = start + limit
 
     if start >= total_lines and total_lines > 0:
-        return (
-            f"offset {offset} 超出文件范围 (文件共 {total_lines} 行)"
-        )
+        return f"offset {offset} 超出文件范围 (文件共 {total_lines} 行)"
 
     selected = all_lines[start:end]
     truncated = end < total_lines
@@ -919,9 +952,7 @@ async def list_directory(path: str = ".", pattern: str = "*") -> str:
 
 
 @_lc_tool
-async def search_files(
-    pattern: str, path: str = ".", include: str = "*"
-) -> str:
+async def search_files(pattern: str, path: str = ".", include: str = "*") -> str:
     """搜索文件内容 (grep), 使用正则表达式。
 
     优先使用 ripgrep (rg) 进行搜索 (如果系统可用), 否则降级到 Python re。
@@ -973,8 +1004,10 @@ async def search_files(
                 rg_path,
                 "--no-heading",
                 "-n",
-                "--color", "never",
-                "-g", include,
+                "--color",
+                "never",
+                "-g",
+                include,
                 pattern,
                 search_dir,
             ]
@@ -983,9 +1016,7 @@ async def search_files(
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, _stderr = await asyncio.wait_for(
-                proc.communicate(), timeout=30
-            )
+            stdout, _stderr = await asyncio.wait_for(proc.communicate(), timeout=30)
             if stdout:
                 for line in stdout.decode("utf-8", errors="replace").splitlines():
                     if len(matches) >= SEARCH_MAX_RESULTS:
@@ -1064,9 +1095,7 @@ async def search_files(
 
 
 @_lc_tool
-async def run_command(
-    command: str, workdir: str = "", timeout: int = 30
-) -> str:
+async def run_command(command: str, workdir: str = "", timeout: int = 30) -> str:
     """执行命令 (安全模式, 不使用 shell)。
 
     使用 shlex.split + shell=False 执行命令, 避免 shell 注入风险。
@@ -1127,9 +1156,7 @@ async def run_command(
 
     # 等待完成 (带超时)
     try:
-        stdout, stderr = await asyncio.wait_for(
-            proc.communicate(), timeout=timeout
-        )
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
     except asyncio.TimeoutError:
         # 超时: 终止进程
         try:
@@ -1137,10 +1164,7 @@ async def run_command(
             await proc.wait()
         except ProcessLookupError:
             pass  # 进程已退出
-        return (
-            f"命令超时 ({timeout}秒), 已终止进程。\n"
-            f"命令: {command}"
-        )
+        return f"命令超时 ({timeout}秒), 已终止进程。\n" f"命令: {command}"
 
     # 构建输出
     result_parts: List[str] = []

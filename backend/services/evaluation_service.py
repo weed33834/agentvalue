@@ -753,9 +753,7 @@ class EvaluationService:
         await self.session.flush()
         return True
 
-    async def batch_create_users(
-        self, tenant_id: str, users: List[Dict]
-    ) -> List[User]:
+    async def batch_create_users(self, tenant_id: str, users: List[Dict]) -> List[User]:
         """批量创建用户（不 commit，由调用方控制事务）
 
         每个用户 dict 需包含 user_id + name，其余字段可选。

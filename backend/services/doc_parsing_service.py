@@ -153,8 +153,10 @@ class DocParsingService:
 
         offset = (page - 1) * size
         rows = (
-            await self.session.execute(base.offset(offset).limit(size))
-        ).scalars().all()
+            (await self.session.execute(base.offset(offset).limit(size)))
+            .scalars()
+            .all()
+        )
 
         return {
             "items": [self._task_to_dict(t) for t in rows],
@@ -163,9 +165,7 @@ class DocParsingService:
             "size": size,
         }
 
-    async def delete_task(
-        self, task_id: int, *, tenant_id: str = "default"
-    ) -> bool:
+    async def delete_task(self, task_id: int, *, tenant_id: str = "default") -> bool:
         """删除解析任务 (级联删除结果)"""
         task = await self.get_task(task_id, tenant_id=tenant_id)
         if task is None:
@@ -186,9 +186,13 @@ class DocParsingService:
             tenant_id: 租户 ID (用于设置后台任务租户上下文)。
         """
         asyncio.create_task(self._run_processing(task_id, tenant_id=tenant_id))
-        logger.info("调度文档解析任务 task_id=%s tenant=%s (后台执行)", task_id, tenant_id)
+        logger.info(
+            "调度文档解析任务 task_id=%s tenant=%s (后台执行)", task_id, tenant_id
+        )
 
-    async def _run_processing(self, task_id: int, *, tenant_id: str = "default") -> None:
+    async def _run_processing(
+        self, task_id: int, *, tenant_id: str = "default"
+    ) -> None:
         """后台执行解析 (独立 session)
 
         使用 tenant_scope 设置租户上下文, 确保后台任务的租户隔离 (M1)。
@@ -251,7 +255,10 @@ class DocParsingService:
         try:
             # 解析逻辑是同步的, 用 to_thread 包装
             parse_result = await asyncio.to_thread(
-                self._dispatch_parse, task.file_path, task.file_type, task.parse_strategy
+                self._dispatch_parse,
+                task.file_path,
+                task.file_type,
+                task.parse_strategy,
             )
 
             # 写入解析结果
@@ -340,8 +347,7 @@ class DocParsingService:
             allowed_root + os.sep
         ):
             raise ValueError(
-                f"文件路径不在允许的目录内: {file_path} "
-                f"(允许目录: {allowed_root})"
+                f"文件路径不在允许的目录内: {file_path} " f"(允许目录: {allowed_root})"
             )
         return real_path
 
@@ -414,9 +420,7 @@ class DocParsingService:
         try:
             import pdfplumber  # type: ignore
         except ImportError:
-            raise ValueError(
-                "pdfplumber 未安装, 请运行 pip install pdfplumber 后重试"
-            )
+            raise ValueError("pdfplumber 未安装, 请运行 pip install pdfplumber 后重试")
 
         results: List[Dict[str, Any]] = []
         page_count = 0
@@ -430,51 +434,59 @@ class DocParsingService:
                 page_text = page.extract_text() or ""
                 if page_text.strip():
                     # 按段落分割 (空行分隔)
-                    paragraphs = [p.strip() for p in page_text.split("\n\n") if p.strip()]
+                    paragraphs = [
+                        p.strip() for p in page_text.split("\n\n") if p.strip()
+                    ]
                     if not paragraphs:
                         paragraphs = [page_text.strip()]
                     for para in paragraphs:
-                        results.append({
-                            "page_num": page_idx,
-                            "content_type": "text",
-                            "content": para,
-                            "bounding_box": None,
-                            "metadata": {"char_count": len(para)},
-                        })
+                        results.append(
+                            {
+                                "page_num": page_idx,
+                                "content_type": "text",
+                                "content": para,
+                                "bounding_box": None,
+                                "metadata": {"char_count": len(para)},
+                            }
+                        )
 
                 # 2. 提取表格
                 tables = self._extract_tables(page)
                 for table in tables:
-                    results.append({
-                        "page_num": page_idx,
-                        "content_type": "table",
-                        "content": json.dumps(table, ensure_ascii=False),
-                        "bounding_box": None,
-                        "metadata": {
-                            "rows": len(table.get("rows", [])),
-                            "columns": len(table.get("headers", [])),
-                        },
-                    })
+                    results.append(
+                        {
+                            "page_num": page_idx,
+                            "content_type": "table",
+                            "content": json.dumps(table, ensure_ascii=False),
+                            "bounding_box": None,
+                            "metadata": {
+                                "rows": len(table.get("rows", [])),
+                                "columns": len(table.get("headers", [])),
+                            },
+                        }
+                    )
                     table_count += 1
 
                 # 3. 提取图片 (用 PyMuPDF 备选, 或记录 image bbox)
                 images = page.images or []
                 for img in images:
-                    results.append({
-                        "page_num": page_idx,
-                        "content_type": "image",
-                        "content": f"image_page{page_idx}_{image_count}",
-                        "bounding_box": {
-                            "x0": float(img.get("x0", 0)),
-                            "y0": float(img.get("top", 0)),
-                            "x1": float(img.get("x1", 0)),
-                            "y1": float(img.get("bottom", 0)),
-                        },
-                        "metadata": {
-                            "width": float(img.get("width", 0)),
-                            "height": float(img.get("height", 0)),
-                        },
-                    })
+                    results.append(
+                        {
+                            "page_num": page_idx,
+                            "content_type": "image",
+                            "content": f"image_page{page_idx}_{image_count}",
+                            "bounding_box": {
+                                "x0": float(img.get("x0", 0)),
+                                "y0": float(img.get("top", 0)),
+                                "x1": float(img.get("x1", 0)),
+                                "y1": float(img.get("bottom", 0)),
+                            },
+                            "metadata": {
+                                "width": float(img.get("width", 0)),
+                                "height": float(img.get("height", 0)),
+                            },
+                        }
+                    )
                     image_count += 1
 
         return {
@@ -508,16 +520,20 @@ class DocParsingService:
                 if not table or len(table) < 1:
                     continue
                 # 第一行作为表头
-                headers = [str(c).strip() if c else f"col_{i}" for i, c in enumerate(table[0])]
+                headers = [
+                    str(c).strip() if c else f"col_{i}" for i, c in enumerate(table[0])
+                ]
                 rows = []
                 for row in table[1:]:
                     rows.append([str(c).strip() if c is not None else "" for c in row])
-                tables_out.append({
-                    "headers": headers,
-                    "rows": rows,
-                    "row_count": len(rows),
-                    "col_count": len(headers),
-                })
+                tables_out.append(
+                    {
+                        "headers": headers,
+                        "rows": rows,
+                        "row_count": len(rows),
+                        "col_count": len(headers),
+                    }
+                )
         except Exception as e:
             logger.warning("表格提取失败: %s", e)
         return tables_out
@@ -575,29 +591,35 @@ class DocParsingService:
                             if ch.isdigit():
                                 level = int(ch)
                                 break
-                        results.append({
-                            "page_num": page_num,
-                            "content_type": "heading",
-                            "content": text,
-                            "bounding_box": None,
-                            "metadata": {"level": level, "style": style_name},
-                        })
+                        results.append(
+                            {
+                                "page_num": page_num,
+                                "content_type": "heading",
+                                "content": text,
+                                "bounding_box": None,
+                                "metadata": {"level": level, "style": style_name},
+                            }
+                        )
                     elif "list" in style_name:
-                        results.append({
-                            "page_num": page_num,
-                            "content_type": "list",
-                            "content": text,
-                            "bounding_box": None,
-                            "metadata": {"style": style_name},
-                        })
+                        results.append(
+                            {
+                                "page_num": page_num,
+                                "content_type": "list",
+                                "content": text,
+                                "bounding_box": None,
+                                "metadata": {"style": style_name},
+                            }
+                        )
                     else:
-                        results.append({
-                            "page_num": page_num,
-                            "content_type": "text",
-                            "content": text,
-                            "bounding_box": None,
-                            "metadata": {"char_count": len(text)},
-                        })
+                        results.append(
+                            {
+                                "page_num": page_num,
+                                "content_type": "text",
+                                "content": text,
+                                "bounding_box": None,
+                                "metadata": {"char_count": len(text)},
+                            }
+                        )
             elif child.tag.endswith("}tbl"):
                 if table_idx < len(tables):
                     table = tables[table_idx]
@@ -612,16 +634,18 @@ class DocParsingService:
                         "row_count": max(0, len(rows_data) - 1),
                         "col_count": len(headers),
                     }
-                    results.append({
-                        "page_num": page_num,
-                        "content_type": "table",
-                        "content": json.dumps(table_json, ensure_ascii=False),
-                        "bounding_box": None,
-                        "metadata": {
-                            "rows": table_json["row_count"],
-                            "columns": table_json["col_count"],
-                        },
-                    })
+                    results.append(
+                        {
+                            "page_num": page_num,
+                            "content_type": "table",
+                            "content": json.dumps(table_json, ensure_ascii=False),
+                            "bounding_box": None,
+                            "metadata": {
+                                "rows": table_json["row_count"],
+                                "columns": table_json["col_count"],
+                            },
+                        }
+                    )
                     table_count += 1
 
         return {
@@ -644,9 +668,7 @@ class DocParsingService:
         try:
             from openpyxl import load_workbook  # type: ignore
         except ImportError:
-            raise ValueError(
-                "openpyxl 未安装, 请运行 pip install openpyxl 后重试"
-            )
+            raise ValueError("openpyxl 未安装, 请运行 pip install openpyxl 后重试")
 
         results: List[Dict[str, Any]] = []
         table_count = 0
@@ -672,17 +694,19 @@ class DocParsingService:
                 "col_count": len(headers),
                 "sheet_name": sheet.title,
             }
-            results.append({
-                "page_num": sheet_idx,
-                "content_type": "table",
-                "content": json.dumps(table_json, ensure_ascii=False),
-                "bounding_box": None,
-                "metadata": {
-                    "sheet_name": sheet.title,
-                    "rows": len(data_rows),
-                    "columns": len(headers),
-                },
-            })
+            results.append(
+                {
+                    "page_num": sheet_idx,
+                    "content_type": "table",
+                    "content": json.dumps(table_json, ensure_ascii=False),
+                    "bounding_box": None,
+                    "metadata": {
+                        "sheet_name": sheet.title,
+                        "rows": len(data_rows),
+                        "columns": len(headers),
+                    },
+                }
+            )
             table_count += 1
         wb.close()
 
@@ -722,13 +746,15 @@ class DocParsingService:
                     if text:
                         # 第一张幻灯片的标题作为 heading
                         is_title = shape == slide.shapes.title
-                        results.append({
-                            "page_num": slide_idx,
-                            "content_type": "heading" if is_title else "text",
-                            "content": text,
-                            "bounding_box": None,
-                            "metadata": {"shape_name": shape.name},
-                        })
+                        results.append(
+                            {
+                                "page_num": slide_idx,
+                                "content_type": "heading" if is_title else "text",
+                                "content": text,
+                                "bounding_box": None,
+                                "metadata": {"shape_name": shape.name},
+                            }
+                        )
                 if shape.has_table:
                     tbl = shape.table
                     rows_data = []
@@ -741,29 +767,33 @@ class DocParsingService:
                         "row_count": max(0, len(rows_data) - 1),
                         "col_count": len(headers),
                     }
-                    results.append({
-                        "page_num": slide_idx,
-                        "content_type": "table",
-                        "content": json.dumps(table_json, ensure_ascii=False),
-                        "bounding_box": None,
-                        "metadata": {
-                            "rows": table_json["row_count"],
-                            "columns": table_json["col_count"],
-                        },
-                    })
+                    results.append(
+                        {
+                            "page_num": slide_idx,
+                            "content_type": "table",
+                            "content": json.dumps(table_json, ensure_ascii=False),
+                            "bounding_box": None,
+                            "metadata": {
+                                "rows": table_json["row_count"],
+                                "columns": table_json["col_count"],
+                            },
+                        }
+                    )
                     table_count += 1
                 if shape.shape_type == 13:  # PICTURE
-                    results.append({
-                        "page_num": slide_idx,
-                        "content_type": "image",
-                        "content": f"image_slide{slide_idx}_{image_count}",
-                        "bounding_box": None,
-                        "metadata": {
-                            "shape_name": shape.name,
-                            "width": int(shape.width) if shape.width else 0,
-                            "height": int(shape.height) if shape.height else 0,
-                        },
-                    })
+                    results.append(
+                        {
+                            "page_num": slide_idx,
+                            "content_type": "image",
+                            "content": f"image_slide{slide_idx}_{image_count}",
+                            "bounding_box": None,
+                            "metadata": {
+                                "shape_name": shape.name,
+                                "width": int(shape.width) if shape.width else 0,
+                                "height": int(shape.height) if shape.height else 0,
+                            },
+                        }
+                    )
                     image_count += 1
 
         return {
@@ -796,21 +826,25 @@ class DocParsingService:
         for para in paragraphs:
             if is_markdown and para.startswith("#"):
                 level = len(para) - len(para.lstrip("#"))
-                results.append({
-                    "page_num": 1,
-                    "content_type": "heading",
-                    "content": para.lstrip("# ").strip(),
-                    "bounding_box": None,
-                    "metadata": {"level": level, "format": "markdown"},
-                })
+                results.append(
+                    {
+                        "page_num": 1,
+                        "content_type": "heading",
+                        "content": para.lstrip("# ").strip(),
+                        "bounding_box": None,
+                        "metadata": {"level": level, "format": "markdown"},
+                    }
+                )
             else:
-                results.append({
-                    "page_num": 1,
-                    "content_type": "text",
-                    "content": para,
-                    "bounding_box": None,
-                    "metadata": {"char_count": len(para)},
-                })
+                results.append(
+                    {
+                        "page_num": 1,
+                        "content_type": "text",
+                        "content": para,
+                        "bounding_box": None,
+                        "metadata": {"char_count": len(para)},
+                    }
+                )
 
         return {
             "results": results,
@@ -871,7 +905,9 @@ class DocParsingService:
             "page_num": r.page_num,
             "content_type": r.content_type,
             "content": r.content,
-            "bounding_box": r.bounding_box if isinstance(r.bounding_box, dict) else None,
+            "bounding_box": (
+                r.bounding_box if isinstance(r.bounding_box, dict) else None
+            ),
             "metadata": r.metadata_ if isinstance(r.metadata_, dict) else None,
             "created_at": r.created_at.isoformat() if r.created_at else None,
         }

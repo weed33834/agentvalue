@@ -144,9 +144,7 @@ async def run_fairness_audit(tenant_id: str = DEFAULT_TENANT_ID) -> Dict[str, An
 
     report = generate_monthly_report()
     by_dim = report.get("by_dimension", {})
-    risk_dims = [
-        dim for dim, stat in by_dim.items() if stat.get("has_risk")
-    ]
+    risk_dims = [dim for dim, stat in by_dim.items() if stat.get("has_risk")]
     logger.info(
         "[fairness_audit] 评估样本 %s，风险维度 %s",
         report.get("total_evaluations"),
@@ -301,7 +299,9 @@ class TaskScheduler:
             task_id = task_def["task_id"]
             func = _TASK_FUNC_REGISTRY.get(task_def["task_type"])
             if func is None:
-                logger.warning("未找到任务类型 %s 的执行函数，跳过", task_def["task_type"])
+                logger.warning(
+                    "未找到任务类型 %s 的执行函数，跳过", task_def["task_type"]
+                )
                 continue
 
             # 持久化到 DB（已存在则跳过）
@@ -406,18 +406,22 @@ class TaskScheduler:
             session.add(run)
             await session.commit()
 
-        return {
-            "task_id": task_id,
-            "status": status_str,
-            "duration_ms": duration_ms,
-            "error": error_msg,
-            "result": result,
-        } if status_str == "success" else {
-            "task_id": task_id,
-            "status": status_str,
-            "duration_ms": duration_ms,
-            "error": error_msg,
-        }
+        return (
+            {
+                "task_id": task_id,
+                "status": status_str,
+                "duration_ms": duration_ms,
+                "error": error_msg,
+                "result": result,
+            }
+            if status_str == "success"
+            else {
+                "task_id": task_id,
+                "status": status_str,
+                "duration_ms": duration_ms,
+                "error": error_msg,
+            }
+        )
 
     async def add_task(
         self,
@@ -481,7 +485,9 @@ class TaskScheduler:
             try:
                 self.scheduler.remove_job(task_id)
             except Exception:
-                logger.warning("从 APScheduler 移除任务 %s 失败", task_id, exc_info=True)
+                logger.warning(
+                    "从 APScheduler 移除任务 %s 失败", task_id, exc_info=True
+                )
             del self._tasks[task_id]
 
         async with AsyncSessionLocal() as session:
@@ -534,9 +540,7 @@ class TaskScheduler:
                     "task_type": t.task_type,
                     "config": t.config,
                     "is_active": t.is_active,
-                    "last_run_at": t.last_run_at.isoformat()
-                    if t.last_run_at
-                    else None,
+                    "last_run_at": t.last_run_at.isoformat() if t.last_run_at else None,
                     "last_run_status": t.last_run_status,
                     "last_run_error": t.last_run_error,
                     "next_run_at": next_run,
@@ -653,9 +657,7 @@ class TaskScheduler:
                 "task_id": r.task_id,
                 "status": r.status,
                 "started_at": r.started_at.isoformat() if r.started_at else None,
-                "finished_at": r.finished_at.isoformat()
-                if r.finished_at
-                else None,
+                "finished_at": r.finished_at.isoformat() if r.finished_at else None,
                 "duration_ms": r.duration_ms,
                 "error": r.error,
                 "result": r.result,

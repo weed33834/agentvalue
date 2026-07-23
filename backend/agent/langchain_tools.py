@@ -133,9 +133,7 @@ def _build_builtin_tools(enabled_csv: Optional[str] = None) -> List[Any]:
             try:
                 import urllib.request
 
-                req = urllib.request.Request(
-                    url, headers={"User-Agent": "Mozilla/5.0"}
-                )
+                req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
                 with urllib.request.urlopen(req, timeout=15) as resp:
                     content = resp.read().decode("utf-8", errors="replace")
                 # Simple HTML tag removal
@@ -380,9 +378,7 @@ def _build_toolkit_tools(
                 import glob as glob_module
                 import os
 
-                full_pattern = (
-                    os.path.join(path, pattern) if path != "." else pattern
-                )
+                full_pattern = os.path.join(path, pattern) if path != "." else pattern
                 matches = sorted(glob_module.glob(full_pattern, recursive=True))
                 if not matches:
                     return f"No files found matching '{pattern}' in {path}"
@@ -398,9 +394,7 @@ def _build_toolkit_tools(
     if _is_tool_enabled("patch_tool", enabled_csv):
 
         @tool
-        async def patch_tool(
-            file_path: str, old_content: str, new_content: str
-        ) -> str:
+        async def patch_tool(file_path: str, old_content: str, new_content: str) -> str:
             """Patch a file by replacing exact string content.
 
             Performs exact string matching (not regex). Replaces all occurrences.
@@ -482,9 +476,7 @@ def _build_toolkit_tools(
                     clean_title = re_module.sub(r"<[^>]+>", "", title).strip()
                     snippet = ""
                     if i < len(snippets):
-                        snippet = re_module.sub(
-                            r"<[^>]+>", "", snippets[i]
-                        ).strip()
+                        snippet = re_module.sub(r"<[^>]+>", "", snippets[i]).strip()
                     # DuckDuckGo 通过 /l/?uddg= 重定向,提取真实 URL
                     if "uddg=" in href:
                         parsed = urllib.parse.parse_qs(
@@ -504,8 +496,7 @@ def _build_toolkit_tools(
             except Exception as e:
                 logger.warning("web_search_tool 调用失败: %s", e)
                 return (
-                    "Web search unavailable. "
-                    "Try web_fetch to fetch a specific URL."
+                    "Web search unavailable. " "Try web_fetch to fetch a specific URL."
                 )
 
         tools.append(web_search_tool)

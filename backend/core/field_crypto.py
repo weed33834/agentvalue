@@ -19,7 +19,10 @@ import asyncio
 import base64
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.kms.envelope import EnvelopeCipher
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +56,7 @@ class FieldCipher:
         self._encryption_context = encryption_context
         if key:
             from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
             raw_key = self._decode_key(key)
             self._aes = AESGCM(raw_key)
 
@@ -135,7 +139,9 @@ class FieldCipher:
         # 延迟导入避免模块级循环依赖
         from core.kms.envelope import EnvelopeCipher
 
-        if self._envelope is not None and EnvelopeCipher.is_envelope_ciphertext(ciphertext):
+        if self._envelope is not None and EnvelopeCipher.is_envelope_ciphertext(
+            ciphertext
+        ):
             try:
                 return self._run_async_safely(
                     self._envelope.decrypt(ciphertext, self._encryption_context)
@@ -143,12 +149,14 @@ class FieldCipher:
             except Exception as e:
                 try:
                     from core.metrics import record_field_decrypt_failure
+
                     record_field_decrypt_failure()
                 except Exception:
                     logger.debug("record_field_decrypt_failure 埋点失败", exc_info=True)
                 logger.warning("envelope 字段解密失败: error=%s", e)
                 # 生产环境 fail-closed,非生产降级返回原密文 (兼容旧数据)
                 from core.config import get_settings
+
                 if get_settings().agentvalue_env == "production":
                     raise
                 return ciphertext
@@ -199,6 +207,7 @@ class FieldCipher:
         if loop is not None and loop.is_running():
             # 在 async 应用内被同步调用 → 新线程跑 loop
             import concurrent.futures
+
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
                 future = pool.submit(asyncio.run, coro)
                 return future.result()
@@ -368,6 +377,7 @@ def reset_field_cipher_cache() -> None:
         # 释放 KMS provider 资源 (Vault token renewer 等)
         try:
             from core.kms import reset_kms_provider_cache
+
             reset_kms_provider_cache()
         except Exception:
             pass
