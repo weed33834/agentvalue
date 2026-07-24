@@ -120,7 +120,12 @@ function toggleFullOutput() {
       <div class="section-label">
         <span>{{ tool.error ? '错误' : '结果' }}</span>
         <div class="section-actions">
-          <el-button v-if="formattedOutput.length > 2000" size="small" text @click.stop="toggleFullOutput">
+          <el-button
+            v-if="formattedOutput.length > 2000"
+            size="small"
+            text
+            @click.stop="toggleFullOutput"
+          >
             {{ fullOutput ? '收起' : '展开全部' }}
           </el-button>
           <el-button v-if="formattedOutput" size="small" text @click.stop="copyOutput">
@@ -128,7 +133,11 @@ function toggleFullOutput() {
           </el-button>
         </div>
       </div>
-      <pre v-if="formattedOutput" class="code-block output-block" :class="{ 'json-output': isJsonOutput }">{{ truncatedOutput }}</pre>
+      <pre
+        v-if="formattedOutput"
+        class="code-block output-block"
+        :class="{ 'json-output': isJsonOutput }"
+        >{{ truncatedOutput }}</pre>
       <div v-if="tool.error" class="tool-error">
         <el-icon><WarningFilled /></el-icon>
         <span>{{ tool.error }}</span>
@@ -179,17 +188,33 @@ function toggleFullOutput() {
   flex-shrink: 0;
   font-size: 14px;
 }
-.badge-success { background: var(--el-color-success-light-9); color: var(--el-color-success); }
-.badge-warning { background: var(--el-color-warning-light-9); color: var(--el-color-warning); }
-.badge-danger { background: var(--el-color-danger-light-9); color: var(--el-color-danger); }
-.badge-info { background: var(--el-color-info-light-9); color: var(--el-color-info); }
+.badge-success {
+  background: var(--el-color-success-light-9);
+  color: var(--el-color-success);
+}
+.badge-warning {
+  background: var(--el-color-warning-light-9);
+  color: var(--el-color-warning);
+}
+.badge-danger {
+  background: var(--el-color-danger-light-9);
+  color: var(--el-color-danger);
+}
+.badge-info {
+  background: var(--el-color-info-light-9);
+  color: var(--el-color-info);
+}
 
 .spinning {
   animation: spin 1s linear infinite;
 }
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .tool-name {

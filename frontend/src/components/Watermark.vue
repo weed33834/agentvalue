@@ -132,7 +132,7 @@ async function reportStatus({ visible, visibilityEvent = null } = {}) {
       density: props.density,
       visibility_event: visibilityEvent,
     })
-  } catch (e) {
+  } catch {
     // 上报失败不阻断业务，水印仍正常渲染
   }
 }

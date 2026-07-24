@@ -3,9 +3,9 @@
     <!-- 顶部说明 -->
     <el-alert type="info" :closable="false" show-icon class="mb-16">
       <template #title>
-        多 Agent 协作 —— 对标 Coze Multi-Agent。Supervisor 模式调度
-        data_analyst / code_reviewer / risk_assessor / report_writer,
-        支持 interrupt_at 暂停与人工 resume,各 expert 失败不影响其他 Agent。
+        多 Agent 协作 —— 对标 Coze Multi-Agent。Supervisor 模式调度 data_analyst / code_reviewer /
+        risk_assessor / report_writer, 支持 interrupt_at 暂停与人工 resume,各 expert 失败不影响其他
+        Agent。
       </template>
     </el-alert>
 
@@ -16,12 +16,7 @@
           <div class="panel-header">
             <span class="panel-title">任务列表</span>
             <div class="panel-actions">
-              <el-button
-                size="small"
-                :loading="listLoading"
-                circle
-                @click="loadThreads"
-              >
+              <el-button size="small" :loading="listLoading" circle @click="loadThreads">
                 <el-icon><Refresh /></el-icon>
               </el-button>
               <el-button size="small" type="primary" @click="openCreateDialog">
@@ -41,12 +36,7 @@
           @change="loadThreads"
         >
           <el-option label="全部状态" :value="''" />
-          <el-option
-            v-for="s in STATUS_OPTIONS"
-            :key="s.value"
-            :label="s.label"
-            :value="s.value"
-          />
+          <el-option v-for="s in STATUS_OPTIONS" :key="s.value" :label="s.label" :value="s.value" />
         </el-select>
 
         <div class="thread-list">
@@ -66,20 +56,13 @@
             </div>
             <div class="thread-item-ts">{{ formatTime(t.created_at) }}</div>
           </div>
-          <el-empty
-            v-if="!threads.length"
-            description="暂无任务"
-            :image-size="60"
-          />
+          <el-empty v-if="!threads.length" description="暂无任务" :image-size="60" />
         </div>
       </el-card>
 
       <!-- 右侧:任务详情 -->
       <div class="right-panel">
-        <el-empty
-          v-if="!selectedThreadId"
-          description="请从左侧选择任务,或新建任务"
-        />
+        <el-empty v-if="!selectedThreadId" description="请从左侧选择任务,或新建任务" />
 
         <template v-else>
           <!-- 详情头部:状态 + 操作按钮 -->
@@ -98,11 +81,7 @@
                 </div>
               </div>
               <div class="detail-actions">
-                <el-button
-                  size="small"
-                  :loading="detailLoading"
-                  @click="refreshCurrent"
-                >
+                <el-button size="small" :loading="detailLoading" @click="refreshCurrent">
                   <el-icon><Refresh /></el-icon>
                   刷新
                 </el-button>
@@ -115,11 +94,7 @@
                   <el-icon><VideoPlay /></el-icon>
                   恢复执行
                 </el-button>
-                <el-button
-                  size="small"
-                  type="warning"
-                  @click="openTestDialog"
-                >
+                <el-button size="small" type="warning" @click="openTestDialog">
                   <el-icon><Cpu /></el-icon>
                   测试配置
                 </el-button>
@@ -132,11 +107,7 @@
             <template #header>
               <span class="panel-title">状态时间线</span>
             </template>
-            <el-empty
-              v-if="!timeline.length"
-              description="暂无时间线"
-              :image-size="60"
-            />
+            <el-empty v-if="!timeline.length" description="暂无时间线" :image-size="60" />
             <el-timeline v-else>
               <el-timeline-item
                 v-for="(item, idx) in timeline"
@@ -166,11 +137,7 @@
             <template #header>
               <span class="panel-title">各 Agent 产出 (Artifacts)</span>
             </template>
-            <el-empty
-              v-if="!artifactKeys.length"
-              description="暂无产出"
-              :image-size="60"
-            />
+            <el-empty v-if="!artifactKeys.length" description="暂无产出" :image-size="60" />
             <div v-else class="artifact-grid">
               <el-card
                 v-for="key in artifactKeys"
@@ -183,11 +150,7 @@
                   <div class="artifact-header">
                     <el-icon><User /></el-icon>
                     <span class="artifact-name">{{ agentLabel(key) }}</span>
-                    <el-tag
-                      v-if="isArtifactError(artifacts[key])"
-                      size="small"
-                      type="danger"
-                    >
+                    <el-tag v-if="isArtifactError(artifacts[key])" size="small" type="danger">
                       失败
                     </el-tag>
                     <el-tag v-else size="small" type="success">成功</el-tag>
@@ -205,12 +168,7 @@
             <template #header>
               <div class="report-header">
                 <span class="panel-title">最终报告</span>
-                <el-button
-                  v-if="currentFinalReport"
-                  size="small"
-                  link
-                  @click="copyReport"
-                >
+                <el-button v-if="currentFinalReport" size="small" link @click="copyReport">
                   <el-icon><CopyDocument /></el-icon>
                   复制
                 </el-button>
@@ -259,13 +217,7 @@
           <span class="form-hint">共享给所有 Agent 的上下文,如 employee_id / period</span>
         </el-form-item>
         <el-form-item :label="`最大迭代次数: ${createForm.max_iterations}`">
-          <el-slider
-            v-model="createForm.max_iterations"
-            :min="1"
-            :max="50"
-            :step="1"
-            show-input
-          />
+          <el-slider v-model="createForm.max_iterations" :min="1" :max="50" :step="1" show-input />
           <span class="form-hint">默认 10, 硬上限 50 (防失控)</span>
         </el-form-item>
         <el-form-item label="暂停节点 (可选)">
@@ -288,26 +240,17 @@
       </el-form>
       <template #footer>
         <el-button @click="createDialogVisible = false">取消</el-button>
-        <el-button
-          type="primary"
-          :loading="createSubmitting"
-          @click="handleCreate"
-        >运行</el-button>
+        <el-button type="primary" :loading="createSubmitting" @click="handleCreate">
+          运行
+        </el-button>
       </template>
     </el-dialog>
 
     <!-- 恢复执行 Dialog -->
-    <el-dialog
-      v-model="resumeDialogVisible"
-      title="恢复执行"
-      width="540px"
-    >
+    <el-dialog v-model="resumeDialogVisible" title="恢复执行" width="540px">
       <el-form label-position="top">
         <el-form-item label="决策">
-          <el-input
-            v-model="resumeForm.decision"
-            placeholder="如 approve / reject / 修改后继续"
-          />
+          <el-input v-model="resumeForm.decision" placeholder="如 approve / reject / 修改后继续" />
         </el-form-item>
         <el-form-item label="备注">
           <el-input
@@ -320,11 +263,9 @@
       </el-form>
       <template #footer>
         <el-button @click="resumeDialogVisible = false">取消</el-button>
-        <el-button
-          type="primary"
-          :loading="resumeSubmitting"
-          @click="handleResume"
-        >恢复</el-button>
+        <el-button type="primary" :loading="resumeSubmitting" @click="handleResume">
+          恢复
+        </el-button>
       </template>
     </el-dialog>
 
@@ -348,12 +289,7 @@
         v-loading="testSubmitting"
       >
         <el-form-item label="任务描述" prop="task">
-          <el-input
-            v-model="testForm.task"
-            type="textarea"
-            :rows="3"
-            placeholder="测试任务描述"
-          />
+          <el-input v-model="testForm.task" type="textarea" :rows="3" placeholder="测试任务描述" />
         </el-form-item>
         <el-form-item label="上下文 (JSON)">
           <el-input
@@ -364,13 +300,7 @@
           />
         </el-form-item>
         <el-form-item :label="`最大迭代次数: ${testForm.max_iterations}`">
-          <el-slider
-            v-model="testForm.max_iterations"
-            :min="1"
-            :max="50"
-            :step="1"
-            show-input
-          />
+          <el-slider v-model="testForm.max_iterations" :min="1" :max="50" :step="1" show-input />
         </el-form-item>
         <el-form-item label="暂停节点 (可选)">
           <el-select
@@ -410,11 +340,9 @@
       </div>
       <template #footer>
         <el-button @click="testDialogVisible = false">关闭</el-button>
-        <el-button
-          type="primary"
-          :loading="testSubmitting"
-          @click="handleTest"
-        >执行测试</el-button>
+        <el-button type="primary" :loading="testSubmitting" @click="handleTest">
+          执行测试
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -494,9 +422,7 @@ const currentValues = ref({})
 
 const currentTask = computed(() => currentMeta.value?.task || '')
 const currentStatus = computed(() => currentMeta.value?.status || '')
-const currentInterruptNode = computed(
-  () => currentMeta.value?.interrupt_node || '',
-)
+const currentInterruptNode = computed(() => currentMeta.value?.interrupt_node || '')
 const currentFinalReport = computed(
   () => currentMeta.value?.final_report || currentValues.value?.final_report || '',
 )
@@ -507,8 +433,7 @@ const timeline = computed(() => {
 })
 
 const artifacts = computed(() => {
-  const a =
-    currentValues.value?.artifacts || currentMeta.value?.artifacts || {}
+  const a = currentValues.value?.artifacts || currentMeta.value?.artifacts || {}
   return a || {}
 })
 
@@ -799,10 +724,7 @@ function copyReport() {
 function renderMarkdown(md) {
   if (!md) return ''
   // 转义 HTML
-  let html = md
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
+  let html = md.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   // 标题
   html = html.replace(/^###### (.*)$/gm, '<h6>$1</h6>')
   html = html.replace(/^##### (.*)$/gm, '<h5>$1</h5>')
@@ -821,10 +743,7 @@ function renderMarkdown(md) {
   html = html
     .split(/\n\n+/)
     .map((block) => {
-      if (
-        block.startsWith('<h') ||
-        block.startsWith('<li')
-      ) {
+      if (block.startsWith('<h') || block.startsWith('<li')) {
         return block
       }
       return `<p>${block.replace(/\n/g, '<br>')}</p>`

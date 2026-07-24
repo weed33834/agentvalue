@@ -220,10 +220,7 @@ async function onForkMessage(message) {
     return // 用户取消
   }
   try {
-    const newSession = await chatApi.forkSession(
-      chat.currentSession.id,
-      message.id,
-    )
+    const newSession = await chatApi.forkSession(chat.currentSession.id, message.id)
     if (newSession) {
       // 将新会话插入到列表头部并切换
       chat.sessions.unshift(newSession)
@@ -284,20 +281,13 @@ async function onForkMessage(message) {
               @blur="saveRename"
             />
             <template v-else>
-              <div
-                class="session-title"
-                @dblclick.stop="startRename(s)"
-              >
+              <div class="session-title" @dblclick.stop="startRename(s)">
                 {{ s.title }}
               </div>
               <div class="session-time">{{ formatTime(s.updated_at || s.created_at) }}</div>
             </template>
           </div>
-          <el-icon
-            v-if="editingSessionId !== s.id"
-            class="rename-btn"
-            @click.stop="startRename(s)"
-          >
+          <el-icon v-if="editingSessionId !== s.id" class="rename-btn" @click.stop="startRename(s)">
             <EditPen />
           </el-icon>
           <el-icon
@@ -493,7 +483,9 @@ async function onForkMessage(message) {
 .delete-btn {
   opacity: 0;
   color: var(--el-text-color-secondary);
-  transition: opacity 0.2s, color 0.2s;
+  transition:
+    opacity 0.2s,
+    color 0.2s;
   flex-shrink: 0;
 }
 .rename-btn:hover {

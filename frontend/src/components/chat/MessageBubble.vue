@@ -13,13 +13,7 @@ const props = defineProps({
   isStreaming: { type: Boolean, default: false },
 })
 
-const emit = defineEmits([
-  'regenerate',
-  'edit',
-  'retry',
-  'feedback',
-  'fork',
-])
+const emit = defineEmits(['regenerate', 'edit', 'retry', 'feedback', 'fork'])
 
 // ---- 编辑模式 ----
 const isEditing = ref(false)
@@ -133,12 +127,10 @@ function onFork() {
 // ---- 功能2: 语音输出 (TTS) ----
 // 优先使用浏览器 Web Speech API，不支持则降级调用后端 /voice/tts
 const isSpeaking = ref(false)
-let currentUtterance = null
+let _currentUtterance = null
 let fallbackAudio = null
 
-const ttsSupported = computed(
-  () => typeof window !== 'undefined' && 'speechSynthesis' in window,
-)
+const ttsSupported = computed(() => typeof window !== 'undefined' && 'speechSynthesis' in window)
 
 function getMessageText() {
   const textPart = props.message.parts?.find((p) => p.type === 'text')
@@ -169,13 +161,13 @@ function speakWithBrowser(content) {
   utterance.lang = 'zh-CN'
   utterance.onend = () => {
     isSpeaking.value = false
-    currentUtterance = null
+    _currentUtterance = null
   }
   utterance.onerror = () => {
     isSpeaking.value = false
-    currentUtterance = null
+    _currentUtterance = null
   }
-  currentUtterance = utterance
+  _currentUtterance = utterance
   window.speechSynthesis.speak(utterance)
   isSpeaking.value = true
 }
@@ -219,7 +211,7 @@ function stopSpeaking() {
     fallbackAudio = null
   }
   isSpeaking.value = false
-  currentUtterance = null
+  _currentUtterance = null
 }
 
 onBeforeUnmount(() => {
@@ -234,7 +226,7 @@ const chatStore = useChatStore()
 
 // 从消息文本中提取代码块作为 artifacts (客户端正则提取, 无需后端)
 const artifacts = ref([])
-const CODE_FENCE_RE = /```([a-zA-Z0-9_+\-]*)\n([\s\S]*?)```/g
+const CODE_FENCE_RE = /```([a-zA-Z0-9_+-]*)\n([\s\S]*?)```/g
 
 function detectArtifactType(lang, content) {
   const l = (lang || '').toLowerCase()
@@ -423,7 +415,11 @@ onMounted(() => {
           <el-icon><CaretRight v-if="!showThinking" /><CaretBottom v-else /></el-icon>
           <span>{{ showThinking ? '收起思考过程' : '展开思考过程' }}</span>
         </div>
-        <div v-if="showThinking" class="reasoning-content" v-html="renderMarkdown(reasoningText)"></div>
+        <div
+          v-if="showThinking"
+          class="reasoning-content"
+          v-html="renderMarkdown(reasoningText)"
+        ></div>
       </div>
 
       <!-- 编辑模式 -->
@@ -449,7 +445,7 @@ onMounted(() => {
         <div v-if="imageParts.length > 0" class="image-parts">
           <el-image
             v-for="(img, idx) in imageParts"
-            :key="(img.id || 'img-' + idx)"
+            :key="img.id || 'img-' + idx"
             class="image-thumb"
             :src="img.metadata?.dataUrl"
             :alt="img.metadata?.name || '图片附件'"
@@ -462,11 +458,7 @@ onMounted(() => {
 
         <!-- 非图片附件列表 -->
         <div v-if="fileParts.length > 0" class="file-parts">
-          <div
-            v-for="(f, idx) in fileParts"
-            :key="(f.id || 'file-' + idx)"
-            class="file-chip"
-          >
+          <div v-for="(f, idx) in fileParts" :key="f.id || 'file-' + idx" class="file-chip">
             <el-icon><Document /></el-icon>
             <span class="file-name">{{ f.metadata?.name || '附件' }}</span>
           </div>
@@ -479,11 +471,7 @@ onMounted(() => {
         <span v-if="message.streaming && hasText" class="stream-cursor">▍</span>
 
         <!-- 工具调用 -->
-        <ToolCallCard
-          v-for="tp in toolParts"
-          :key="tp.id || tp.tool_call_id"
-          :tool="tp"
-        />
+        <ToolCallCard v-for="tp in toolParts" :key="tp.id || tp.tool_call_id" :tool="tp" />
 
         <!-- 错误 -->
         <div v-if="message.error" class="error-block">
@@ -520,7 +508,8 @@ onMounted(() => {
       <div v-if="usage || latency" class="msg-meta">
         <span v-if="usage" class="meta-item">
           <el-icon><Coin /></el-icon>
-          {{ usage.total_tokens || (usage.prompt_tokens || 0) + (usage.completion_tokens || 0) }} tokens
+          {{ usage.total_tokens || (usage.prompt_tokens || 0) + (usage.completion_tokens || 0) }}
+          tokens
           <template v-if="usage.prompt_tokens">
             ({{ usage.prompt_tokens }} → {{ usage.completion_tokens }})
           </template>
@@ -535,7 +524,8 @@ onMounted(() => {
       <div v-if="!isEditing && !message.streaming" class="msg-actions">
         <el-button
           v-if="message.role === 'assistant' && hasText"
-          size="small" text
+          size="small"
+          text
           @click="copyMessage"
         >
           <el-icon><CopyDocument /></el-icon>
@@ -585,14 +575,16 @@ onMounted(() => {
 
         <template v-if="message.role === 'assistant' && hasText">
           <el-button
-            size="small" text
+            size="small"
+            text
             :type="feedback === 'like' ? 'success' : ''"
             @click="onFeedback('like')"
           >
             <el-icon><Top /></el-icon>
           </el-button>
           <el-button
-            size="small" text
+            size="small"
+            text
             :type="feedback === 'dislike' ? 'danger' : ''"
             @click="onFeedback('dislike')"
           >
@@ -611,9 +603,12 @@ onMounted(() => {
   padding: 16px 0;
 }
 .avatar {
-  width: 32px; height: 32px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   font-size: 16px;
 }
@@ -752,8 +747,14 @@ onMounted(() => {
   color: var(--el-color-primary);
 }
 @keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
 }
 
 /* 思考中三点 */
@@ -764,16 +765,29 @@ onMounted(() => {
   padding: 4px 0;
 }
 .thinking-dots span {
-  width: 6px; height: 6px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--el-text-color-secondary);
   animation: bounce 1.4s infinite ease-in-out;
 }
-.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
-.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+.thinking-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.thinking-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
 @keyframes bounce {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
-  40% { transform: scale(1); opacity: 1; }
+  0%,
+  80%,
+  100% {
+    transform: scale(0.6);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* 思考过程 */

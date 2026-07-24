@@ -98,7 +98,7 @@ export const useAuthStore = defineStore('auth', () => {
         name.value = data.name || name.value
       }
       return true
-    } catch (err) {
+    } catch {
       logout()
       return false
     }

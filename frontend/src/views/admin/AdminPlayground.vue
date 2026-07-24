@@ -1,14 +1,9 @@
 <template>
   <div class="playground">
-    <el-alert
-      type="info"
-      :closable="false"
-      show-icon
-      class="mb-16"
-    >
+    <el-alert type="info" :closable="false" show-icon class="mb-16">
       <template #title>
-        Prompt Playground —— 对标 Langfuse Playground。选择 Prompt 版本 + 模型 + 变量,
-        实时流式预览 LLM 输出。支持 tool_calls 实时展示与 trace 追溯。
+        Prompt Playground —— 对标 Langfuse Playground。选择 Prompt 版本 + 模型 + 变量, 实时流式预览
+        LLM 输出。支持 tool_calls 实时展示与 trace 追溯。
       </template>
     </el-alert>
 
@@ -29,12 +24,7 @@
                 style="width: 100%"
                 @change="onTemplateChange"
               >
-                <el-option
-                  v-for="t in templates"
-                  :key="t.name"
-                  :label="t.name"
-                  :value="t.name"
-                />
+                <el-option v-for="t in templates" :key="t.name" :label="t.name" :value="t.name" />
               </el-select>
             </el-form-item>
 
@@ -173,9 +163,7 @@
                 <el-tag v-if="traceId" type="info" size="small">
                   trace: {{ traceId.slice(0, 8) }}
                 </el-tag>
-                <el-tag v-if="finishReason" size="small">
-                  finish: {{ finishReason }}
-                </el-tag>
+                <el-tag v-if="finishReason" size="small"> finish: {{ finishReason }} </el-tag>
                 <el-tag v-if="usage" type="success" size="small">
                   tokens: {{ usage.prompt_tokens }} → {{ usage.completion_tokens }}
                 </el-tag>
@@ -222,8 +210,8 @@
           <div v-if="usage" class="trace-row">
             <span class="trace-label">Usage:</span>
             <span>
-              tokens {{ usage.total_tokens }}
-              (prompt {{ usage.prompt_tokens }} + completion {{ usage.completion_tokens }})
+              tokens {{ usage.total_tokens }} (prompt {{ usage.prompt_tokens }} + completion
+              {{ usage.completion_tokens }})
             </span>
           </div>
         </el-card>
@@ -265,9 +253,7 @@ const form = reactive({
   max_tokens: 1024,
 })
 
-const canRun = computed(
-  () => !!(form.prompt_name && form.prompt_version && form.model_name),
-)
+const canRun = computed(() => !!(form.prompt_name && form.prompt_version && form.model_name))
 
 // ====== 输出面板状态 ======
 const isStreaming = ref(false)
@@ -319,9 +305,7 @@ async function onTemplateChange(name) {
     versionLabelsMap.value = map
     // 默认选最新版本(最大 version 号)
     if (versions.value.length > 0) {
-      const latest = versions.value.reduce((a, b) =>
-        a.version > b.version ? a : b,
-      )
+      const latest = versions.value.reduce((a, b) => (a.version > b.version ? a : b))
       form.prompt_version = latest.version
       await onVersionChange(form.prompt_version)
     }
@@ -388,9 +372,7 @@ async function loadPreview() {
     // 把渲染结果填入输出区,便于直接对比
     resetOutput()
     output.value = data.rendered || ''
-    ElMessage.success(
-      `渲染成功,变量: ${data.variables_used?.join(', ') || '无'}`,
-    )
+    ElMessage.success(`渲染成功,变量: ${data.variables_used?.join(', ') || '无'}`)
   } catch (err) {
     ElMessage.error('预览渲染失败: ' + err.message)
   }

@@ -33,12 +33,7 @@
         <el-card v-loading="loading">
           <template #header><span>九宫格分布</span></template>
           <div role="img" :aria-label="matrixSummary">
-            <v-chart
-              class="matrix-chart"
-              :option="matrixOption"
-              autoresize
-              @click="onPointClick"
-            />
+            <v-chart class="matrix-chart" :option="matrixOption" autoresize @click="onPointClick" />
           </div>
         </el-card>
       </el-col>
@@ -68,9 +63,19 @@
       <el-col :span="24">
         <el-card>
           <template #header><span>九宫格明细</span></template>
-          <el-table :data="members" style="width: 100%" empty-text="暂无数据" @row-click="onRowClick">
+          <el-table
+            :data="members"
+            style="width: 100%"
+            empty-text="暂无数据"
+            @row-click="onRowClick"
+          >
             <el-table-column prop="employee_id" label="员工ID" width="120" />
-            <el-table-column label="绩效分数" width="120" sortable :sort-by="(r) => r.performance_score">
+            <el-table-column
+              label="绩效分数"
+              width="120"
+              sortable
+              :sort-by="(r) => r.performance_score"
+            >
               <template #default="{ row }">
                 <el-tag :type="bucketTagType(row.performance_bucket)" size="small">
                   {{ row.performance_score }}
@@ -82,7 +87,12 @@
                 {{ bucketLabel(row.performance_bucket) }}
               </template>
             </el-table-column>
-            <el-table-column label="潜力分数" width="120" sortable :sort-by="(r) => r.potential_score">
+            <el-table-column
+              label="潜力分数"
+              width="120"
+              sortable
+              :sort-by="(r) => r.potential_score"
+            >
               <template #default="{ row }">
                 <el-tag :type="bucketTagType(row.potential_bucket)" size="small" effect="plain">
                   {{ row.potential_score }}
@@ -129,8 +139,12 @@
     <el-drawer v-model="detailVisible" title="员工九宫格详情" size="480px">
       <template v-if="selectedMember">
         <el-descriptions :column="1" border>
-          <el-descriptions-item label="员工ID">{{ selectedMember.employee_id }}</el-descriptions-item>
-          <el-descriptions-item label="评估ID">{{ selectedMember.evaluation_id }}</el-descriptions-item>
+          <el-descriptions-item label="员工ID">{{
+            selectedMember.employee_id
+          }}</el-descriptions-item>
+          <el-descriptions-item label="评估ID">{{
+            selectedMember.evaluation_id
+          }}</el-descriptions-item>
           <el-descriptions-item label="评估周期">{{ selectedMember.period }}</el-descriptions-item>
           <el-descriptions-item label="绩效分数">
             <el-tag :type="bucketTagType(selectedMember.performance_bucket)">
@@ -149,17 +163,22 @@
               {{ cellLabel(selectedMember.performance_bucket, selectedMember.potential_bucket) }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="评估次数">{{ selectedMember.eval_count }}</el-descriptions-item>
+          <el-descriptions-item label="评估次数">{{
+            selectedMember.eval_count
+          }}</el-descriptions-item>
           <el-descriptions-item label="首/末评分">
             {{ selectedMember.first_score }} → {{ selectedMember.latest_score }}
           </el-descriptions-item>
           <el-descriptions-item label="成长斜率">
-            <span :class="slopeClass(selectedMember.score_slope)">{{ selectedMember.score_slope }}</span>
+            <span :class="slopeClass(selectedMember.score_slope)">{{
+              selectedMember.score_slope
+            }}</span>
           </el-descriptions-item>
         </el-descriptions>
         <div class="muted" style="margin-top: 16px; font-size: 12px; line-height: 1.8">
-          <strong>分类解读：</strong>{{ cellLabel(selectedMember.performance_bucket, selectedMember.potential_bucket) }}
-          —— {{ cellDescription(selectedMember.performance_bucket, selectedMember.potential_bucket) }}
+          <strong>分类解读：</strong
+          >{{ cellLabel(selectedMember.performance_bucket, selectedMember.potential_bucket) }} ——
+          {{ cellDescription(selectedMember.performance_bucket, selectedMember.potential_bucket) }}
         </div>
       </template>
     </el-drawer>
@@ -188,15 +207,51 @@ const BUCKET_LABEL = { low: '低', mid: '中', high: '高' }
 
 // 9 个格子的标签与描述（performance × potential）
 const CELL_INFO = {
-  'high-high': { label: '明星员工', desc: '高绩效高潜力：未来领导者，重点保留与培养，给予更大舞台。', color: '#67c23a' },
-  'high-mid': { label: '核心骨干', desc: '高绩效中潜力：稳定输出，适合专家路径或当前岗位深化。', color: '#409eff' },
-  'high-low': { label: '专业专家', desc: '高绩效低潜力：在当前岗位持续贡献，避免过度提拔。', color: '#909399' },
-  'mid-high': { label: '潜力股', desc: '中绩效高潜力：成长快但尚未兑现，需辅导与挑战性任务。', color: '#e6a23c' },
-  'mid-mid': { label: '稳定贡献者', desc: '中绩效中潜力：团队主力，按需培训提升。', color: '#d3dce6' },
-  'mid-low': { label: '待开发', desc: '中绩效低潜力：观察是否在岗匹配，必要时调整。', color: '#c0c4cc' },
-  'low-high': { label: '问题员工', desc: '低绩效高潜力：可能角色错配，需深入沟通调整岗位。', color: '#f56c6c' },
-  'low-mid': { label: '观察对象', desc: '低绩效中潜力：需制定改进计划，限期复盘。', color: '#f4a0a0' },
-  'low-low': { label: '待改进', desc: '低绩效低潜力：启动绩效改进流程，必要时退出。', color: '#fab6b6' },
+  'high-high': {
+    label: '明星员工',
+    desc: '高绩效高潜力：未来领导者，重点保留与培养，给予更大舞台。',
+    color: '#67c23a',
+  },
+  'high-mid': {
+    label: '核心骨干',
+    desc: '高绩效中潜力：稳定输出，适合专家路径或当前岗位深化。',
+    color: '#409eff',
+  },
+  'high-low': {
+    label: '专业专家',
+    desc: '高绩效低潜力：在当前岗位持续贡献，避免过度提拔。',
+    color: '#909399',
+  },
+  'mid-high': {
+    label: '潜力股',
+    desc: '中绩效高潜力：成长快但尚未兑现，需辅导与挑战性任务。',
+    color: '#e6a23c',
+  },
+  'mid-mid': {
+    label: '稳定贡献者',
+    desc: '中绩效中潜力：团队主力，按需培训提升。',
+    color: '#d3dce6',
+  },
+  'mid-low': {
+    label: '待开发',
+    desc: '中绩效低潜力：观察是否在岗匹配，必要时调整。',
+    color: '#c0c4cc',
+  },
+  'low-high': {
+    label: '问题员工',
+    desc: '低绩效高潜力：可能角色错配，需深入沟通调整岗位。',
+    color: '#f56c6c',
+  },
+  'low-mid': {
+    label: '观察对象',
+    desc: '低绩效中潜力：需制定改进计划，限期复盘。',
+    color: '#f4a0a0',
+  },
+  'low-low': {
+    label: '待改进',
+    desc: '低绩效低潜力：启动绩效改进流程，必要时退出。',
+    color: '#fab6b6',
+  },
 }
 
 function cellKey(perf, pot) {

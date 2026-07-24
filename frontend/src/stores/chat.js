@@ -219,9 +219,7 @@ export const useChatStore = defineStore('chat', () => {
         break
       case 'reasoning-delta':
       case 'thinking-delta': {
-        const rPart = assistantMsg.parts.find(
-          (p) => p.type === 'reasoning' && p.id === data.id,
-        )
+        const rPart = assistantMsg.parts.find((p) => p.type === 'reasoning' && p.id === data.id)
         if (rPart) rPart.text += data.text
         break
       }
@@ -246,7 +244,8 @@ export const useChatStore = defineStore('chat', () => {
       case 'tool-call': {
         const tc = assistantMsg.parts.find((p) => p.id === data.id)
         if (tc) {
-          tc.input = typeof data.input === 'string' ? data.input : JSON.stringify(data.input, null, 2)
+          tc.input =
+            typeof data.input === 'string' ? data.input : JSON.stringify(data.input, null, 2)
           tc.state = 'running'
         }
         break
@@ -557,9 +556,7 @@ export const useChatStore = defineStore('chat', () => {
   const displaySessions = computed(() => {
     const q = searchQuery.value.trim().toLowerCase()
     if (!q) return sessions.value
-    return sessions.value.filter(
-      (s) => (s.title || '').toLowerCase().includes(q),
-    )
+    return sessions.value.filter((s) => (s.title || '').toLowerCase().includes(q))
   })
 
   return {
