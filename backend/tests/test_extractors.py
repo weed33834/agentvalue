@@ -158,8 +158,10 @@ async def test_table_extractor_tsv():
 
 
 @pytest.mark.asyncio
-async def test_table_extractor_xlsx_without_openpyxl_degrades():
+async def test_table_extractor_xlsx_without_openpyxl_degrades(monkeypatch):
     """openpyxl 未安装时应降级提示"""
+    # 模拟 openpyxl 未安装：置 sys.modules 为 None 使 `from openpyxl import ...` 触发 ImportError
+    monkeypatch.setitem(sys.modules, "openpyxl", None)
     ext = TableExtractor()
     att = {"filename": "data.xlsx", "data": base64.b64encode(b"fakexlsx").decode()}
     result = await ext.extract(att)
