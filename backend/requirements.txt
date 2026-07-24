@@ -38,6 +38,9 @@ arq>=0.26.0
 # LangGraph Postgres checkpointer(P3 规模化就绪):interrupt 状态持久化,解除单实例约束
 # 未启用 DATABASE_URL=postgresql://... 时,自动降级到 MemorySaver
 langgraph-checkpoint-postgres>=2.0.0
+# 定时任务调度(core/scheduler.py: AsyncIOScheduler + CronTrigger)
+# 锁定 3.x: APScheduler 4.0 为破坏性重构,移除了 apscheduler.schedulers.asyncio 模块路径
+APScheduler>=3.10.0,<4.0
 # 字段级加密（manager_view/audit 字段 AES-GCM 加密）
 cryptography>=42.0.0
 # 多模态抽取（Phase 7.1）：pypdf 纯 Python 无系统依赖；pytesseract 需系统安装 tesseract-ocr
