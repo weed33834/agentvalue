@@ -28,7 +28,7 @@ pyjwt>=2.13.0
 bcrypt>=4.0.0
 prometheus_client>=0.25.0
 redis>=5.0
-fakeredis>=2.36.2
+fakeredis>=2.37.0
 # Lua 脚本支持: fakeredis 跑 RedisJobQueue.update 的 Lua 原子脚本需要 lupa 解释器
 # 生产环境用真实 Redis(原生支持 Lua),lupa 仅测试环境需要
 lupa>=2.0
