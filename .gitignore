@@ -33,6 +33,7 @@ venv/
 # IDEs / OS
 .vscode/
 .idea/
+.trae/
 .DS_Store
 Thumbs.db
 *.swp
