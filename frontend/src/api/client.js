@@ -682,3 +682,34 @@ export const artifactApi = {
   fork: (id) => api.post(`/artifacts/${id}/fork`),
   extract: (text) => api.post('/artifacts/extract', { text }),
 }
+
+// ============================================================
+// Skill 技能管理 API (对标 Claude Skills / Trae Skills)
+// 完整功能: CRUD + AI自动生成 + 导入/导出 + 执行测试 + 使用计数
+// ============================================================
+export const skillAdminApi = {
+  // 列表 (支持 category 过滤)
+  list: (params) => api.get('/skills', { params }),
+  // 内置技能列表
+  listBuiltin: () => api.get('/skills/builtin'),
+  // 详情
+  get: (skillId) => api.get(`/skills/${encodeURIComponent(skillId)}`),
+  // 创建
+  create: (data) => api.post('/skills', data),
+  // 更新
+  update: (skillId, data) => api.put(`/skills/${encodeURIComponent(skillId)}`, data),
+  // 删除
+  delete: (skillId) => api.delete(`/skills/${encodeURIComponent(skillId)}`),
+  // 执行测试
+  execute: (skillId, data) => api.post(`/skills/${encodeURIComponent(skillId)}/execute`, data),
+  // 标记使用
+  use: (skillId) => api.post(`/skills/${encodeURIComponent(skillId)}/use`),
+  // AI 自动生成 Skill
+  generate: (data) => api.post('/skills/generate', data),
+  // 导出 Skill
+  export: (skillId) => api.get(`/skills/${encodeURIComponent(skillId)}/export`),
+  // 导入 Skill
+  import: (data) => api.post('/skills/import', data),
+  // 批量导入
+  batchImport: (data) => api.post('/skills/batch-import', data),
+}

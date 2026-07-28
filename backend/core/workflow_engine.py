@@ -19,6 +19,7 @@
 - end: 终点 (输出 outputs)
 - loop: 循环节点 (config: items / item_var / body / break_when), 对 items 列表逐个执行 body 子节点
 - parallel: 并行节点 (config: branches), 使用 asyncio.gather 并行执行所有分支
+- skill: Skill 技能调用 (config: skill_id / input_template / context_template)
 """
 
 from __future__ import annotations
@@ -271,7 +272,7 @@ class WorkflowEngine:
     # 支持的节点类型 (与前端 NODE_TYPES 对齐)
     NODE_TYPES = {
         "start", "llm", "http", "condition", "code", "knowledge", "end",
-        "loop", "parallel",
+        "loop", "parallel", "skill",
     }
 
     # H8: 循环节点单次最大迭代次数上限, 超出则拒绝执行 (防止资源耗尽 / 死循环)
@@ -408,6 +409,9 @@ class WorkflowEngine:
         elif ntype == "knowledge":
             if not cfg.get("query_template"):
                 errors.append(f"节点 {nid} (knowledge) 缺少 config.query_template")
+        elif ntype == "skill":
+            if not cfg.get("skill_id"):
+                errors.append(f"节点 {nid} (skill) 缺少 config.skill_id")
         elif ntype == "loop":
             # 循环节点: items (列表路径) + body (子节点列表)
             if not cfg.get("items"):
@@ -1062,6 +1066,127 @@ class WorkflowEngine:
                 "parallel_results": parallel_results,
                 "errors": errors if errors else None,
                 "branch_count": len(branches),
+            }
+        }
+
+    async def _node_skill(
+        self, node: dict, cfg: dict, context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Skill 节点: 从 DB 加载 Skill → 渲染 input → 调 SkillExecutor.execute()
+
+        config:
+        - skill_id: 要调用的 Skill ID (int)
+        - input_template: 输入模板 (用 {{var}} 渲染), 作为 user_input 传给 Skill
+        - context_template: 上下文模板 (可选, dict 时逐字段渲染, str 时渲染后 JSON 解析为 dict)
+
+        返回: {"output": {"result": ..., "parsed": ..., "skill_id": ..., "tokens_used": ...}}
+        Skill 不存在 / 未激活时返回 error 字段。
+        """
+        # 惰性导入避免循环依赖
+        from agent.skills import SkillExecutor
+        from core.database import get_db_session
+        from models.skill import Skill
+        from sqlalchemy import select
+
+        skill_id = cfg.get("skill_id")
+        if skill_id is None:
+            raise WorkflowExecutionError("skill 节点缺少 config.skill_id")
+        try:
+            skill_id_int = int(skill_id)
+        except (TypeError, ValueError) as e:
+            raise WorkflowExecutionError(
+                f"skill 节点 config.skill_id 不是合法整数: {skill_id!r}"
+            ) from e
+
+        # 渲染 input_template
+        input_template = cfg.get("input_template", "")
+        rendered_input = self._render_template(input_template, context)
+
+        # 渲染 context_template (支持 dict 逐字段渲染 / str 渲染后 JSON 解析)
+        context_template = cfg.get("context_template")
+        rendered_context: Optional[Dict[str, Any]] = None
+        if context_template is not None:
+            if isinstance(context_template, dict):
+                rendered_context = {}
+                for k, v in context_template.items():
+                    if isinstance(v, str):
+                        rendered_context[k] = self._render_template(v, context)
+                    else:
+                        rendered_context[k] = v
+            elif isinstance(context_template, str):
+                rendered_ctx_str = self._render_template(context_template, context)
+                try:
+                    parsed_ctx = json.loads(rendered_ctx_str) if rendered_ctx_str else None
+                    rendered_context = (
+                        parsed_ctx if isinstance(parsed_ctx, dict) else {"value": rendered_ctx_str}
+                    )
+                except Exception:
+                    rendered_context = {"value": rendered_ctx_str}
+
+        # 从 DB 加载 Skill by id
+        try:
+            async with get_db_session() as session:  # type: AsyncSession
+                skill = (
+                    await session.execute(
+                        select(Skill).where(Skill.id == skill_id_int)
+                    )
+                ).scalar_one_or_none()
+        except Exception as e:
+            raise WorkflowExecutionError(
+                f"加载 Skill id={skill_id_int} 失败: {e}"
+            ) from e
+
+        if skill is None:
+            return {
+                "output": {
+                    "error": f"Skill id={skill_id_int} 不存在",
+                    "skill_id": skill_id_int,
+                }
+            }
+        if not skill.is_active:
+            return {
+                "output": {
+                    "error": f"Skill id={skill_id_int} 未激活, 无法执行",
+                    "skill_id": skill_id_int,
+                }
+            }
+
+        # 从 app_state 获取 SkillExecutor (或临时创建, model_router 从 app_state 注入)
+        model_router = (
+            getattr(self.app_state, "model_router", None)
+            if self.app_state is not None
+            else None
+        )
+        settings = (
+            getattr(self.app_state, "settings", None)
+            if self.app_state is not None
+            else None
+        )
+        executor = SkillExecutor(model_router=model_router, settings=settings)
+
+        if executor.model_router is None:
+            raise WorkflowExecutionError(
+                "skill 节点需要 app_state.model_router, 但当前未注入"
+            )
+
+        # 调用 executor.execute (复用 SkillExecutor 的 ReAct/简单 LLM 调用逻辑)
+        try:
+            result = await executor.execute(
+                skill=skill,
+                user_input=rendered_input,
+                context=rendered_context,
+            )
+        except Exception as e:
+            raise WorkflowExecutionError(
+                f"Skill 执行失败 skill_id={skill_id_int}: {e}"
+            ) from e
+
+        return {
+            "output": {
+                "result": result.get("output", ""),
+                "parsed": result.get("parsed"),
+                "skill_id": skill_id_int,
+                "tokens_used": result.get("tokens_used", 0),
             }
         }
 

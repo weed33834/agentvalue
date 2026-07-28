@@ -266,6 +266,13 @@ const routes = [
         meta: { title: '人才九宫格' },
       },
       {
+        // Skill 技能管理 (对标 Claude Skills / Trae Skills)
+        path: 'skills',
+        name: 'AdminSkills',
+        component: () => import('@/views/admin/AdminSkills.vue'),
+        meta: { title: '技能管理' },
+      },
+      {
         // Agent 预设市场 (对标 ChatGPT GPTs / LobeChat 助手市场 / Coze Bot 商店)
         path: '/admin/agent-presets',
         name: 'AgentPresets',

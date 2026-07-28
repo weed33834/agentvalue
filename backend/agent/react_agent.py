@@ -90,6 +90,11 @@ async def build_all_tools(
     if custom_tools_count:
         logger.info("加载 %d 个自定义工具 (OpenAPI)", custom_tools_count)
 
+    # 4) Skill 工具 (active Skills 包装为 LangChain BaseTool)
+    skill_tools_count = await _load_skill_tools(tools)
+    if skill_tools_count:
+        logger.info("加载 %d 个 Skill 工具", skill_tools_count)
+
     return tools
 
 
@@ -157,6 +162,216 @@ async def _load_custom_tools(tools: List[Any]) -> int:
             logger.warning(
                 "解析自定义工具 %s 的 OpenAPI spec 失败: %s", entity.name, e
             )
+    return count
+
+
+# ====== Skill 工具 (active Skills 包装为 LangChain BaseTool) ======
+
+
+def _json_schema_to_pydantic(schema: Optional[dict], model_name: str = "SkillInput"):
+    """best-effort: 把简单 JSON Schema 转 Pydantic BaseModel
+
+    支持 type/properties/required 的常见子集, 复杂 schema (allOf/$ref/嵌套) 降级返回 None。
+    """
+    try:
+        from pydantic import BaseModel, Field, create_model
+    except ImportError:
+        return None
+    if not isinstance(schema, dict):
+        return None
+    properties = schema.get("properties")
+    if not isinstance(properties, dict) or not properties:
+        return None
+    required = set(schema.get("required") or [])
+    type_map = {
+        "string": str,
+        "integer": int,
+        "number": float,
+        "boolean": bool,
+        "array": list,
+        "object": dict,
+    }
+    fields: Dict[str, Any] = {}
+    for name, prop in properties.items():
+        if not isinstance(prop, dict):
+            continue
+        jtype = prop.get("type", "string")
+        py_type = type_map.get(jtype, str)
+        desc = prop.get("description", "")
+        if name in required:
+            fields[name] = (py_type, Field(..., description=desc))
+        else:
+            fields[name] = (Optional[py_type], Field(default=None, description=desc))
+    if not fields:
+        return None
+    try:
+        return create_model(model_name, **fields)
+    except Exception as e:
+        logger.debug("构建 Pydantic model %s 失败: %s", model_name, e)
+        return None
+
+
+def _get_default_skill_input_schema():
+    """默认 Skill 工具入参 schema (单个 input 字符串)"""
+    try:
+        from pydantic import BaseModel, Field
+
+        class _DefaultSkillInput(BaseModel):
+            input: str = Field(..., description="传给 Skill 的输入文本")
+
+        return _DefaultSkillInput
+    except ImportError:
+        return None
+
+
+async def _invoke_skill_tool(skill_id: int, skill_name: str, input_data: dict) -> str:
+    """Skill 工具的实际执行函数: 从 DB 加载 Skill → 调 SkillExecutor.execute()
+
+    - model_router 传 None (此处无 ModelRouter 可用, 执行时会降级到错误返回,
+      与任务说明一致; 真正的 LLM 调用由具备 model_router 的调用路径承担)
+    - 返回字符串 (LangChain Tool 约定)
+    """
+    import json
+
+    try:
+        from core.database import get_db_session
+        from models.skill import Skill
+        from sqlalchemy import select
+    except ImportError as e:
+        logger.warning("Skill 工具执行依赖缺失: %s", e)
+        return f"[Skill {skill_name}] 执行依赖不可用: {e}"
+
+    try:
+        async with get_db_session() as session:
+            skill = (
+                await session.execute(select(Skill).where(Skill.id == skill_id))
+            ).scalar_one_or_none()
+        if skill is None:
+            return f"[Skill id={skill_id}] 不存在"
+
+        # 惰性导入避免循环依赖
+        from agent.skills import SkillExecutor
+
+        # model_router 传 None: 执行时会降级 (见 SkillExecutor.execute)
+        executor = SkillExecutor(model_router=None, settings=None)
+
+        # 把工具入参序列化为 user_input, 同时作为 context 传给 Skill
+        user_input = (
+            json.dumps(input_data, ensure_ascii=False, default=str)
+            if input_data
+            else ""
+        )
+        context = input_data if input_data else None
+
+        result = await executor.execute(skill, user_input, context)
+        if result.get("error"):
+            return f"[Skill {skill.name}] 执行失败: {result['error']}"
+        return result.get("output", "") or ""
+    except Exception as e:
+        logger.warning("Skill 工具执行失败 skill_id=%s: %s", skill_id, e)
+        return f"[Skill {skill_name}] 执行失败: {e}"
+
+
+def _build_skill_tool(skill: Any) -> Optional[Any]:
+    """将单个 Skill 包装为 LangChain StructuredTool
+
+    - name=skill.name, description=skill.description
+    - args_schema=skill.input_schema (best-effort 转 Pydantic, 失败用默认单字段 schema)
+    - 执行时调用 SkillExecutor.execute()
+    """
+    try:
+        from langchain_core.tools import StructuredTool
+    except ImportError:
+        logger.debug("langchain_core 未安装, 跳过 Skill 工具构建")
+        return None
+
+    skill_id = skill.id
+    skill_name = skill.name or f"skill_{skill_id}"
+    description = skill.description or f"Skill: {skill_name}"
+
+    # args_schema: 优先用 skill.input_schema 转换, 失败用默认
+    args_schema = _json_schema_to_pydantic(
+        skill.input_schema, f"{skill_name}_input"
+    )
+    if args_schema is None:
+        args_schema = _get_default_skill_input_schema()
+    if args_schema is None:
+        # pydantic 不可用, 无法构建
+        return None
+
+    async def _arun(**kwargs) -> str:
+        return await _invoke_skill_tool(skill_id, skill_name, dict(kwargs))
+
+    def _run(**kwargs) -> str:
+        import asyncio
+
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # 已在事件循环中 (LangGraph 同步路径极少触发), 降级提示
+                return (
+                    f"[Skill {skill_name}] 同步调用在运行中的事件循环内不支持, "
+                    "请使用异步调用"
+                )
+            return loop.run_until_complete(
+                _invoke_skill_tool(skill_id, skill_name, dict(kwargs))
+            )
+        except RuntimeError:
+            return asyncio.run(
+                _invoke_skill_tool(skill_id, skill_name, dict(kwargs))
+            )
+
+    try:
+        return StructuredTool.from_function(
+            func=_run,
+            coroutine=_arun,
+            name=skill_name,
+            description=description,
+            args_schema=args_schema,
+        )
+    except Exception as e:
+        logger.warning("构建 Skill 工具 %s 失败: %s", skill_name, e)
+        return None
+
+
+async def _load_skill_tools(tools: List[Any]) -> int:
+    """加载所有 active 的 Skill, 包装为 LangChain BaseTool 加入 toolkit
+
+    设计:
+    - DB 不可达时静默跳过 (不阻断 ReAct Agent 启动)
+    - langchain_core 未安装时静默跳过
+    - 每个 Skill 包装为一个 BaseTool: name=skill.name, description=skill.description,
+      args_schema=skill.input_schema, 执行时调用 SkillExecutor.execute()
+
+    Returns:
+        成功加载的工具数
+    """
+    try:
+        from core.database import AsyncSessionLocal
+        from models.skill import Skill
+        from sqlalchemy import select
+    except ImportError:
+        # 依赖未就绪, 静默跳过
+        return 0
+
+    try:
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(Skill).where(Skill.is_active == True)  # noqa: E712
+            )
+            rows = result.scalars().all()
+    except Exception as e:
+        logger.warning("加载 Skill 工具失败 (DB 不可达?): %s", e)
+        return 0
+
+    count = 0
+    for entity in rows:
+        tool = _build_skill_tool(entity)
+        if tool is not None:
+            tools.append(tool)
+            count += 1
+        else:
+            logger.debug("Skill %s 包装为 LangChain 工具失败, 跳过", entity.name)
     return count
 
 

@@ -100,6 +100,33 @@ class ExecuteSkillPayload(BaseModel):
     context: Optional[Dict[str, Any]] = None
 
 
+class GenerateSkillPayload(BaseModel):
+    """AI 自动生成 Skill 请求体"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    description: str = Field(min_length=1, max_length=_MAX_TEXT_LENGTH)
+    category: str = Field(default="general", max_length=_MAX_CATEGORY_LENGTH)
+
+
+class ImportSkillPayload(BaseModel):
+    """导入单个 Skill 请求体"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    skill_data: Dict[str, Any]
+    overwrite: bool = False
+
+
+class BatchImportSkillPayload(BaseModel):
+    """批量导入 Skill 请求体"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    skills: List[Dict[str, Any]] = Field(min_length=1, max_length=100)
+    overwrite: bool = False
+
+
 # ---------------- Serialization helpers ----------------
 
 
@@ -431,3 +458,127 @@ async def use_skill(
         "skill": _serialize_skill(skill, include_prompt=False),
         "use_count": skill.use_count,
     }
+
+
+# ---------------- AI 生成 / 导入 / 导出 ----------------
+
+
+@router.post("/generate")
+async def generate_skill(
+    payload: GenerateSkillPayload,
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+):
+    """AI 自动生成 Skill 定义 (需认证)
+
+    根据自然语言描述调用 LLM 生成结构化 Skill 定义。
+    返回的 skill 定义不会自动入库, 由前端决定是否调用 POST /skills 创建。
+    """
+    executor = _get_executor(request)
+    if executor.model_router is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="ModelRouter 不可用, 无法生成 Skill",
+        )
+
+    try:
+        skill_def = await executor.generate_skill(
+            description=payload.description,
+            category=payload.category,
+        )
+    except Exception as e:
+        logger.exception("AI 生成 Skill 失败: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"AI 生成 Skill 失败: {e}",
+        )
+
+    if skill_def.get("error"):
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"LLM 生成 Skill 失败: {skill_def['error']}",
+        )
+
+    return skill_def
+
+
+@router.get("/{skill_id}/export")
+async def export_skill(
+    skill_id: int,
+    session: AsyncSession = Depends(get_db),
+):
+    """导出 Skill 为可导入的 JSON 格式
+
+    返回的 JSON 可直接用于 POST /api/v1/skills/import。
+    """
+    await _ensure_seed()
+
+    skill = (
+        await session.execute(select(Skill).where(Skill.id == skill_id))
+    ).scalar_one_or_none()
+    if skill is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="技能不存在"
+        )
+
+    from agent.skills import SkillExecutor
+
+    # export_skill 是纯序列化方法, 不依赖 model_router, 临时实例即可
+    executor = SkillExecutor(model_router=None, settings=None)
+    return executor.export_skill(skill)
+
+
+@router.post("/import")
+async def import_skill(
+    payload: ImportSkillPayload,
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+):
+    """导入单个 Skill (需认证)
+
+    请求体: {"skill_data": {...}, "overwrite": bool}
+    返回: {"imported": int, "skill_id": Optional[int], "action": "created"|"updated"|"skipped"}
+    """
+    executor = _get_executor(request)
+
+    try:
+        result = await executor.import_skill(
+            skill_data=payload.skill_data,
+            overwrite=payload.overwrite,
+        )
+    except Exception as e:
+        logger.exception("导入 Skill 失败: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"导入 Skill 失败: {e}",
+        )
+
+    return result
+
+
+@router.post("/batch-import")
+async def batch_import_skills(
+    payload: BatchImportSkillPayload,
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+):
+    """批量导入 Skill (需认证)
+
+    请求体: {"skills": [{...}, ...], "overwrite": bool}
+    返回: {"imported": int, "skipped": int, "errors": list}
+    """
+    executor = _get_executor(request)
+
+    try:
+        result = await executor.batch_import_skills(
+            skills_data=payload.skills,
+            overwrite=payload.overwrite,
+        )
+    except Exception as e:
+        logger.exception("批量导入 Skill 失败: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"批量导入 Skill 失败: {e}",
+        )
+
+    return result

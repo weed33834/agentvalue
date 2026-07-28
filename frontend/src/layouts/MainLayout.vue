@@ -132,6 +132,10 @@
             <el-icon><Tools /></el-icon>
             <span>工具管理</span>
           </el-menu-item>
+          <el-menu-item index="/admin/skills">
+            <el-icon><MagicStick /></el-icon>
+            <span>技能管理</span>
+          </el-menu-item>
           <el-menu-item index="/admin/agent-presets">
             <el-icon><Shop /></el-icon>
             <span>Agent预设</span>
