@@ -29,7 +29,7 @@ import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.jwt_handler import create_access_token
+from auth.jwt_handler import create_access_token_async
 from models.sso_models import SSOConfig, SSOSession
 from models.models import User
 
@@ -436,7 +436,7 @@ class SSOService:
         await self.session.flush()
 
         # 4. 生成内部 JWT
-        jwt_token = create_access_token(
+        jwt_token = await create_access_token_async(
             user_id=internal_user.user_id,
             role=internal_user.role,
             name=internal_user.name,
@@ -561,7 +561,7 @@ class SSOService:
         )
 
         # 生成内部 JWT
-        jwt_token = create_access_token(
+        jwt_token = await create_access_token_async(
             user_id=internal_user.user_id,
             role=internal_user.role,
             name=internal_user.name,

@@ -308,6 +308,7 @@ export const authApi = {
   login: (email, password) => api.post('/auth/login', { email, password }),
   me: () => api.get('/auth/me'),
   refresh: () => api.post('/auth/refresh'),
+  logout: () => api.post('/auth/logout'),
   seedDemoUsers: () => api.post('/auth/seed-demo-users'),
 }
 

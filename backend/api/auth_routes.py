@@ -12,8 +12,8 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.jwt_handler import (
-    create_access_token,
-    decode_access_token,
+    create_access_token_async,
+    decode_access_token_async,
     extract_bearer_token,
 )
 from auth.password import hash_password, verify_password
@@ -99,7 +99,7 @@ async def login(
     except ValueError:
         role = Role.EMPLOYEE
 
-    token = create_access_token(user.user_id, role.value, name=user.name)
+    token = await create_access_token_async(user.user_id, role.value, name=user.name)
     await audit_service.log(
         actor_id=user.user_id,
         action="login_success",
@@ -163,7 +163,7 @@ async def register(
     except ValueError:
         role = Role.EMPLOYEE
 
-    token = create_access_token(user.user_id, role.value, name=user.name)
+    token = await create_access_token_async(user.user_id, role.value, name=user.name)
     await audit_service.log(
         actor_id=user.user_id,
         action="register",
@@ -216,7 +216,7 @@ async def refresh_token(
             detail="缺少 token",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    payload = decode_access_token(token)
+    payload = await decode_access_token_async(token)
     if not payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -246,7 +246,7 @@ async def refresh_token(
     except ValueError:
         role = Role.EMPLOYEE
 
-    new_token = create_access_token(user.user_id, role.value, name=user.name)
+    new_token = await create_access_token_async(user.user_id, role.value, name=user.name)
     # 与 login/logout 对齐:token 续期也记审计,完整刻画令牌生命周期
     await audit_service.log(
         actor_id=user.user_id,
@@ -280,7 +280,7 @@ async def logout(
             detail="缺少 token",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    payload = decode_access_token(token)
+    payload = await decode_access_token_async(token)
     if not payload:
         # token 已失效(过期或非法),无需吊销
         raise HTTPException(
@@ -353,7 +353,7 @@ async def seed_demo_users(
             None,
         ),
     ]
-    default_password = "agentvalue123"
+    default_password = settings.demo_default_password
     created = []
     for user_id, name, email, role, dept, manager_id in demo_accounts:
         existing = await eval_service.get_user_by_email(email)

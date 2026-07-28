@@ -70,7 +70,18 @@ export const useAuthStore = defineStore('auth', () => {
     resetRouteAuthChecked()
   }
 
-  function logout() {
+  async function logout() {
+    // 调后端吊销 token (best-effort, 失败不阻塞退出)
+    if (useJwt.value && token.value) {
+      try {
+        const { authApi } = await import('@/api/client')
+        await authApi.logout()
+      } catch (e) {
+        // 后端不可达或 token 已过期, 忽略错误继续清理本地状态
+        console.debug('Logout API call failed (ignored):', e.message || e)
+      }
+    }
+    // 清理本地状态
     role.value = ''
     userId.value = ''
     name.value = ''
@@ -87,7 +98,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function checkAuth() {
     if (!useJwt.value) return true
     if (isTokenExpired(token.value)) {
-      logout()
+      await logout()
       return false
     }
     try {
@@ -99,7 +110,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
       return true
     } catch (err) {
-      logout()
+      await logout()
       return false
     }
   }

@@ -238,9 +238,9 @@ function goToApprovalDashboard() {
   }
 }
 
-function handleLogout() {
+async function handleLogout() {
   notification.stopPolling()
-  auth.logout()
+  await auth.logout()
   router.push('/login')
 }
 

@@ -10,12 +10,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
-// Mock @/api/client:authApi.me 由 store.checkAuth 调用
+// Mock @/api/client:authApi.me 由 store.checkAuth 调用,authApi.logout 由 store.logout 调用
 const meMock = vi.fn()
+const logoutMock = vi.fn()
 vi.mock('@/api/client', () => ({
   default: { post: vi.fn(), get: vi.fn() },
   authApi: {
     me: (...args) => meMock(...args),
+    logout: (...args) => logoutMock(...args),
     refresh: vi.fn(),
     login: vi.fn(),
   },
@@ -104,11 +106,11 @@ describe('auth store', () => {
     expect(localStorage.getItem('agentvalue_token')).toBe(token)
   })
 
-  it('logout 清空所有状态与 localStorage', () => {
+  it('logout 清空所有状态与 localStorage', async () => {
     const auth = useAuthStore()
     auth.loginWithToken(makeJwt(), { role: 'employee', user_id: 'E1001' })
     expect(auth.isLoggedIn).toBe(true)
-    auth.logout()
+    await auth.logout()
     expect(auth.role).toBe('')
     expect(auth.userId).toBe('')
     expect(auth.token).toBe('')

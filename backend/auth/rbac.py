@@ -10,7 +10,7 @@ from typing import Optional, Tuple
 
 from fastapi import Depends, HTTPException, Request, status
 
-from auth.jwt_handler import decode_access_token, extract_bearer_token
+from auth.jwt_handler import decode_access_token_async, extract_bearer_token
 from auth.token_blacklist import token_blacklist
 from core.config import get_settings
 
@@ -48,7 +48,7 @@ async def _resolve_user(request: Request) -> Tuple[Optional[Role], Optional[str]
     auth_header = request.headers.get("authorization")
     token = extract_bearer_token(auth_header)
     if token:
-        payload = decode_access_token(token)
+        payload = await decode_access_token_async(token)
         if payload:
             # 黑名单校验:jti 已被吊销则视为无效 token
             jti = payload.get("jti")

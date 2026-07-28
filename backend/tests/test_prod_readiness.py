@@ -156,9 +156,10 @@ class TestCheckReadiness:
     def test_structure_and_all_passed_true(self):
         """返回结构正确，关键项全 PASS（仅允许 WARN）时 all_passed=True。
 
-        检查项数量随版本演进（当前为 9：demo_mode / jwt_secret / database_url /
-        model_tier / field_encryption_key / cloud_credentials / cors_origins /
-        jwt_algorithm / kms_configured (H5)），用名字集合做断言更稳健。
+        检查项数量随版本演进（当前为 10：demo_mode / demo_default_password /
+        jwt_secret / database_url / model_tier / field_encryption_key /
+        cloud_credentials / cors_origins / jwt_algorithm / kms_configured (H5)），
+        用名字集合做断言更稳健。
         """
         settings = Settings(
             auth_demo_mode=False,
@@ -170,12 +171,14 @@ class TestCheckReadiness:
         assert "checks" in result
         assert "all_passed" in result
         assert isinstance(result["checks"], list)
-        # 9 项：4 项基础 + field_encryption_key + cloud_credentials
-        #       + cors_origins(P1) + jwt_algorithm(P1-6) + kms_configured(H5)
-        assert len(result["checks"]) == 9
+        # 10 项：4 项基础 + demo_default_password + field_encryption_key
+        #       + cloud_credentials + cors_origins(P1) + jwt_algorithm(P1-6)
+        #       + kms_configured(H5)
+        assert len(result["checks"]) == 10
         names = {c["name"] for c in result["checks"]}
         assert names == {
             "auth_demo_mode",
+            "demo_default_password",
             "jwt_secret_key",
             "database_url",
             "model_tier",
@@ -189,7 +192,8 @@ class TestCheckReadiness:
             assert {"name", "status", "message"}.issubset(check.keys())
             assert check["status"] in {"PASS", "FAIL", "WARN"}
         # field_encryption_key 未配置 + 非生产环境 -> WARN；cloud_credentials 未配置 -> WARN
-        # kms_configured (env/local 非生产) -> WARN；均不计入 FAIL，故 all_passed 仍为 True
+        # kms_configured (env/local 非生产) -> WARN；demo_default_password 默认值 -> WARN
+        # 均不计入 FAIL，故 all_passed 仍为 True
         assert result["all_passed"] is True
 
     # ---------------- field_encryption_key 检查项 ----------------

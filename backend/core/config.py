@@ -140,6 +140,8 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 1440  # 24 小时
     # 演示模式：开启时允许通过 x-user-role / x-user-id header 伪造身份（仅开发/测试用）
     auth_demo_mode: bool = False
+    # 演示模式默认密码 (仅 auth_demo_mode=True 时使用, 生产环境必须修改)
+    demo_default_password: str = "agentvalue123"
 
     # 运行环境标识：仅当值为 "production" 时启用生产安全校验；
     # 不设或非 production 时不做任何校验，确保开发与测试环境不受影响。

@@ -164,6 +164,27 @@ def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
         return None
 
 
+async def create_access_token_async(
+    user_id: str | int,
+    role: str,
+    name: str = "",
+    expires_minutes: Optional[int] = None,
+) -> str:
+    """create_access_token 的异步版本, 用 asyncio.to_thread 包装 jwt.encode 避免阻塞事件循环"""
+    import asyncio
+
+    return await asyncio.to_thread(
+        create_access_token, user_id, role, name, expires_minutes
+    )
+
+
+async def decode_access_token_async(token: str) -> Optional[Dict[str, Any]]:
+    """decode_access_token 的异步版本, 用 asyncio.to_thread 包装 jwt.decode 避免阻塞事件循环"""
+    import asyncio
+
+    return await asyncio.to_thread(decode_access_token, token)
+
+
 def extract_bearer_token(authorization: Optional[str]) -> Optional[str]:
     """从 Authorization header 提取 Bearer token"""
     if not authorization:

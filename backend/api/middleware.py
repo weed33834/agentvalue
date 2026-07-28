@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from auth.jwt_handler import decode_access_token, extract_bearer_token
+from auth.jwt_handler import decode_access_token_async, extract_bearer_token
 from core.config import get_settings
 from core.tenant_context import reset_current_tenant, set_current_tenant
 from models.models import DEFAULT_TENANT_ID, Tenant
@@ -43,13 +43,13 @@ def _extract_headers(scope: Scope) -> dict:
     return headers
 
 
-def _extract_jwt_payload(headers: dict) -> dict:
+async def _extract_jwt_payload(headers: dict) -> dict:
     """从 Authorization header 提取 JWT payload,失败返回空 dict"""
     auth_header = headers.get("authorization")
     token = extract_bearer_token(auth_header)
     if not token:
         return {}
-    payload = decode_access_token(token)
+    payload = await decode_access_token_async(token)
     return payload if isinstance(payload, dict) else {}
 
 
@@ -68,12 +68,12 @@ def _extract_client_ip(scope: Scope, headers: dict) -> str | None:
     return None
 
 
-def _extract_tenant_id(scope: Scope) -> str:
+async def _extract_tenant_id(scope: Scope) -> str:
     """从请求头解析租户：优先 JWT claims，其次 x-tenant-id header，兜底 default"""
     headers = _extract_headers(scope)
 
     # 1. JWT claims 中的 tenant_id（可信来源，签发时写入）
-    payload = _extract_jwt_payload(headers)
+    payload = await _extract_jwt_payload(headers)
     if payload:
         tenant_id = payload.get("tenant_id")
         if tenant_id:
@@ -243,7 +243,7 @@ class TenantMiddleware:
             return
 
         headers = _extract_headers(scope)
-        tenant_id = _extract_tenant_id(scope)
+        tenant_id = await _extract_tenant_id(scope)
 
         # 校验租户状态：非 active 租户拒绝访问（403）
         # demo 模式下直接放行，避免测试环境无真实租户时全 403
@@ -278,7 +278,7 @@ class TenantMiddleware:
         # 未携带 JWT 时 actor_id=None, 装饰器兜底为 "system"
         from services.audit_decorator import reset_audit_context, set_audit_context
 
-        payload = _extract_jwt_payload(headers)
+        payload = await _extract_jwt_payload(headers)
         if payload:
             actor_id = (
                 payload.get("sub") or payload.get("user_id") or payload.get("uid")

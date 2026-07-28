@@ -44,6 +44,9 @@ DEFAULT_JWT_SECRETS = {
     "changeme",
 }
 
+# 默认演示密码黑名单 (生产环境不允许使用默认值)
+DEFAULT_DEMO_PASSWORDS = {"agentvalue123", "password", "123456", "admin123"}
+
 # 已知的敏感凭据占位值（小写匹配），生产环境必须替换为真实值
 # 覆盖 FIELD_ENCRYPTION_KEY / OCR_CLOUD_API_KEY / ASR_CLOUD_API_KEY 等
 DEFAULT_SECRET_PLACEHOLDERS = {
@@ -70,6 +73,34 @@ def _check_auth_demo_mode(settings: Settings) -> dict:
         "name": "auth_demo_mode",
         "status": "PASS",
         "message": "AUTH_DEMO_MODE 已关闭",
+    }
+
+
+def _check_demo_default_password(settings: Settings) -> dict:
+    """检查演示模式默认密码是否已修改（生产环境不允许使用黑名单默认值）。
+
+    即便关闭了 auth_demo_mode，保留默认 demo_default_password 仍是安全隐患
+    （配置漂移/误开启即让演示账号可被弱口令爆破）。生产环境使用黑名单默认值 -> FAIL；
+    非生产环境 -> WARN。
+    """
+    pwd = settings.demo_default_password or ""
+    is_production = settings.agentvalue_env == "production"
+    if pwd.strip() == "" or pwd.strip().lower() in DEFAULT_DEMO_PASSWORDS:
+        if is_production:
+            return {
+                "name": "demo_default_password",
+                "status": "FAIL",
+                "message": "DEMO_DEFAULT_PASSWORD 为默认值或弱口令，生产环境必须修改为强口令",
+            }
+        return {
+            "name": "demo_default_password",
+            "status": "WARN",
+            "message": "DEMO_DEFAULT_PASSWORD 为默认值，生产环境必须修改为强口令",
+        }
+    return {
+        "name": "demo_default_password",
+        "status": "PASS",
+        "message": "DEMO_DEFAULT_PASSWORD 已修改为非默认值",
     }
 
 
@@ -381,6 +412,7 @@ def check_readiness(settings: Optional[Settings] = None) -> dict:
 
     checks = [
         _check_auth_demo_mode(settings),
+        _check_demo_default_password(settings),
         _check_jwt_secret(settings),
         _check_database_url(settings),
         _check_model_tier(settings),

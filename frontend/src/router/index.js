@@ -321,7 +321,7 @@ router.beforeEach(async (to, from, next) => {
   }
   // JWT 过期时主动清理并跳转登录
   if (auth.useJwt && auth.token && isTokenExpired(auth.token)) {
-    auth.logout()
+    await auth.logout()
     next('/login')
     return
   }
