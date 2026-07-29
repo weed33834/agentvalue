@@ -51,7 +51,7 @@ async def test_inmemory_get_missing_returns_none():
 async def test_inmemory_update_merges_and_refreshes_updated_at():
     q = InMemoryJobQueue()
     await q.enqueue("job-1", _job())
-    original_updated = (
+    (
         (await q.get("job-1"))["updated_at"]
         if "updated_at" in await q.get("job-1")
         else None

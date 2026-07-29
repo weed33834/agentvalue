@@ -43,10 +43,8 @@ from core.tenant_context import get_current_tenant
 from models.policy import (
     DEFAULT_PRIORITY,
     EFFECT_ALLOW,
-    EFFECT_DENY,
     EFFECTS,
     SUBJECT_TYPE_GROUP,
-    SUBJECT_TYPES,
     WILDCARD,
     Policy,
 )

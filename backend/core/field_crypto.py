@@ -19,7 +19,10 @@ import asyncio
 import base64
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
+
+if TYPE_CHECKING:
+    from core.kms.envelope import EnvelopeCipher
 
 logger = logging.getLogger(__name__)
 

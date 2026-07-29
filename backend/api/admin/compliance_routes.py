@@ -24,7 +24,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.deps import get_audit_service
 from auth.rbac import Role, get_current_user_id, require_role
 from core.database import get_db
-from core.tenant_context import get_current_tenant
 from models.compliance import SUPPORTED_FRAMEWORKS
 from services.audit_service import AuditService
 from services.compliance_service import ComplianceService

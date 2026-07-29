@@ -251,7 +251,7 @@ def test_list_credentials_masked(client):
 
 def test_activate_credential(client):
     """POST .../credentials/{id}/activate → 200"""
-    cid1 = _create_credential(client, name="primary", api_key="sk-primary1234567890")
+    _create_credential(client, name="primary", api_key="sk-primary1234567890")
     cid2 = _create_credential(client, name="secondary", api_key="sk-secondary123456789")
 
     resp = client.post(

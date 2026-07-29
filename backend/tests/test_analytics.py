@@ -10,16 +10,6 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from core.database import Base
-from models import (  # 触发模型注册
-    CompanyKB,
-    DimensionScore,
-    Evaluation,
-    EvidenceRef,
-    Feedback,
-    Memory,
-    RawInput,
-    User,
-)
 from models.constants import EvaluationStatus
 from services.analytics_service import AnalyticsService
 from services.evaluation_service import EvaluationService

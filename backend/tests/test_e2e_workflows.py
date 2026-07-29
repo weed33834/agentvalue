@@ -9,13 +9,9 @@
 6. 异常工况: 超时 → 限流 → 降级 → 数据隔离
 """
 
-import asyncio
-import json
 import os
-import sys
 import pytest
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 # 确保测试环境变量
 os.environ.setdefault("DEMO_MODE", "true")
@@ -158,18 +154,6 @@ class TestChatWorkflow:
     def test_preference_pair_construction(self):
         """偏好对构造逻辑"""
         # 模拟 liked 和 disliked 消息
-        liked_msg = {
-            "id": "msg_001",
-            "session_id": "sess_001",
-            "role": "assistant",
-            "metadata": {"feedback": {"rating": "like", "comment": ""}},
-        }
-        disliked_msg = {
-            "id": "msg_002",
-            "session_id": "sess_001",
-            "role": "assistant",
-            "metadata": {"feedback": {"rating": "dislike", "comment": "回答不相关"}},
-        }
 
         # 构造偏好对
         preference_pair = {

@@ -26,7 +26,6 @@ from core.tenant_context import (
 )
 from main import app
 from memory.vector_store import ChromaCompanyKB, ChromaMemoryStore
-from models import Evaluation  # 触发模型注册
 from models.constants import EvaluationStatus
 from services.audit_service import AuditService
 from services.evaluation_service import EvaluationService

@@ -1979,7 +1979,7 @@ async def create_period(
     try:
         start_dt = datetime.fromisoformat(payload.start_date)
         end_dt = datetime.fromisoformat(payload.end_date)
-    except ValueError as e:
+    except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="日期格式无效，需 ISO 8601 格式",

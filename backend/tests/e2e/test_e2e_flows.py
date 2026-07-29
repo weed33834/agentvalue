@@ -345,7 +345,6 @@ class TestHrAuditFlow:
     def test_request_hr_review_and_hr_approve(
         self, client, employee_token, manager_token, hr_token
     ):
-        employee_headers = {"Authorization": f"Bearer {employee_token}"}
         manager_headers = {"Authorization": f"Bearer {manager_token}"}
         hr_headers = {"Authorization": f"Bearer {hr_token}"}
 

@@ -9,15 +9,12 @@ P0-6: 全局异常处理 — 统一错误响应格式 + 堆栈泄露防护
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
-import time
 import traceback
 import uuid
 from typing import Any, Callable, Optional
 
-from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 

@@ -20,13 +20,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from core.database import Base
-from models import AuditLog  # 触发模型注册 (确保 Base.metadata 包含全部表)
 from models.compliance import (
     CONTROL_STATUS_FAIL,
     CONTROL_STATUS_NOT_APPLICABLE,
     CONTROL_STATUS_PASS,
     CONTROL_STATUS_WARNING,
-    ComplianceControl,
     ComplianceEvidence,
     FRAMEWORK_ISO27001,
     FRAMEWORK_SOC2,
@@ -305,7 +303,7 @@ async def test_automated_check_backup_verify(
 
     monkeypatch.setattr(db_backup_mod, "BACKUP_DIR", backup_dir)
 
-    result = await compliance_service.run_automated_check()
+    await compliance_service.run_automated_check()
 
     # 备份文件存在 -> pass
     backup_control = await compliance_service.get_control(

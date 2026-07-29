@@ -126,7 +126,6 @@ async def _run_postgres_restore_test(db_url: str) -> bool:
     # 1. 创建测试数据
     from core.database import AsyncSessionLocal, init_db
     from models.models import User
-    from sqlalchemy import select
 
     await init_db()
     test_user_id = f"restore-test-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"

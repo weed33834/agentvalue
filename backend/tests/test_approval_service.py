@@ -13,7 +13,6 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from core.database import Base
-from models import Evaluation  # 触发模型注册
 from models.constants import EvaluationStatus
 from services.approval_service import ApprovalService
 from services.evaluation_service import EvaluationService

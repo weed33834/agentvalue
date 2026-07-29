@@ -24,8 +24,6 @@ from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from auth.abac import (
-    ABACEngine,
-    CASBIN_AVAILABLE,
     DEFAULT_ROLE_PERMISSIONS,
     _rbac_check,
     check_permission,

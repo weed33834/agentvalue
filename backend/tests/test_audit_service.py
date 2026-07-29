@@ -142,10 +142,10 @@ async def test_get_logs_ordered_by_created_at_desc(audit_service, db_session):
     """get_logs 应按 created_at 倒序返回"""
     import time
 
-    e1 = await audit_service.log(actor_id="A", action="first")
+    await audit_service.log(actor_id="A", action="first")
     await db_session.flush()
     time.sleep(0.01)
-    e2 = await audit_service.log(actor_id="A", action="second")
+    await audit_service.log(actor_id="A", action="second")
     await db_session.flush()
 
     logs = await audit_service.get_logs()

@@ -27,10 +27,8 @@
 from __future__ import annotations
 
 import argparse
-import asyncio
 import logging
 import os
-import shutil
 import subprocess
 import sys
 from datetime import datetime, timezone
