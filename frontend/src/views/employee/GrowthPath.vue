@@ -1,5 +1,5 @@
 <template>
-  <div class="growth-path">
+  <div class="growth-path av-fade-in-up">
     <el-row :gutter="20">
       <el-col :span="24">
         <el-card v-loading="loading" :aria-busy="loading">
@@ -29,10 +29,10 @@
       </el-col>
     </el-row>
 
-    <el-row :gutter="20" class="mt-20">
+    <el-row :gutter="20" class="mt-20 av-stagger">
       <el-col :span="12">
         <el-card>
-          <template #header><span>能力雷达对比（当前 vs 历史）</span></template>
+          <template #header><span class="card-header">能力雷达对比（当前 vs 历史）</span></template>
           <div v-if="capability.dimensions.length" role="img" :aria-label="radarSummary">
             <v-chart class="chart" :option="radarOption" autoresize />
           </div>
@@ -41,7 +41,7 @@
       </el-col>
       <el-col :span="12">
         <el-card>
-          <template #header><span>成长趋势</span></template>
+          <template #header><span class="card-header">成长趋势</span></template>
           <div v-if="growthTrend.length" role="img" :aria-label="trendSummary">
             <v-chart class="chart" :option="trendOption" autoresize />
           </div>
@@ -50,10 +50,10 @@
       </el-col>
     </el-row>
 
-    <el-row :gutter="20" class="mt-20">
+    <el-row :gutter="20" class="mt-20 av-stagger">
       <el-col :span="8">
         <el-card>
-          <template #header><span>核心优势</span></template>
+          <template #header><span class="card-header">核心优势</span></template>
           <el-empty v-if="!strengths.length" description="暂无数据" />
           <ul v-else class="list">
             <li v-for="s in strengths" :key="s.item">
@@ -64,7 +64,7 @@
       </el-col>
       <el-col :span="8">
         <el-card>
-          <template #header><span>高频成长领域</span></template>
+          <template #header><span class="card-header">高频成长领域</span></template>
           <el-empty v-if="!growthAreas.length" description="暂无数据" />
           <ul v-else class="list">
             <li v-for="g in growthAreas" :key="g.dimension">
@@ -76,7 +76,7 @@
       </el-col>
       <el-col :span="8">
         <el-card>
-          <template #header><span>建议行动</span></template>
+          <template #header><span class="card-header">建议行动</span></template>
           <el-empty v-if="!actions.length" description="暂无建议" />
           <ul v-else class="list">
             <li v-for="(a, i) in actions" :key="i">
@@ -212,6 +212,8 @@ onMounted(loadData)
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--av-gap-md);
+  flex-wrap: wrap;
 }
 .chart {
   width: 100%;
@@ -219,12 +221,47 @@ onMounted(loadData)
 }
 .reason {
   margin-top: 10px;
-  color: #606266;
+  color: var(--el-text-color-regular);
   line-height: 1.6;
 }
 .list {
   margin: 0;
   padding-left: 18px;
   line-height: 2;
+}
+.list li {
+  transition: transform var(--av-transition-fast) var(--av-ease-smooth);
+}
+.list li:hover {
+  transform: translateX(4px);
+}
+/* 标签交互增强 */
+.growth-path :deep(.el-tag) {
+  transition: transform var(--av-transition-fast) var(--av-ease-spring);
+}
+.growth-path :deep(.el-tag):hover {
+  transform: translateY(-1px);
+}
+/* 响应式：移动端适配 */
+@media (max-width: 768px) {
+  .mt-10 {
+    margin-top: var(--av-gap-sm);
+  }
+  .mt-20 {
+    margin-top: var(--av-gap-md);
+  }
+  .chart {
+    height: 260px;
+  }
+  .growth-path :deep(.el-row) {
+    flex-direction: column;
+  }
+  .growth-path :deep(.el-col) {
+    max-width: 100%;
+  }
+  .growth-path :deep(.el-descriptions) {
+    width: 100%;
+    overflow-x: auto;
+  }
 }
 </style>

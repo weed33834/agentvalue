@@ -13,6 +13,8 @@ import 'element-plus/theme-chalk/dark/css-vars.css'
 // 主题色覆盖：须在 Element Plus 样式之后引入，通过 CSS 变量统一主色调
 // (Element Plus 组件样式由 vite 插件 unplugin-vue-components 按需引入)
 import './styles/theme.css'
+// 全局样式：过渡动画、响应式布局、组件交互增强
+import './styles/global.css'
 
 import App from './App.vue'
 import router from './router'

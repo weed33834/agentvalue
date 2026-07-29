@@ -4,16 +4,31 @@
     <Watermark v-if="['manager', 'hr', 'admin'].includes(auth.role)" />
     <!-- 无障碍：跳转到主内容，键盘用户可快速跳过导航 -->
     <a href="#main-content" class="skip-link">跳转到主内容</a>
-    <el-aside width="220px" class="sidebar">
-      <div class="logo" role="heading" aria-level="1">AgentValue-AI</div>
+
+    <!-- 移动端遮罩层 -->
+    <transition name="fade">
+      <div v-if="mobileSidebarVisible" class="sidebar-overlay" @click="closeMobileSidebar"></div>
+    </transition>
+
+    <!-- 侧边栏 -->
+    <el-aside
+      :width="asideWidth"
+      class="sidebar"
+      :class="{ 'sidebar--mobile-open': mobileSidebarVisible }"
+    >
+      <div class="logo" role="heading" aria-level="1">
+        <span class="logo-text">AgentValue</span>
+        <span class="logo-accent">-AI</span>
+      </div>
       <el-menu
         :default-active="activeMenu"
         class="menu"
         router
         aria-label="主导航"
-        background-color="#1f2937"
+        background-color="transparent"
         text-color="#e5e7eb"
-        active-text-color="#2563eb"
+        active-text-color="#60a5fa"
+        @select="handleMenuSelect"
       >
         <template v-if="auth.role === 'employee'">
           <el-menu-item index="/employee">
@@ -182,16 +197,34 @@
           </el-menu-item>
         </template>
 
-        <el-menu-item aria-label="退出登录" @click="handleLogout">
+      </el-menu>
+      <!-- 退出登录按钮（独立于 el-menu，避免 router 模式冲突） -->
+      <div class="logout-section">
+        <el-button text class="logout-btn" @click="handleLogout">
           <el-icon><SwitchButton /></el-icon>
           <span>退出登录</span>
-        </el-menu-item>
-      </el-menu>
+        </el-button>
+      </div>
     </el-aside>
 
-    <el-container>
+    <el-container class="main-container">
+      <!-- 顶部导航 -->
       <el-header class="header" role="banner">
-        <span class="header-title">{{ pageTitle }}</span>
+        <div class="header-left">
+          <!-- 移动端汉堡菜单 -->
+          <el-button
+            class="hamburger-btn av-hide-desktop"
+            text
+            :aria-label="mobileSidebarVisible ? '关闭菜单' : '打开菜单'"
+            @click="toggleMobileSidebar"
+          >
+            <el-icon :size="22">
+              <Close v-if="mobileSidebarVisible" />
+              <Menu v-else />
+            </el-icon>
+          </el-button>
+          <span class="header-title">{{ pageTitle }}</span>
+        </div>
         <div class="header-right">
           <el-tooltip
             :content="theme.isDark ? '切换到亮色模式' : '切换到暗色模式'"
@@ -215,11 +248,17 @@
           >
             <el-icon class="bell-icon" @click="handleBellClick"><Bell /></el-icon>
           </el-badge>
-          <span class="header-role" aria-live="polite">当前角色：{{ roleLabel }}</span>
+          <span class="header-role av-hide-mobile" aria-live="polite">当前角色：{{ roleLabel }}</span>
         </div>
       </el-header>
+
+      <!-- 页面内容区 -->
       <el-main id="main-content" class="main-content" tabindex="-1">
-        <router-view />
+        <router-view v-slot="{ Component, route }">
+          <transition name="fade-slide" mode="out-in" appear>
+            <component :is="Component" :key="route.path" />
+          </transition>
+        </router-view>
       </el-main>
     </el-container>
 
@@ -227,7 +266,7 @@
     <el-drawer
       v-model="notification.notificationDrawerVisible"
       title="站内通知"
-      size="400px"
+      :size="drawerSize"
       direction="rtl"
     >
       <div class="notification-drawer">
@@ -257,7 +296,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
@@ -271,6 +310,19 @@ const notification = useNotificationStore()
 const theme = useThemeStore()
 
 const activeMenu = computed(() => route.path)
+const mobileSidebarVisible = ref(false)
+const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1200)
+
+const asideWidth = computed(() => {
+  if (windowWidth.value <= 768) {
+    return mobileSidebarVisible.value ? '240px' : '0px'
+  }
+  return '220px'
+})
+
+const drawerSize = computed(() => {
+  return windowWidth.value <= 768 ? '85%' : '400px'
+})
 
 const roleLabel = computed(() => {
   const map = { employee: '员工', manager: '主管', hr: 'HR', admin: '管理员' }
@@ -279,19 +331,47 @@ const roleLabel = computed(() => {
 
 const pageTitle = computed(() => route.meta.title || 'AgentValue-AI')
 
+function toggleMobileSidebar() {
+  mobileSidebarVisible.value = !mobileSidebarVisible.value
+}
+
+function closeMobileSidebar() {
+  mobileSidebarVisible.value = false
+}
+
+function handleMenuSelect() {
+  // 移动端选择菜单后自动关闭侧边栏
+  if (windowWidth.value <= 768) {
+    mobileSidebarVisible.value = false
+  }
+}
+
+// 路由变化时关闭移动端侧边栏
+watch(() => route.path, () => {
+  if (windowWidth.value <= 768) {
+    mobileSidebarVisible.value = false
+  }
+})
+
+function handleResize() {
+  windowWidth.value = window.innerWidth
+  // 大屏幕时自动关闭移动端侧边栏
+  if (windowWidth.value > 768) {
+    mobileSidebarVisible.value = false
+  }
+}
+
 // 铃铛点击:有未读通知则打开通知抽屉,否则跳转审批看板
 function handleBellClick() {
   if (notification.unreadCount > 0 || notification.notifications.length > 0) {
     notification.openNotificationDrawer()
   } else if (['manager', 'hr', 'admin'].includes(auth.role)) {
-    // 无通知时跳转审批看板:manager → 团队诊断,hr → HR复核,admin → 团队诊断
     if (auth.role === 'hr') {
       router.push('/hr')
     } else {
       router.push('/manager')
     }
   } else {
-    // 普通员工无审批看板，打开通知抽屉
     notification.openNotificationDrawer()
   }
 }
@@ -304,17 +384,21 @@ async function handleLogout() {
 
 onMounted(() => {
   notification.startPolling(auth.role)
+  window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
   notification.stopPolling()
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 
 <style scoped>
 .main-layout {
   height: 100vh;
+  overflow: hidden;
 }
+
 /* 无障碍：跳转链接默认隐藏，键盘聚焦时显现 */
 .skip-link {
   position: absolute;
@@ -322,90 +406,207 @@ onUnmounted(() => {
   top: 0;
   z-index: 1000;
   padding: 8px 16px;
-  /* 无障碍：加深底色使白色文字对比度达到 AA（原 #409eff 对白文字仅约 2.8:1） */
   background: #2563eb;
   color: #fff;
   border-radius: 0 0 4px 0;
   text-decoration: none;
   font-size: 14px;
+  transition: left var(--av-transition-fast);
 }
 .skip-link:focus {
   left: 0;
 }
-/* 主内容区获得焦点时去除默认轮廓偏移，保留可见焦点环 */
 #main-content:focus {
   outline: none;
 }
+
+/* ==================== 侧边栏 ==================== */
 .sidebar {
-  background-color: #1f2937;
+  background: linear-gradient(180deg, #1a1f2e 0%, #1f2937 100%);
   color: #fff;
+  transition: width var(--av-transition-base) var(--av-ease-out),
+    transform var(--av-transition-base) var(--av-ease-out);
+  overflow: hidden;
+  position: relative;
+  z-index: 1001;
 }
+
+/* 侧边栏顶部 Logo */
 .logo {
-  height: 60px;
-  line-height: 60px;
+  height: var(--av-header-height);
+  line-height: var(--av-header-height);
   text-align: center;
   font-size: 18px;
   font-weight: bold;
-  border-bottom: 1px solid #374151;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+  overflow: hidden;
 }
+.logo-accent {
+  color: #60a5fa;
+}
+
+/* 菜单样式 */
 .menu {
   border-right: none;
+  height: calc(100vh - var(--av-header-height) - 60px);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
+.menu :deep(.el-menu-item) {
+  transition: all var(--av-transition-fast) var(--av-ease-smooth);
+  border-radius: 8px;
+  margin: 2px 8px;
+  width: calc(100% - 16px);
+}
+.menu :deep(.el-menu-item:hover) {
+  background-color: rgba(96, 165, 250, 0.1) !important;
+}
+.menu :deep(.el-menu-item.is-active) {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(96, 165, 250, 0.1)) !important;
+  border-left: 3px solid #60a5fa;
+}
+
+/* 菜单滚动条 */
+.menu::-webkit-scrollbar {
+  width: 4px;
+}
+.menu::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+.menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* 退出登录按钮 */
+.logout-section {
+  padding: 8px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.logout-btn {
+  width: 100%;
+  justify-content: flex-start;
+  color: #e5e7eb;
+  height: 44px;
+  border-radius: 8px;
+  transition: all var(--av-transition-fast) var(--av-ease-smooth);
+}
+.logout-btn:hover {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  color: #f87171 !important;
+}
+html.dark .logout-btn {
+  color: var(--el-text-color-regular);
+}
+
+/* ==================== 移动端遮罩 ==================== */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+}
+
+/* ==================== 主容器 ==================== */
+.main-container {
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ==================== 头部 ==================== */
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #fff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  z-index: 10;
-}
-/* 暗色模式：头部/主内容区跟随 Element Plus 暗色变量 */
-html.dark .header {
+  height: var(--av-header-height) !important;
+  padding: 0 20px;
   background-color: var(--el-bg-color);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  z-index: 10;
+  transition: box-shadow var(--av-transition-base);
 }
-html.dark .main-content {
-  background-color: var(--el-bg-color-page);
+html.dark .header {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .header-title {
   font-size: 16px;
   font-weight: 600;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .header-right {
   display: flex;
   align-items: center;
   gap: 16px;
 }
+
+/* 汉堡菜单按钮 */
+.hamburger-btn {
+  padding: 8px !important;
+  color: var(--el-text-color-primary) !important;
+}
+
+/* 主题切换按钮 */
 .theme-toggle {
-  /* 与 bell-icon 视觉对齐 */
   border: 1px solid var(--el-border-color);
   color: var(--el-text-color-regular);
+  transition: all var(--av-transition-fast) var(--av-ease-smooth) !important;
 }
 .theme-toggle:hover {
   color: var(--el-color-primary);
   border-color: var(--el-color-primary);
+  transform: rotate(15deg);
 }
+
+/* 铃铛图标 */
 .approval-badge {
   display: inline-flex;
   align-items: center;
 }
 .bell-icon {
   font-size: 20px;
-  color: #606266;
+  color: var(--el-text-color-regular);
   cursor: pointer;
+  transition: all var(--av-transition-fast) var(--av-ease-spring);
 }
 .bell-icon:hover {
-  color: #2563eb;
+  color: var(--el-color-primary);
+  transform: scale(1.1) rotate(10deg);
 }
+
+/* 角色标签 */
 .header-role {
-  font-size: 14px;
-  color: #606266;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: var(--el-fill-color-light);
 }
+
+/* ==================== 主内容区 ==================== */
 .main-content {
-  background-color: #f3f4f6;
+  background-color: var(--el-bg-color-page);
   overflow-y: auto;
+  padding: 20px;
+  transition: background-color var(--av-transition-base);
 }
-/* 通知抽屉 */
+html.dark .main-content {
+  background-color: var(--el-bg-color-page);
+}
+
+/* ==================== 通知抽屉 ==================== */
 .notification-drawer {
   padding: 0 8px;
 }
@@ -416,19 +617,27 @@ html.dark .main-content {
 }
 .notification-item {
   padding: 12px 16px;
-  border-radius: 8px;
+  border-radius: var(--av-radius-md);
   margin-bottom: 8px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all var(--av-transition-fast) var(--av-ease-smooth);
   border: 1px solid var(--el-border-color-lighter);
+  animation: fadeInUp var(--av-transition-base) var(--av-ease-out) both;
 }
 .notification-item:hover {
   background-color: var(--el-fill-color-light);
+  transform: translateX(-4px);
+  box-shadow: var(--av-shadow-sm);
 }
 .notification-item.unread {
   background-color: var(--el-color-primary-light-9);
   border-color: var(--el-color-primary-light-7);
 }
+.notification-item:nth-child(1) { animation-delay: 0.02s; }
+.notification-item:nth-child(2) { animation-delay: 0.06s; }
+.notification-item:nth-child(3) { animation-delay: 0.1s; }
+.notification-item:nth-child(4) { animation-delay: 0.14s; }
+.notification-item:nth-child(5) { animation-delay: 0.18s; }
 .notification-title {
   font-weight: 600;
   font-size: 14px;
@@ -443,5 +652,71 @@ html.dark .main-content {
 .notification-time {
   font-size: 12px;
   color: var(--el-text-color-placeholder);
+}
+
+/* ==================== 过渡动画 ==================== */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--av-transition-base) var(--av-ease-out);
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* ==================== 移动端样式 ==================== */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 240px !important;
+    transform: translateX(-100%);
+    z-index: 1001;
+    box-shadow: var(--av-shadow-xl);
+  }
+  .sidebar--mobile-open {
+    transform: translateX(0);
+  }
+
+  .header {
+    padding: 0 12px;
+  }
+  .header-title {
+    font-size: 15px;
+    max-width: 180px;
+  }
+  .header-right {
+    gap: 8px;
+  }
+  .header-role {
+    display: none;
+  }
+
+  .main-content {
+    padding: 12px;
+  }
+
+  .notification-drawer {
+    padding: 0 4px;
+  }
+  .notification-item {
+    padding: 10px 12px;
+  }
+}
+
+/* ==================== 平板端样式 ==================== */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .main-content {
+    padding: 16px;
+  }
+}
+
+/* ==================== 大屏样式 ==================== */
+@media (min-width: 1920px) {
+  .main-content {
+    padding: 32px;
+  }
 }
 </style>

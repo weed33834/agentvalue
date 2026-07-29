@@ -1,0 +1,558 @@
+/*
+ * Global Styles — AgentValue-AI
+ * ----------------------------------------------------------------------------
+ * 统一管理过渡动画、响应式断点、组件交互效果、移动端适配
+ * 必须在 theme.css 之后引入
+ */
+
+/* ==================== CSS 自定义属性 ==================== */
+:root {
+  /* 过渡时长 */
+  --av-transition-fast: 0.15s;
+  --av-transition-base: 0.25s;
+  --av-transition-slow: 0.4s;
+  --av-transition-slower: 0.6s;
+
+  /* 缓动函数 */
+  --av-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --av-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --av-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --av-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* 阴影 */
+  --av-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --av-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+  --av-shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05);
+  --av-shadow-xl: 0 20px 50px rgba(0, 0, 0, 0.12), 0 8px 20px rgba(0, 0, 0, 0.06);
+  --av-shadow-primary: 0 4px 14px rgba(37, 99, 235, 0.25);
+
+  /* 圆角 */
+  --av-radius-sm: 6px;
+  --av-radius-md: 10px;
+  --av-radius-lg: 16px;
+  --av-radius-xl: 24px;
+
+  /* 间距 */
+  --av-gap-xs: 4px;
+  --av-gap-sm: 8px;
+  --av-gap-md: 16px;
+  --av-gap-lg: 24px;
+  --av-gap-xl: 32px;
+
+  /* 侧边栏宽度 */
+  --av-sidebar-width: 220px;
+  --av-sidebar-collapsed-width: 64px;
+  --av-header-height: 60px;
+
+  /* 响应式断点 */
+  --av-breakpoint-xs: 480px;
+  --av-breakpoint-sm: 768px;
+  --av-breakpoint-md: 992px;
+  --av-breakpoint-lg: 1200px;
+  --av-breakpoint-xl: 1920px;
+}
+
+/* 暗色模式阴影调整 */
+html.dark {
+  --av-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.15);
+  --av-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.2);
+  --av-shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.2);
+  --av-shadow-xl: 0 20px 50px rgba(0, 0, 0, 0.4), 0 8px 20px rgba(0, 0, 0, 0.25);
+  --av-shadow-primary: 0 4px 14px rgba(59, 130, 246, 0.3);
+}
+
+/* ==================== 全局基础样式 ==================== */
+
+/* 平滑滚动 */
+html {
+  scroll-behavior: smooth;
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  transition: background var(--av-transition-base);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* 全局选中文本颜色 */
+::selection {
+  background: rgba(37, 99, 235, 0.15);
+  color: inherit;
+}
+html.dark ::selection {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+/* ==================== 路由过渡动画 ==================== */
+
+/* 淡入上滑过渡 */
+.fade-slide-enter-active {
+  transition: opacity var(--av-transition-base) var(--av-ease-out),
+    transform var(--av-transition-base) var(--av-ease-out);
+}
+.fade-slide-leave-active {
+  transition: opacity var(--av-transition-fast) var(--av-ease-in-out),
+    transform var(--av-transition-fast) var(--av-ease-in-out);
+}
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+}
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+/* 淡入缩放过渡 */
+.fade-scale-enter-active {
+  transition: opacity var(--av-transition-base) var(--av-ease-out),
+    transform var(--av-transition-base) var(--av-ease-spring);
+}
+.fade-scale-leave-active {
+  transition: opacity var(--av-transition-fast) var(--av-ease-in-out),
+    transform var(--av-transition-fast) var(--av-ease-in-out);
+}
+.fade-scale-enter-from {
+  opacity: 0;
+  transform: scale(0.96);
+}
+.fade-scale-leave-to {
+  opacity: 0;
+  transform: scale(1.02);
+}
+
+/* ==================== 关键帧动画 ==================== */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideUpIn {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-6px); }
+  50% { transform: translateY(0); }
+  75% { transform: translateY(-3px); }
+}
+
+/* ==================== 动画工具类 ==================== */
+.av-fade-in { animation: fadeIn var(--av-transition-base) var(--av-ease-out) both; }
+.av-fade-in-up { animation: fadeInUp var(--av-transition-base) var(--av-ease-out) both; }
+.av-fade-in-down { animation: fadeInDown var(--av-transition-base) var(--av-ease-out) both; }
+.av-fade-in-left { animation: fadeInLeft var(--av-transition-base) var(--av-ease-out) both; }
+.av-fade-in-right { animation: fadeInRight var(--av-transition-base) var(--av-ease-out) both; }
+.av-scale-in { animation: scaleIn var(--av-transition-base) var(--av-ease-spring) both; }
+
+/* 延迟工具类 */
+.av-delay-1 { animation-delay: 0.05s; }
+.av-delay-2 { animation-delay: 0.1s; }
+.av-delay-3 { animation-delay: 0.15s; }
+.av-delay-4 { animation-delay: 0.2s; }
+.av-delay-5 { animation-delay: 0.25s; }
+.av-delay-6 { animation-delay: 0.3s; }
+
+/* ==================== Element Plus 组件增强 ==================== */
+
+/* 卡片增强 */
+.el-card {
+  border-radius: var(--av-radius-md) !important;
+  border: none !important;
+  box-shadow: var(--av-shadow-sm) !important;
+  transition: box-shadow var(--av-transition-base) var(--av-ease-smooth),
+    transform var(--av-transition-base) var(--av-ease-smooth) !important;
+  overflow: hidden;
+}
+.el-card:hover {
+  box-shadow: var(--av-shadow-md) !important;
+}
+.el-card .el-card__header {
+  border-bottom: 1px solid var(--el-border-color-lighter) !important;
+  font-weight: 600;
+  padding: 16px 20px !important;
+}
+.el-card .el-card__body {
+  padding: 20px !important;
+}
+
+/* 按钮过渡增强 */
+.el-button {
+  border-radius: var(--av-radius-sm) !important;
+  transition: all var(--av-transition-fast) var(--av-ease-smooth) !important;
+}
+.el-button:hover {
+  transform: translateY(-1px);
+}
+.el-button:active {
+  transform: translateY(0);
+}
+.el-button--primary:hover {
+  box-shadow: var(--av-shadow-primary);
+}
+
+/* 输入框增强 */
+.el-input__wrapper {
+  border-radius: var(--av-radius-sm) !important;
+  transition: box-shadow var(--av-transition-fast) var(--av-ease-smooth) !important;
+}
+.el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset, 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+}
+html.dark .el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset, 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+}
+/* 暗色模式 placeholder 对比度增强 */
+html.dark .el-input__inner::placeholder,
+html.dark .el-textarea__inner::placeholder {
+  color: #6b7280 !important;
+  opacity: 0.8;
+}
+
+/* 表格增强 */
+.el-table {
+  border-radius: var(--av-radius-sm) !important;
+  overflow: hidden;
+}
+.el-table th.el-table__cell {
+  background-color: var(--el-fill-color-light) !important;
+  font-weight: 600 !important;
+}
+.el-table__row {
+  transition: background-color var(--av-transition-fast) var(--av-ease-smooth);
+}
+
+/* 标签页增强 */
+.el-tabs__item {
+  transition: color var(--av-transition-fast) var(--av-ease-smooth) !important;
+}
+.el-tabs__active-bar {
+  transition: transform var(--av-transition-base) var(--av-ease-spring),
+    width var(--av-transition-base) var(--av-ease-spring) !important;
+}
+
+/* 对话框/抽屉增强 */
+.el-dialog {
+  border-radius: var(--av-radius-lg) !important;
+  overflow: hidden;
+}
+.el-drawer {
+  transition: transform var(--av-transition-slow) var(--av-ease-out) !important;
+}
+
+/* 消息提示动画 */
+.el-message {
+  border-radius: var(--av-radius-sm) !important;
+  box-shadow: var(--av-shadow-md) !important;
+  animation: fadeInDown var(--av-transition-base) var(--av-ease-spring) !important;
+}
+
+/* 通知提示动画 */
+.el-notification {
+  border-radius: var(--av-radius-md) !important;
+  box-shadow: var(--av-shadow-lg) !important;
+}
+
+/* 下拉菜单动画 */
+.el-dropdown-menu {
+  border-radius: var(--av-radius-sm) !important;
+  box-shadow: var(--av-shadow-lg) !important;
+  animation: scaleIn var(--av-transition-fast) var(--av-ease-spring) !important;
+  transform-origin: top;
+}
+
+/* 统计组件 */
+.el-statistic {
+  transition: transform var(--av-transition-base) var(--av-ease-smooth);
+}
+.el-statistic:hover {
+  transform: scale(1.05);
+}
+
+/* 标签增强 */
+.el-tag {
+  border-radius: var(--av-radius-sm) !important;
+  transition: all var(--av-transition-fast) var(--av-ease-smooth) !important;
+}
+
+/* 空状态增强 */
+.el-empty__description {
+  color: var(--el-text-color-secondary);
+}
+
+/* 加载动画 */
+.el-loading-mask {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(4px);
+  animation: fadeIn var(--av-transition-fast) var(--av-ease-out);
+}
+html.dark .el-loading-mask {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+}
+
+/* ==================== 骨架屏 ==================== */
+.av-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--el-fill-color-light) 25%,
+    var(--el-fill-color) 37%,
+    var(--el-fill-color-light) 63%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite linear;
+  border-radius: var(--av-radius-sm);
+}
+.av-skeleton-text {
+  height: 14px;
+  margin-bottom: 8px;
+  border-radius: var(--av-radius-sm);
+}
+.av-skeleton-title {
+  height: 20px;
+  width: 50%;
+  margin-bottom: 12px;
+  border-radius: var(--av-radius-sm);
+}
+.av-skeleton-card {
+  padding: 20px;
+  border-radius: var(--av-radius-md);
+}
+
+/* ==================== 响应式工具类 ==================== */
+
+/* 在手机端隐藏 */
+@media (max-width: 768px) {
+  .av-hide-mobile {
+    display: none !important;
+  }
+}
+
+/* 在桌面端隐藏 */
+@media (min-width: 769px) {
+  .av-hide-desktop {
+    display: none !important;
+  }
+}
+
+/* ==================== 通用工具类 ==================== */
+.av-mt-0 { margin-top: 0 !important; }
+.av-mt-sm { margin-top: var(--av-gap-sm) !important; }
+.av-mt-md { margin-top: var(--av-gap-md) !important; }
+.av-mt-lg { margin-top: var(--av-gap-lg) !important; }
+.av-mt-xl { margin-top: var(--av-gap-xl) !important; }
+
+.av-mb-0 { margin-bottom: 0 !important; }
+.av-mb-sm { margin-bottom: var(--av-gap-sm) !important; }
+.av-mb-md { margin-bottom: var(--av-gap-md) !important; }
+.av-mb-lg { margin-bottom: var(--av-gap-lg) !important; }
+
+.av-card-grid {
+  display: grid;
+  gap: var(--av-gap-md);
+}
+
+/* 响应式网格：自动适配列数 */
+.av-responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--av-gap-md);
+}
+@media (max-width: 768px) {
+  .av-responsive-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 页面容器 */
+.av-page-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--av-gap-lg);
+}
+@media (max-width: 768px) {
+  .av-page-container {
+    padding: var(--av-gap-md);
+  }
+}
+
+/* 卡片入场动画容器 */
+.av-stagger > * {
+  opacity: 0;
+  animation: fadeInUp var(--av-transition-base) var(--av-ease-out) forwards;
+}
+.av-stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.av-stagger > *:nth-child(2) { animation-delay: 0.1s; }
+.av-stagger > *:nth-child(3) { animation-delay: 0.15s; }
+.av-stagger > *:nth-child(4) { animation-delay: 0.2s; }
+.av-stagger > *:nth-child(5) { animation-delay: 0.25s; }
+.av-stagger > *:nth-child(6) { animation-delay: 0.3s; }
+.av-stagger > *:nth-child(7) { animation-delay: 0.35s; }
+.av-stagger > *:nth-child(8) { animation-delay: 0.4s; }
+
+/* ==================== 移动端全局适配 ==================== */
+@media (max-width: 768px) {
+  /* Element Plus 响应式调整 */
+  .el-card .el-card__header {
+    padding: 12px 16px !important;
+  }
+  .el-card .el-card__body {
+    padding: 16px !important;
+  }
+
+  /* 表格在移动端横向滚动 */
+  .el-table {
+    width: 100% !important;
+    overflow-x: auto;
+  }
+
+  /* 对话框在移动端全屏 */
+  .el-dialog {
+    width: 92% !important;
+    margin: 5vh auto !important;
+  }
+
+  /* 统计组件在移动端缩小 */
+  .el-statistic__content {
+    font-size: 20px !important;
+  }
+
+  /* 标签页在移动端可滚动 */
+  .el-tabs__nav-wrap {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  /* 消息提示在移动端全宽 */
+  .el-message {
+    min-width: auto !important;
+    width: 90% !important;
+    margin: 0 auto !important;
+  }
+}
+
+/* ==================== 平板端适配 ==================== */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .av-responsive-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+/* ==================== 大屏适配 ==================== */
+@media (min-width: 1920px) {
+  .av-page-container {
+    max-width: 1600px;
+  }
+}
+
+/* ==================== 减少动画偏好 ==================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

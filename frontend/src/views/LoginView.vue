@@ -1,10 +1,22 @@
 <template>
   <div class="login-page">
-    <el-card class="login-card" shadow="hover">
+    <!-- 动态背景装饰 -->
+    <div class="bg-decoration">
+      <div class="bg-circle bg-circle--1"></div>
+      <div class="bg-circle bg-circle--2"></div>
+      <div class="bg-circle bg-circle--3"></div>
+    </div>
+
+    <el-card class="login-card av-scale-in" shadow="always">
       <template #header>
-        <h1 class="login-header">AgentValue-AI</h1>
+        <div class="login-header">
+          <div class="logo-icon">
+            <el-icon :size="32" color="#2563eb"><DataAnalysis /></el-icon>
+          </div>
+          <h1 class="login-title">AgentValue<span class="title-accent">-AI</span></h1>
+          <p class="login-subtitle">AI 驱动员工价值量化与成长系统</p>
+        </div>
       </template>
-      <p class="login-subtitle">AI 驱动员工价值量化与成长系统</p>
 
       <el-tabs v-model="activeTab" class="login-tabs">
         <el-tab-pane label="账号登录" name="jwt">
@@ -17,7 +29,13 @@
             @submit.prevent="handleJwtLogin"
           >
             <el-form-item label="邮箱" prop="email">
-              <el-input v-model="jwtForm.email" placeholder="请输入邮箱" type="email" />
+              <el-input
+                v-model="jwtForm.email"
+                placeholder="请输入邮箱"
+                type="email"
+                :prefix-icon="Message"
+                clearable
+              />
             </el-form-item>
             <el-form-item label="密码" prop="password">
               <el-input
@@ -25,21 +43,24 @@
                 type="password"
                 placeholder="请输入密码"
                 show-password
+                :prefix-icon="Lock"
                 @keyup.enter="handleJwtLogin"
               />
             </el-form-item>
             <el-form-item>
               <el-button
                 type="primary"
-                style="width: 100%"
+                class="login-btn"
                 :loading="loading"
                 @click="handleJwtLogin"
               >
-                登录
+                <span v-if="!loading">登 录</span>
+                <span v-else>登录中...</span>
               </el-button>
             </el-form-item>
             <div v-if="demoEnabled" class="demo-tip">
-              演示账号：employee@agentvalue.ai / agentvalue123
+              <el-icon><InfoFilled /></el-icon>
+              <span>演示账号：employee@agentvalue.ai / agentvalue123</span>
               <el-button link type="primary" @click="seedDemoUsers">初始化演示账号</el-button>
             </div>
           </el-form>
@@ -56,12 +77,13 @@
               </el-select>
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" style="width: 100%" @click="handleDemoLogin">
+              <el-button type="primary" class="login-btn" @click="handleDemoLogin">
                 进入系统
               </el-button>
             </el-form-item>
             <div class="demo-tip">
-              演示模式通过 header 传递角色，仅适用于本地开发，生产环境应禁用。
+              <el-icon><WarningFilled /></el-icon>
+              <span>演示模式通过 header 传递角色，仅适用于本地开发，生产环境应禁用。</span>
             </div>
           </el-form>
         </el-tab-pane>
@@ -74,6 +96,7 @@
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Message, Lock, InfoFilled, WarningFilled, DataAnalysis } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { authApi } from '@/api/client'
 import { isDemoAuthEnabled } from '@/utils/auth'
@@ -142,7 +165,6 @@ async function seedDemoUsers() {
   loading.value = true
   try {
     const res = await authApi.seedDemoUsers()
-    // 后端返回 {created, note},不含 default_password；演示账号密码固定为 agentvalue123
     ElMessage.success(`演示账号已就绪：${res?.created?.length || 0} 个新建，默认密码 agentvalue123`)
   } catch (err) {
     ElMessage.error(err.message || '初始化失败')
@@ -158,30 +180,209 @@ async function seedDemoUsers() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #1f2937 100%);
+  position: relative;
+  overflow: hidden;
 }
+
+/* 动态背景装饰 */
+.bg-decoration {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+}
+.bg-circle {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.15;
+  animation: float 8s ease-in-out infinite;
+}
+.bg-circle--1 {
+  width: 400px;
+  height: 400px;
+  background: #3b82f6;
+  top: -100px;
+  left: -100px;
+  animation-delay: 0s;
+}
+.bg-circle--2 {
+  width: 300px;
+  height: 300px;
+  background: #8b5cf6;
+  bottom: -50px;
+  right: -50px;
+  animation-delay: 2s;
+}
+.bg-circle--3 {
+  width: 250px;
+  height: 250px;
+  background: #06b6d4;
+  top: 50%;
+  left: 60%;
+  animation-delay: 4s;
+  opacity: 0.1;
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -30px) scale(1.05); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
+}
+
+/* 登录卡片 */
 .login-card {
   width: 420px;
+  max-width: calc(100vw - 32px);
+  border-radius: var(--av-radius-lg) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(20px);
 }
+.login-card :deep(.el-card__header) {
+  padding: 32px 32px 16px !important;
+  border-bottom: none !important;
+}
+.login-card :deep(.el-card__body) {
+  padding: 0 32px 32px !important;
+}
+
+/* 头部 */
 .login-header {
   text-align: center;
-  font-size: 22px;
+}
+.logo-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #dbeafe, #eff6ff);
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+.login-title {
+  font-size: 24px;
   font-weight: bold;
-  margin: 0;
+  margin: 0 0 8px;
+  color: #1f2937;
+  letter-spacing: 0.5px;
+}
+.title-accent {
+  color: #2563eb;
 }
 .login-subtitle {
-  text-align: center;
-  color: #606266;
-  margin-bottom: 16px;
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
 }
+
+/* 表单 */
+.login-form {
+  margin-top: 16px;
+}
+.login-form :deep(.el-input__wrapper) {
+  padding: 4px 12px;
+  border-radius: var(--av-radius-sm) !important;
+}
+
+/* 登录按钮 */
+.login-btn {
+  width: 100%;
+  height: 44px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  border-radius: var(--av-radius-sm) !important;
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%) !important;
+  border: none !important;
+  transition: all var(--av-transition-base) var(--av-ease-smooth) !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+.login-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4) !important;
+}
+.login-btn:active {
+  transform: translateY(0) !important;
+}
+
+/* 标签页 */
 .login-tabs {
   margin-top: 8px;
 }
+.login-tabs :deep(.el-tabs__header) {
+  margin-bottom: 20px;
+}
+.login-tabs :deep(.el-tabs__item) {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0 0 12px;
+  margin-right: 24px;
+}
+
+/* 提示信息 */
 .demo-tip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
   font-size: 12px;
-  /* 无障碍：加深文字颜色，12px 小字需 ≥4.5:1 对比度（原 #6b7280 约 4.8:1 偏低，这里提升至约 7.5:1） */
   color: #4b5563;
   text-align: center;
   line-height: 1.6;
+  padding: 10px 12px;
+  border-radius: var(--av-radius-sm);
+  background: var(--el-fill-color-lighter);
+  margin-top: 4px;
+}
+.demo-tip .el-icon {
+  flex-shrink: 0;
+  color: var(--el-color-info);
+}
+
+/* ==================== 移动端适配 ==================== */
+@media (max-width: 480px) {
+  .login-card {
+    width: 100%;
+    margin: 16px;
+    border-radius: var(--av-radius-md) !important;
+  }
+  .login-card :deep(.el-card__header) {
+    padding: 24px 20px 12px !important;
+  }
+  .login-card :deep(.el-card__body) {
+    padding: 0 20px 24px !important;
+  }
+  .logo-icon {
+    width: 56px;
+    height: 56px;
+  }
+  .login-title {
+    font-size: 20px;
+  }
+  .login-subtitle {
+    font-size: 12px;
+  }
+  .login-btn {
+    height: 42px;
+    font-size: 14px;
+  }
+}
+
+/* ==================== 暗色模式适配 ==================== */
+html.dark .login-card {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+}
+html.dark .login-title {
+  color: var(--el-text-color-primary);
+}
+html.dark .logo-icon {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05));
 }
 </style>

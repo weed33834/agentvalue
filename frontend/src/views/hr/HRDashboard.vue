@@ -1,5 +1,5 @@
 <template>
-  <div class="hr-dashboard">
+  <div class="hr-dashboard av-fade-in-up">
     <el-row :gutter="20">
       <el-col :span="24">
         <el-card v-loading="loading" :aria-busy="loading">
@@ -121,5 +121,25 @@ onMounted(loadData)
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--av-gap-md);
+  font-weight: 600;
+}
+/* 卡片头部统一弹性布局 */
+.hr-dashboard :deep(.el-card__header) {
+  display: flex;
+  align-items: center;
+}
+/* 交互元素过渡效果 */
+.hr-dashboard :deep(.el-card) {
+  transition: box-shadow var(--av-transition-base) var(--av-ease-smooth),
+    transform var(--av-transition-base) var(--av-ease-smooth);
+}
+
+/* 响应式：移动端适配 */
+@media (max-width: 768px) {
+  .hr-dashboard :deep(.el-table) {
+    width: 100%;
+    overflow-x: auto;
+  }
 }
 </style>

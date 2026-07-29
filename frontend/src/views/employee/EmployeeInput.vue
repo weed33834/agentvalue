@@ -1,8 +1,8 @@
 <template>
-  <div class="employee-input">
+  <div class="employee-input av-fade-in-up">
     <el-card>
       <template #header>
-        <span>录入本周工作数据</span>
+        <span class="card-header">录入本周工作数据</span>
       </template>
 
       <el-form ref="formRef" label-position="top" :model="form" :rules="rules">
@@ -52,7 +52,7 @@
             <!-- 附件清单与上传状态，aria-live 通告屏幕阅读器 -->
             <ul
               v-if="attachments.length"
-              class="attachment-list"
+              class="attachment-list av-stagger"
               aria-live="polite"
               aria-label="附件上传状态"
             >
@@ -357,9 +357,9 @@ onBeforeUnmount(() => {
 }
 .upload-tip {
   display: block;
-  margin-top: 4px;
+  margin-top: var(--av-gap-xs);
   /* 无障碍：12px 小字加深至约 7.5:1 对比度 */
-  color: #4b5563;
+  color: var(--el-text-color-regular);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -369,8 +369,12 @@ onBeforeUnmount(() => {
   list-style: none;
 }
 .attachment-item {
-  padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
+  padding: var(--av-gap-sm) 0;
+  border-bottom: 1px solid var(--el-border-color-light);
+  transition: background-color var(--av-transition-fast) var(--av-ease-smooth);
+}
+.attachment-item:hover {
+  background-color: var(--el-fill-color-light);
 }
 .attachment-item:last-child {
   border-bottom: none;
@@ -382,7 +386,7 @@ onBeforeUnmount(() => {
   font-size: 13px;
 }
 .att-icon {
-  color: #909399;
+  color: var(--el-text-color-secondary);
   flex-shrink: 0;
 }
 .att-name {
@@ -390,16 +394,44 @@ onBeforeUnmount(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #303133;
+  color: var(--el-text-color-placeholder);
 }
 .att-size {
-  color: #909399;
+  color: var(--el-text-color-secondary);
   font-size: 12px;
   flex-shrink: 0;
 }
 .att-error {
-  margin-top: 4px;
-  color: #c45656;
+  margin-top: var(--av-gap-xs);
+  color: var(--el-color-danger);
   font-size: 12px;
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--av-gap-md);
+  flex-wrap: wrap;
+}
+/* 附件标签交互增强 */
+.attachment-list :deep(.el-tag) {
+  transition: transform var(--av-transition-fast) var(--av-ease-spring),
+    box-shadow var(--av-transition-fast) var(--av-ease-smooth);
+}
+.attachment-list :deep(.el-tag):hover {
+  transform: translateY(-1px);
+}
+/* 响应式：移动端适配 */
+@media (max-width: 768px) {
+  .employee-input :deep(.el-card__body) {
+    padding: var(--av-gap-md) !important;
+  }
+  .attachment-item {
+    padding: var(--av-gap-xs) 0;
+  }
+  .att-row {
+    flex-wrap: wrap;
+    gap: var(--av-gap-xs);
+  }
 }
 </style>

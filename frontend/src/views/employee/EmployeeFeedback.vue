@@ -1,10 +1,10 @@
 <template>
-  <div class="employee-feedback">
-    <el-row :gutter="20">
+  <div class="employee-feedback av-fade-in-up">
+    <el-row :gutter="20" class="av-stagger">
       <el-col :span="10">
         <el-card v-loading="loading" :aria-busy="loading">
           <template #header>
-            <span>我的评估列表</span>
+            <span class="card-header">我的评估列表</span>
           </template>
           <el-table
             :data="evaluations"
@@ -23,7 +23,7 @@
       <el-col :span="14">
         <el-card>
           <template #header>
-            <span>提交反馈 / 申诉</span>
+            <span class="card-header">提交反馈 / 申诉</span>
           </template>
           <el-form v-if="selected" label-position="top" :model="form">
             <el-form-item label="所选评估">
@@ -71,7 +71,7 @@
       <el-col :span="24">
         <el-card v-loading="recordsLoading" :aria-busy="recordsLoading">
           <template #header>
-            <span>我的反馈与申诉记录</span>
+            <span class="card-header">我的反馈与申诉记录</span>
           </template>
           <!-- 无障碍：记录动态加载，用 role=status 通告屏幕阅读器 -->
           <el-table
@@ -207,6 +207,36 @@ onMounted(() => {
 
 <style scoped>
 .records-row {
-  margin-top: 20px;
+  margin-top: var(--av-gap-lg);
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--av-gap-md);
+  flex-wrap: wrap;
+}
+/* 标签交互增强 */
+.employee-feedback :deep(.el-tag) {
+  transition: transform var(--av-transition-fast) var(--av-ease-spring);
+}
+.employee-feedback :deep(.el-tag):hover {
+  transform: translateY(-1px);
+}
+/* 响应式：移动端适配 */
+@media (max-width: 768px) {
+  .employee-feedback :deep(.el-row) {
+    flex-direction: column;
+  }
+  .employee-feedback :deep(.el-col) {
+    max-width: 100%;
+  }
+  .records-row {
+    margin-top: var(--av-gap-md);
+  }
+  .employee-feedback :deep(.el-table) {
+    width: 100%;
+    overflow-x: auto;
+  }
 }
 </style>

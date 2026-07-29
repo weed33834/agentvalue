@@ -1,5 +1,5 @@
 <template>
-  <div class="manager-dashboard">
+  <div class="manager-dashboard av-fade-in-up">
     <el-row :gutter="20">
       <el-col :span="24">
         <el-card>
@@ -30,7 +30,7 @@
       </el-col>
     </el-row>
 
-    <el-row :gutter="20" class="mt-20">
+    <el-row :gutter="20" class="mt-20 av-stagger">
       <el-col :span="12">
         <el-card>
           <template #header>
@@ -50,9 +50,9 @@
           </template>
           <div class="risk-summary">
             <!-- 无障碍：风险等级已由 title 文字传达，数值颜色加深以满足对比度要求 -->
-            <el-statistic title="高风险" :value="riskStats.high" value-style="color: #cf4444" />
-            <el-statistic title="中风险" :value="riskStats.medium" value-style="color: #b36a14" />
-            <el-statistic title="低风险" :value="riskStats.low" value-style="color: #3d7d10" />
+            <el-statistic title="高风险" :value="riskStats.high" value-style="color: var(--el-color-danger)" />
+            <el-statistic title="中风险" :value="riskStats.medium" value-style="color: var(--el-color-warning)" />
+            <el-statistic title="低风险" :value="riskStats.low" value-style="color: var(--el-color-success)" />
           </div>
         </el-card>
       </el-col>
@@ -113,16 +113,52 @@ onMounted(loadData)
 
 <style scoped>
 .mt-20 {
-  margin-top: 20px;
+  margin-top: var(--av-gap-lg);
 }
 .risk-summary {
   display: flex;
   justify-content: space-around;
-  padding: 20px 0;
+  flex-wrap: wrap;
+  gap: var(--av-gap-md);
+  padding: var(--av-gap-md) 0;
 }
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--av-gap-md);
+  font-weight: 600;
+}
+/* 卡片头部统一弹性布局与间距 */
+.manager-dashboard :deep(.el-card__header) {
+  display: flex;
+  align-items: center;
+  gap: var(--av-gap-md);
+}
+/* 交互元素过渡效果 */
+.manager-dashboard :deep(.el-card) {
+  transition: box-shadow var(--av-transition-base) var(--av-ease-smooth),
+    transform var(--av-transition-base) var(--av-ease-smooth);
+}
+.manager-dashboard :deep(.el-statistic) {
+  transition: transform var(--av-transition-base) var(--av-ease-smooth);
+}
+
+/* 响应式：移动端适配 */
+@media (max-width: 768px) {
+  .manager-dashboard :deep(.el-col) {
+    max-width: 100%;
+    flex: 0 0 100%;
+  }
+  .mt-20 {
+    margin-top: var(--av-gap-md);
+  }
+  .risk-summary {
+    padding: var(--av-gap-sm) 0;
+  }
+  .manager-dashboard :deep(.el-table) {
+    width: 100%;
+    overflow-x: auto;
+  }
 }
 </style>

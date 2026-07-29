@@ -101,7 +101,16 @@ api.interceptors.response.use(
       ElMessage.error('服务器内部错误，请稍后重试')
     }
 
-    const message = error.response?.data?.detail || error.message || '请求失败'
+    const rawDetail = error.response?.data?.detail || error.message || '请求失败'
+    // FastAPI 验证错误 detail 是数组 [{loc, msg, type}, ...]，需展开为可读字符串
+    let message
+    if (Array.isArray(rawDetail)) {
+      message = rawDetail.map(e => e?.msg || JSON.stringify(e)).join('; ')
+    } else if (typeof rawDetail === 'object' && rawDetail !== null) {
+      message = rawDetail?.message || rawDetail?.detail || JSON.stringify(rawDetail)
+    } else {
+      message = String(rawDetail)
+    }
     return Promise.reject(new Error(message))
   },
 )

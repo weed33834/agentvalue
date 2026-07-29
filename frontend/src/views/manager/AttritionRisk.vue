@@ -1,5 +1,5 @@
 <template>
-  <div class="attrition-risk">
+  <div class="attrition-risk av-fade-in-up">
     <el-card>
       <template #header><span>离职风险预警</span></template>
       <el-form :inline="true">
@@ -17,14 +17,14 @@
       </el-form>
     </el-card>
 
-    <el-row :gutter="20" class="mt-20" v-if="hasData">
+    <el-row :gutter="20" class="mt-20 av-stagger" v-if="hasData">
       <el-col :span="8">
         <el-card>
           <el-statistic
             title="团队平均风险分"
             :value="data.avg_risk_score || 0"
             :precision="1"
-            value-style="color: #f56c6c"
+            value-style="color: var(--el-color-danger)"
           />
         </el-card>
       </el-col>
@@ -153,36 +153,72 @@ async function loadData() {
 
 <style scoped>
 .mt-20 {
-  margin-top: 20px;
+  margin-top: var(--av-gap-lg);
 }
 .chart {
   width: 100%;
   height: 280px;
 }
 .factor-tag {
-  margin-right: 6px;
-  margin-bottom: 4px;
+  margin-right: var(--av-gap-sm);
+  margin-bottom: var(--av-gap-xs);
+  transition: transform var(--av-transition-fast) var(--av-ease-smooth);
+}
+.factor-tag:hover {
+  transform: translateY(-1px);
 }
 .muted {
-  color: #909399;
+  color: var(--el-text-color-secondary);
 }
 .sug {
   margin: 0;
-  padding-left: 16px;
+  padding-left: var(--av-gap-md);
   line-height: 1.8;
   font-size: 13px;
-  color: #374151;
+  color: var(--el-text-color-primary);
 }
 .score-low {
-  color: #67c23a;
+  color: var(--el-color-success);
   font-weight: 600;
 }
 .score-mid {
-  color: #e6a23c;
+  color: var(--el-color-warning);
   font-weight: 600;
 }
 .score-high {
-  color: #f56c6c;
+  color: var(--el-color-danger);
   font-weight: 700;
+}
+/* 卡片头部统一弹性布局与间距 */
+.attrition-risk :deep(.el-card__header) {
+  display: flex;
+  align-items: center;
+  gap: var(--av-gap-md);
+}
+/* 交互元素过渡效果 */
+.attrition-risk :deep(.el-card) {
+  transition: box-shadow var(--av-transition-base) var(--av-ease-smooth),
+    transform var(--av-transition-base) var(--av-ease-smooth);
+}
+.attrition-risk :deep(.el-statistic) {
+  transition: transform var(--av-transition-base) var(--av-ease-smooth);
+}
+
+/* 响应式：移动端适配 */
+@media (max-width: 768px) {
+  .attrition-risk :deep(.el-col) {
+    max-width: 100%;
+    flex: 0 0 100%;
+  }
+  .mt-20 {
+    margin-top: var(--av-gap-md);
+  }
+  .chart {
+    height: 240px;
+  }
+  .attrition-risk :deep(.el-table) {
+    width: 100%;
+    overflow-x: auto;
+  }
 }
 </style>

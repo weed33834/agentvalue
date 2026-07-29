@@ -1,6 +1,6 @@
 <template>
-  <div class="employee-dashboard">
-    <el-row :gutter="20">
+  <div class="employee-dashboard av-fade-in-up">
+    <el-row :gutter="20" class="av-stagger">
       <el-col :span="16">
         <el-card v-loading="loading" :aria-busy="loading">
           <template #header>
@@ -107,27 +107,59 @@ onMounted(loadData)
   margin-top: 0;
 }
 .summary {
-  color: #374151;
+  color: var(--el-text-color-primary);
   line-height: 1.6;
 }
 .evidence {
-  color: #4b5563;
+  color: var(--el-text-color-regular);
   font-size: 13px;
-  margin-top: 4px;
+  margin-top: var(--av-gap-xs);
 }
 .action {
-  /* 无障碍：#409eff 对白底约 2.8:1 不达标，改为对比度约 5.2:1 的深蓝 */
-  color: #2563eb;
+  /* 无障碍：使用主色变量，对白底约 5.2:1 对比度达 WCAG AA */
+  color: var(--el-color-primary);
   font-size: 13px;
-  margin-top: 4px;
+  margin-top: var(--av-gap-xs);
 }
 .focus-tag {
-  margin-right: 8px;
-  margin-bottom: 8px;
+  margin-right: var(--av-gap-sm);
+  margin-bottom: var(--av-gap-sm);
+  transition: transform var(--av-transition-fast) var(--av-ease-spring),
+    box-shadow var(--av-transition-fast) var(--av-ease-smooth);
+  cursor: default;
+}
+.focus-tag:hover {
+  transform: translateY(-2px);
 }
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--av-gap-md);
+  flex-wrap: wrap;
+}
+/* 时间轴交互增强 */
+.employee-dashboard :deep(.el-timeline-item__wrapper) {
+  transition: transform var(--av-transition-base) var(--av-ease-smooth);
+}
+.employee-dashboard :deep(.el-timeline-item:hover .el-timeline-item__wrapper) {
+  transform: translateX(4px);
+}
+/* 响应式：移动端适配 */
+@media (max-width: 768px) {
+  .employee-dashboard :deep(.el-row) {
+    flex-direction: column;
+  }
+  .employee-dashboard :deep(.el-col) {
+    max-width: 100%;
+  }
+  .focus-tag {
+    margin-right: var(--av-gap-xs);
+    margin-bottom: var(--av-gap-xs);
+  }
+  .employee-dashboard :deep(.el-table) {
+    width: 100%;
+    overflow-x: auto;
+  }
 }
 </style>

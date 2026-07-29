@@ -1,5 +1,5 @@
 <template>
-  <div class="team-roi">
+  <div class="team-roi av-fade-in-up">
     <el-card>
       <template #header>
         <span>团队 ROI 分析</span>
@@ -25,14 +25,14 @@
       </el-form>
     </el-card>
 
-    <el-row :gutter="20" class="mt-20" v-if="hasData">
+    <el-row :gutter="20" class="mt-20 av-stagger" v-if="hasData">
       <el-col :span="6">
         <el-card>
           <el-statistic
             title="综合 ROI"
             :value="summary.roi || 0"
             :precision="2"
-            value-style="color: #2563eb"
+            value-style="color: var(--el-color-primary)"
           />
         </el-card>
       </el-col>
@@ -47,7 +47,7 @@
             title="高分员工占比(%)"
             :value="summary.high_score_ratio || 0"
             :precision="1"
-            value-style="color: #67c23a"
+            value-style="color: var(--el-color-success)"
           />
         </el-card>
       </el-col>
@@ -57,13 +57,13 @@
             title="风险降低率(%)"
             :value="summary.risk_reduction_rate || 0"
             :precision="1"
-            value-style="color: #e6a23c"
+            value-style="color: var(--el-color-warning)"
           />
         </el-card>
       </el-col>
     </el-row>
 
-    <el-row :gutter="20" class="mt-20" v-if="hasData">
+    <el-row :gutter="20" class="mt-20 av-stagger" v-if="hasData">
       <el-col :span="12">
         <el-card v-loading="loading">
           <template #header><span>九宫格分布（绩效 × 潜力）</span></template>
@@ -82,7 +82,7 @@
       </el-col>
     </el-row>
 
-    <el-row :gutter="20" class="mt-20" v-if="hasData">
+    <el-row :gutter="20" class="mt-20 av-stagger" v-if="hasData">
       <el-col :span="12">
         <el-card>
           <template #header><span>Top 员工</span></template>
@@ -239,10 +239,42 @@ async function loadData() {
 
 <style scoped>
 .mt-20 {
-  margin-top: 20px;
+  margin-top: var(--av-gap-lg);
 }
 .chart {
   width: 100%;
   height: 360px;
+}
+/* 卡片头部统一弹性布局与间距 */
+.team-roi :deep(.el-card__header) {
+  display: flex;
+  align-items: center;
+  gap: var(--av-gap-md);
+}
+/* 交互元素过渡效果 */
+.team-roi :deep(.el-card) {
+  transition: box-shadow var(--av-transition-base) var(--av-ease-smooth),
+    transform var(--av-transition-base) var(--av-ease-smooth);
+}
+.team-roi :deep(.el-statistic) {
+  transition: transform var(--av-transition-base) var(--av-ease-smooth);
+}
+
+/* 响应式：移动端适配 */
+@media (max-width: 768px) {
+  .team-roi :deep(.el-col) {
+    max-width: 100%;
+    flex: 0 0 100%;
+  }
+  .mt-20 {
+    margin-top: var(--av-gap-md);
+  }
+  .chart {
+    height: 300px;
+  }
+  .team-roi :deep(.el-table) {
+    width: 100%;
+    overflow-x: auto;
+  }
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="team-analytics">
+  <div class="team-analytics av-fade-in-up">
     <el-card>
       <template #header>
         <span>团队分析</span>
@@ -19,7 +19,7 @@
       </el-form>
     </el-card>
 
-    <el-row :gutter="20" class="mt-20" v-if="hasData">
+    <el-row :gutter="20" class="mt-20 av-stagger" v-if="hasData">
       <el-col :span="16">
         <el-card v-loading="loading">
           <template #header>
@@ -41,7 +41,7 @@
               title="团队平均得分"
               :value="analytics.overall_avg || 0"
               :precision="2"
-              value-style="color: #2563eb"
+              value-style="color: var(--el-color-primary)"
             />
             <p class="member-count">成员数：{{ members.length }}</p>
           </div>
@@ -151,7 +151,7 @@ onMounted(loadData)
 
 <style scoped>
 .mt-20 {
-  margin-top: 20px;
+  margin-top: var(--av-gap-lg);
 }
 .bar-chart {
   width: 100%;
@@ -159,10 +159,45 @@ onMounted(loadData)
 }
 .avg-block {
   text-align: center;
-  padding: 20px 0;
+  padding: var(--av-gap-md) 0;
 }
 .member-count {
-  margin-top: 16px;
-  color: #606266;
+  margin-top: var(--av-gap-md);
+  color: var(--el-text-color-secondary);
+}
+/* 卡片头部统一弹性布局与间距 */
+.team-analytics :deep(.el-card__header) {
+  display: flex;
+  align-items: center;
+  gap: var(--av-gap-md);
+}
+/* 交互元素过渡效果 */
+.team-analytics :deep(.el-card) {
+  transition: box-shadow var(--av-transition-base) var(--av-ease-smooth),
+    transform var(--av-transition-base) var(--av-ease-smooth);
+}
+.team-analytics :deep(.el-statistic) {
+  transition: transform var(--av-transition-base) var(--av-ease-smooth);
+}
+
+/* 响应式：移动端适配 */
+@media (max-width: 768px) {
+  .team-analytics :deep(.el-col) {
+    max-width: 100%;
+    flex: 0 0 100%;
+  }
+  .mt-20 {
+    margin-top: var(--av-gap-md);
+  }
+  .bar-chart {
+    height: 280px;
+  }
+  .avg-block {
+    padding: var(--av-gap-sm) 0;
+  }
+  .team-analytics :deep(.el-table) {
+    width: 100%;
+    overflow-x: auto;
+  }
 }
 </style>

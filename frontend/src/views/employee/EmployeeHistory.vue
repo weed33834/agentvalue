@@ -1,5 +1,5 @@
 <template>
-  <div class="employee-history">
+  <div class="employee-history av-fade-in-up av-stagger">
     <el-row :gutter="20">
       <el-col :span="24">
         <el-card v-loading="loading" :aria-busy="loading">
@@ -146,6 +146,8 @@ onMounted(loadData)
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--av-gap-md);
+  flex-wrap: wrap;
 }
 .trend-chart {
   width: 100%;
@@ -153,13 +155,46 @@ onMounted(loadData)
 }
 .expand-detail {
   padding: 12px 24px;
+  transition: background-color var(--av-transition-base) var(--av-ease-smooth);
+}
+.expand-detail:hover {
+  background-color: var(--el-fill-color-lighter);
 }
 .expand-detail h4 {
   margin: 0 0 12px 0;
 }
 .summary {
   margin-top: 12px;
-  color: #374151;
+  color: var(--el-text-color-primary);
   line-height: 1.6;
+}
+/* 状态标签交互增强 */
+.employee-history :deep(.el-tag) {
+  transition: transform var(--av-transition-fast) var(--av-ease-spring);
+}
+.employee-history :deep(.el-tag):hover {
+  transform: translateY(-1px);
+}
+/* 响应式：移动端适配 */
+@media (max-width: 768px) {
+  .mt-20 {
+    margin-top: var(--av-gap-md);
+  }
+  .trend-chart {
+    height: 240px;
+  }
+  .expand-detail {
+    padding: var(--av-gap-sm) var(--av-gap-md);
+  }
+  .employee-history :deep(.el-row) {
+    flex-direction: column;
+  }
+  .employee-history :deep(.el-col) {
+    max-width: 100%;
+  }
+  .employee-history :deep(.el-table) {
+    width: 100%;
+    overflow-x: auto;
+  }
 }
 </style>
