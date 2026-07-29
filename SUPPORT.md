@@ -6,13 +6,13 @@
 
 | 场景 | 去哪里 | 说明 |
 |---|---|---|
-| Bug / 异常行为 | [GitHub Issue](https://gitcode.com/badhope/agentvalue/issues/new?template=bug_report.md) | 附复现步骤、commit SHA / 版本、模型档位 |
-| 功能建议 | [GitHub Issue](https://gitcode.com/badhope/agentvalue/issues/new?template=feature_request.md) | 描述场景与预期收益 |
-| 部署 / 配置 / 使用疑问 | [GitHub Discussions](https://gitcode.com/badhope/agentvalue/discussions) | 不确定是不是 Bug 的问题先来这里讨论 |
+| Bug / 异常行为 | [GitCode Issue](https://gitcode.com/badhope/agentvalue/issues/new?template=bug_report.md) | 附复现步骤、commit SHA / 版本、模型档位 |
+| 功能建议 | [GitCode Issue](https://gitcode.com/badhope/agentvalue/issues/new?template=feature_request.md) | 描述场景与预期收益 |
+| 部署 / 配置 / 使用疑问 | [GitCode Discussions](https://gitcode.com/badhope/agentvalue/discussions) | 不确定是不是 Bug 的问题先来这里讨论 |
 | 安全漏洞 | [SECURITY.md](SECURITY.md) | **私密报告,不要开公开 Issue** |
 
-国内访问 GitHub 慢的,可以先用 [GitCode 镜像](https://gitcode.com/badhope/AgentValue-AI) 浏览代码;
-但 Issue / Discussions / 安全报告统一走 GitHub 主仓库,镜像只做代码同步,不接受单独 issue。
+国内访问慢的,可以先用 [GitHub 镜像](https://github.com/weed33834/agentvalue) 浏览代码;
+但 Issue / Discussions / 安全报告统一走 GitCode 主仓库,镜像只做代码同步,不接受单独 issue。
 
 ## 提问前先自查
 

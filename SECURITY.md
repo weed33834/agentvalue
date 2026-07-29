@@ -11,7 +11,7 @@ If you discover a security vulnerability, **do not open a public issue**.
 Instead, please report it privately:
 
 1. Email: **badhope@noreply.gitcode.com**
-2. Or use GitHub's [Security Advisories](https://gitcode.com/badhope) feature
+2. Or use GitCode's [Security Advisories](https://gitcode.com/badhope/agentvalue/security/advisories) feature
 
 Include the following in your report:
 

@@ -370,7 +370,7 @@ async function onForkMessage(message) {
       />
       <div v-else class="welcome">
         <el-icon size="64"><ChatRound /></el-icon>
-        <h2>AgentValue AI 助手</h2>
+        <h2>AgentValue-AI 助手</h2>
         <p>您的智能员工价值评估助手</p>
         <p class="welcome-hint">点击左侧"新对话"开始</p>
       </div>

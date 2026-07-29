@@ -64,7 +64,7 @@
 ```bash
 # 1. 克隆仓库
 git clone https://gitcode.com/badhope/agentvalue.git
-cd AgentValue-AI
+cd agentvalue
 
 # 2. 配置环境变量
 cp backend/.env.example backend/.env
