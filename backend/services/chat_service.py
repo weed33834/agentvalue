@@ -11,13 +11,11 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import delete, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from core.tenant_context import get_current_tenant
 from models.chat_models import ChatMessage, ChatPart, ChatSession
-from models.models import DEFAULT_TENANT_ID
 
 logger = logging.getLogger(__name__)
 

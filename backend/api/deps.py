@@ -13,7 +13,7 @@ from agent.graph import create_evaluation_graph
 from auth.rbac import Role
 from agent.prompt_loader import PromptLoader
 from agent.tools import AgentToolkit, CompanyKB, MemoryStore
-from core.config import Settings, get_settings
+from core.config import Settings
 from core.database import get_db
 from core.feature_flag import FeatureFlagService
 from core.model_router import ModelRouter

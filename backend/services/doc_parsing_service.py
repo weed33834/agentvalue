@@ -547,9 +547,6 @@ class DocParsingService:
         doc = Document(file_path)
 
         # 遍历 body 元素 (段落 + 表格, 保持顺序)
-        from docx.table import Table  # type: ignore
-        from docx.text.paragraph import Paragraph  # type: ignore
-
         page_num = 1  # DOCX 无页码概念, 统一记为 1
         table_count = 0
 

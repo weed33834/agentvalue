@@ -611,7 +611,6 @@ async def test_cloud_asr_with_api_key_calls_openai(monkeypatch):
 async def test_cloud_asr_short_output_flagged(monkeypatch):
     """Whisper 输出过短时应标记需人工复核。"""
 
-    captured = {}
 
     class _FakeResponse:
         text = "短"  # 长度 < 10

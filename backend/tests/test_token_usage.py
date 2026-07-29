@@ -12,7 +12,6 @@ H6: LLM token usage 指标埋点测试
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from prometheus_client import REGISTRY
 
 from core.metrics import (
     LLM_TOKEN_USAGE_TOTAL,

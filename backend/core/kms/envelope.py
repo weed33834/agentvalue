@@ -20,7 +20,6 @@ import base64
 import logging
 import os
 import struct
-import threading
 from typing import Optional
 
 from core.kms.base import KMSProvider, KMSProviderError

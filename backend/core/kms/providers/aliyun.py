@@ -148,7 +148,7 @@ class AliyunKMSProvider(KMSProvider):
 
         if TeaException is not None and isinstance(e, TeaException):
             code = getattr(e, "code", "") or ""
-            msg_text = getattr(e, "message", "") or str(e)
+            getattr(e, "message", "") or str(e)
             if code in ("InvalidAccessKeyId.NotFound", "Forbidden.KeyNotFound", "NoPermission"):
                 raise KMSAuthenticationError(f"{msg} (code={code})", provider=provider, cause=e) from e
             if code in ("InvalidCiphertext", "EncryptionContext not equal"):

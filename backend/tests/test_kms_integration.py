@@ -178,7 +178,6 @@ class TestGetFieldCipherFactory:
 
         # mock create_kms_provider 返回 LocalKMSProvider (避免真实 Vault 连接)
         from core.kms.providers.local import LocalKMSProvider
-        from core.kms.envelope import EnvelopeCipher
 
         mock_kms = LocalKMSProvider(key="dummy")
 

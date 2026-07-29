@@ -13,7 +13,6 @@
 """
 
 import logging
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import select
@@ -22,7 +21,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import AsyncSessionLocal
 from core.tenant_context import get_current_tenant
 from models.model_fallback import FallbackChain
-from models.models import DEFAULT_TENANT_ID
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +104,7 @@ class ModelFallbackService:
             entry_tier = entry.get("tier", tier)
             provider_name = entry.get("provider", "unknown")
             model_name = entry.get("model", "unknown")
-            timeout = entry.get("timeout", 30)
+            entry.get("timeout", 30)
             max_retries = entry.get("max_retries", 1)
 
             # 切换到非主候选（idx > 0）即触发 fallback，记录审计事件

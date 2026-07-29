@@ -27,6 +27,7 @@ from __future__ import annotations
 import asyncio
 import ast
 import ipaddress
+import json
 import logging
 import re
 import socket
@@ -1243,8 +1244,6 @@ class WorkflowEngine:
             if isinstance(value, (dict, list)):
                 # 复杂对象用 str 表示, 避免渲染出 'dict' 字面量
                 try:
-                    import json
-
                     return json.dumps(value, ensure_ascii=False, default=str)
                 except Exception:
                     return str(value)

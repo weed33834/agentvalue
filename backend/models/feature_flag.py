@@ -26,7 +26,6 @@ Feature Flag 数据模型 (P3-2: 应用级功能开关, 对标 Langfuse Feature 
 """
 
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import (
     JSON,

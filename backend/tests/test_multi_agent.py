@@ -16,7 +16,7 @@ import asyncio
 import json
 import time
 from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -25,7 +25,6 @@ from agent.multi_agent import (
     ALL_ROUTABLE,
     DEFAULT_MAX_ITERATIONS,
     HARD_MAX_ITERATIONS,
-    MultiAgentState,
     _safe_json_parse,
     create_multi_agent_graph,
 )
@@ -33,7 +32,6 @@ from agent.tools import AgentToolkit, DummyCompanyKB, DummyMemoryStore
 from core.providers.base import (
     BaseProvider,
     ChatCompletion,
-    ChatMessage,
     ProviderConfig,
 )
 
@@ -470,7 +468,7 @@ async def test_expert_failure_does_not_affect_others():
         _build_initial_state(),
         config={"configurable": {"thread_id": "t-7"}},
     )
-    artifacts = result.get("artifacts", {})
+    result.get("artifacts", {})
     # data_analyst 失败 → 标 error, 但 artifacts 中仍有 key
     # 注意: 由于测试中 data_analyst 抛异常时 _call_count == 2, 此时是 data_analyst 调用
     # 但由于第一次 supervisor 决定 next=code_reviewer (跳过 data_analyst), data_analyst 不会被调

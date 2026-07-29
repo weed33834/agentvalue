@@ -31,7 +31,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from auth.rbac import Role, require_role
 from core.database import get_db
 from core.tenant_context import get_current_tenant
-from services.sso_service import SSO_PROVIDER_TYPES, SSOService
+from services.sso_service import SSOService
 
 logger = logging.getLogger(__name__)
 

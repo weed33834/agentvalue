@@ -453,7 +453,7 @@ def _generate_employees(scale: str, config: dict, rng: random.Random) -> list[di
     departments = config["departments"]
     locations = config["locations"]
     max_level = config["max_level"]
-    features = config["features"]
+    config["features"]
 
     levels = _level_distribution(max_level, n, rng)
 

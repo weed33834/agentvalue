@@ -2,7 +2,6 @@
 输入/输出护栏单元测试
 """
 
-import pytest
 
 from core.guards import InputGuard, OutputGuard
 

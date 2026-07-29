@@ -5,7 +5,6 @@ FastAPI API 测试
 import tempfile
 from pathlib import Path
 from typing import Optional
-from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,7 +13,6 @@ from agent.graph import create_evaluation_graph, create_evaluation_graph_with_in
 from agent.prompt_loader import PromptLoader
 from agent.tools import AgentToolkit, DummyCompanyKB, DummyMemoryStore
 from api.deps import AppState
-from auth.rbac import Role
 from core.config import Settings, get_settings
 from core.database import close_db, init_db
 from main import app

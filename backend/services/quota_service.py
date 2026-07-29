@@ -16,12 +16,10 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import func, select, update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import AsyncSessionLocal
-from core.tenant_context import get_current_tenant
-from models.models import DEFAULT_TENANT_ID
 from models.quota_models import (
     DEFAULT_MAX_API_KEYS,
     DEFAULT_MAX_REQUESTS_PER_DAY,
@@ -287,7 +285,7 @@ class QuotaService:
         try:
             # 计算起始日期
             now = datetime.now(timezone.utc)
-            start_date = now.strftime("%Y-%m-%d")
+            now.strftime("%Y-%m-%d")
             # 向前推 days 天
             from datetime import timedelta
 

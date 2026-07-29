@@ -14,7 +14,6 @@ auth/password.py 单元测试
 注：password.py 未提供密码强度校验，故无弱口令拒绝测试。
 """
 
-import pytest
 
 from auth.password import _MAX_PWD_BYTES, _truncate, hash_password, verify_password
 

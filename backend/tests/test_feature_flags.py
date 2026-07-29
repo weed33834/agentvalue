@@ -16,13 +16,11 @@
 import asyncio
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from core.config import get_settings
 
 
 # ============================================================
@@ -678,7 +676,6 @@ class TestCache:
 
     def test_cache_ttl_expires(self, initialized_db):
         """TTL 过期后下次查询重新走 DB"""
-        from core import feature_flag as ff_module
         from core.feature_flag import FeatureFlagService
 
         svc = FeatureFlagService(initialized_db)

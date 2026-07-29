@@ -22,7 +22,6 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import AsyncSessionLocal
-from models.models import DEFAULT_TENANT_ID
 from models.quota_models import BillingRecord
 
 logger = logging.getLogger(__name__)

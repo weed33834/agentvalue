@@ -9,7 +9,6 @@ ToolCallAggregator 单元测试 (P4 测试补全)
 - JSON 解析失败容错
 """
 
-import pytest
 
 from core.providers.base import StreamChunk, ToolCallDelta
 from core.providers.stream_buffer import ToolCallAggregator

@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import uuid
-from typing import Annotated, Any, AsyncIterator, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, AsyncIterator, Dict, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 

@@ -8,7 +8,6 @@ import json
 import pytest
 
 from eval.evaluate import (
-    NEGATIVE_WORDS,
     MockProvider,
     VersionedPromptLoader,
     build_mock_evaluation,

@@ -29,7 +29,6 @@ from auth.rbac import Role, get_current_user_id, require_role
 from core.database import get_db
 from core.tenant_context import get_current_tenant
 from services.agent_template_service import (
-    TEMPLATE_CATEGORIES,
     AgentTemplateService,
 )
 

@@ -25,7 +25,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import AsyncSessionLocal
-from core.tenant_context import get_current_tenant, tenant_scope
+from core.tenant_context import tenant_scope
 from models.kb_sync_models import KbDataSource, KbSyncLog
 
 logger = logging.getLogger(__name__)

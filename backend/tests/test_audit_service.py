@@ -467,7 +467,6 @@ class TestAuditDecorator:
         async def _failing_log(self, *args, **kwargs):
             raise RuntimeError("审计写入失败")
 
-        from services import audit_decorator as ad_module
         from services import audit_service as as_module
 
         monkeypatch.setattr(as_module.AuditService, "log", _failing_log)

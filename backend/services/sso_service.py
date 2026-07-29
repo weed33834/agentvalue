@@ -531,8 +531,8 @@ class SSOService:
                 server, user=user_dn, password=password, auto_bind=True
             )
             user_conn.unbind()
-        except ldap3.core.exceptions.LDAPBindError as e:
-            raise ValueError(f"LDAP 认证失败: 用户名或密码错误")
+        except ldap3.core.exceptions.LDAPBindError:
+            raise ValueError("LDAP 认证失败: 用户名或密码错误")
         except ldap3.core.exceptions.LDAPException as e:
             raise ValueError(f"LDAP 操作失败: {e}")
         finally:

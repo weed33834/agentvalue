@@ -10,7 +10,7 @@ from collections import deque
 from dataclasses import dataclass
 from typing import Any, Deque, Dict, List, Literal, Optional, Tuple
 
-from .circuit_breaker import CircuitBreakerRegistry, call_with_circuit, get_global_registry
+from .circuit_breaker import CircuitBreakerRegistry, get_global_registry
 from .config import Settings, get_settings
 from .metrics import set_provider_health_score
 from .providers.base import BaseProvider, ProviderConfig

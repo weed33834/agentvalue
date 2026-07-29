@@ -174,7 +174,7 @@ def _json_schema_to_pydantic(schema: Optional[dict], model_name: str = "SkillInp
     支持 type/properties/required 的常见子集, 复杂 schema (allOf/$ref/嵌套) 降级返回 None。
     """
     try:
-        from pydantic import BaseModel, Field, create_model
+        from pydantic import Field, create_model
     except ImportError:
         return None
     if not isinstance(schema, dict):

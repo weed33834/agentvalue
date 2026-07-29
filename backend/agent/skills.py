@@ -20,7 +20,6 @@ import re
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db_session
 from core.providers.base import ChatMessage
@@ -600,7 +599,6 @@ class SkillExecutor:
         """
         try:
             from sqlalchemy import select
-            from sqlalchemy.ext.asyncio import AsyncSession
         except ImportError as e:
             return {
                 "imported": 0,

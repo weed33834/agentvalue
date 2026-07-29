@@ -22,12 +22,11 @@ import hashlib
 import logging
 import secrets
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.agent_version import AgentPublishTarget, AgentVersion
+from models.agent_version import AgentPublishTarget
 from services.agent_version_service import AgentVersionService
 
 logger = logging.getLogger(__name__)

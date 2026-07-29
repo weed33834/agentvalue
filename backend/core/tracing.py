@@ -5,7 +5,6 @@ Langfuse 可观测性集成
 
 import contextvars
 import logging
-import os
 import uuid
 from contextlib import contextmanager
 from typing import Any, Dict, Optional

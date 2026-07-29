@@ -9,7 +9,6 @@
 """
 
 import json
-from pathlib import Path
 
 import pytest
 
@@ -302,7 +301,6 @@ class TestPilotReadinessCheck:
 
         # 准备演示账号：直接在 SQLite 建表插入 E1001
         import asyncio
-        from sqlalchemy import text
         from sqlalchemy.ext.asyncio import create_async_engine
         from models.models import Base, User
 

@@ -26,7 +26,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.rbac import get_current_user_id
-from core.database import get_db, get_db_session
+from core.database import get_db
 from models.skill import Skill
 
 logger = logging.getLogger(__name__)

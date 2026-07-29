@@ -16,7 +16,7 @@ import logging
 import threading
 import time
 from collections import OrderedDict
-from typing import Callable, Dict, Optional
+from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 """Artifact 模型 - 对标 Claude Artifacts / ChatGPT Canvas"""
 from __future__ import annotations
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, DateTime, JSON, ForeignKey, Index
+from sqlalchemy import Column, Integer, String, Text, DateTime, JSON, ForeignKey
 from core.database import Base
 
 class Artifact(Base):

@@ -107,7 +107,6 @@ class KMSProvider(ABC):
         生产场景如需真正清零,建议改用 bytearray 持有 DEK
         """
         # bytes 是不可变对象,这里仅做示意;实际依赖进程内存隔离 + GC
-        pass
 
 
 class KMSProviderError(Exception):

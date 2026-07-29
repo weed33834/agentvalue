@@ -244,7 +244,6 @@ def set_allowed_root(path: str) -> None:
 
 def _get_allowed_root() -> str:
     """获取允许的工作目录根路径。"""
-    global _ALLOWED_ROOT
     if _ALLOWED_ROOT is not None:
         return _ALLOWED_ROOT
     return os.path.realpath(os.environ.get("FILE_TOOLS_ROOT", os.getcwd()))

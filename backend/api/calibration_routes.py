@@ -42,7 +42,6 @@ from models.calibration import (
     CalibrationItem,
     CalibrationSession,
 )
-from models.models import Evaluation
 from services.audit_service import AuditService
 from services.evaluation_service import EvaluationService
 
@@ -585,7 +584,7 @@ async def batch_adjust_calibration_items(
                 }
             )
             continue
-        old_calibrated = item.calibrated_score
+        item.calibrated_score
         item.calibrated_score = spec.calibrated_score
         if spec.adjustment_reason is not None:
             item.adjustment_reason = spec.adjustment_reason

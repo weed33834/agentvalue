@@ -14,13 +14,12 @@ P2 深水区 - Provider CRUD 数据模型
 - ProviderHealthCheck: 健康检查记录
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import (
     Boolean,
     DateTime,
-    ForeignKey,
     Index,
     Integer,
     String,

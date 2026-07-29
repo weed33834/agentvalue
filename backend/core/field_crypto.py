@@ -94,8 +94,6 @@ class FieldCipher:
             return plaintext
         import os
 
-        from cryptography.hazmat.primitives.ciphers.aead import AESGCM  # noqa: F401
-
         # envelope backend 路径 (KMS-backed)
         if self._envelope is not None:
             return self._run_async_safely(

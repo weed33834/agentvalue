@@ -20,12 +20,10 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import AppState, get_app_state
 from api.admin._common import entity_to_dict
 from auth.rbac import Role, require_role
-from core.database import get_db
 from core.feature_flag import FeatureFlagService
 from models.feature_flag import FeatureFlag
 

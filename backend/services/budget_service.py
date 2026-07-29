@@ -21,7 +21,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import AsyncSessionLocal
-from models.models import DEFAULT_TENANT_ID, User
+from models.models import User
 from models.quota_models import BudgetAlert
 from services.notification_service import NotificationService
 

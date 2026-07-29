@@ -18,7 +18,6 @@ import pytest
 from core.providers.base import (
     BaseProvider,
     ChatCompletion,
-    ChatMessage,
     ProviderConfig,
 )
 

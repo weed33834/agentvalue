@@ -18,7 +18,6 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy import delete, select
 
-from core.config import get_settings
 from core.database import AsyncSessionLocal
 from core.tenant_context import set_current_tenant
 from models.models import (

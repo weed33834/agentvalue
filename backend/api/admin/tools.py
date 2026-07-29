@@ -18,12 +18,11 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, ConfigDict, Field
 
 from api.deps import get_app_state
 from auth.rbac import Role, require_role
-from core.config import get_settings
 from core.rate_limit import rate_limit
 
 logger = logging.getLogger(__name__)
@@ -189,7 +188,6 @@ async def test_tool(
     支持: 内置工具 (calculator/datetime) + toolkit 工具 (employee_history/company_kb)。
     MCP 工具测试通过 /mcp/{server_name}/test 端点。
     """
-    import json
 
     from agent.langchain_tools import build_langchain_tools
 
@@ -224,7 +222,6 @@ async def test_tool(
         )
 
     try:
-        import asyncio
         import inspect
 
         if inspect.iscoroutinefunction(target):

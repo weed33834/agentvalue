@@ -16,9 +16,8 @@ import base64
 import json
 import os
 import tempfile
-from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -278,7 +277,6 @@ class TestScenarioPlaygroundSSEMultiProvider:
     def test_playground_run_streams_sse_and_aggregates_tool_calls(self, client, monkeypatch):
         """4 种 model_name 路由 + tool_call delta 完整拼接"""
         # 1. patch _get_provider_for_playground 直接返回 mock provider
-        from api.admin.playground import _get_provider_for_playground
 
         class _FakeProvider:
             async def stream_chat_completion(self, messages, tools=None,
@@ -671,7 +669,6 @@ class TestScenarioMetricsAuthAndTokenUsage:
 
     def test_token_usage_records_per_tier_model_direction_tenant(self):
         """4 维 label 埋点:tier / model / direction(prompt|completion) / tenant_id"""
-        from prometheus_client import REGISTRY
         from core.metrics import record_token_usage
         from core.tenant_context import set_current_tenant, reset_current_tenant
 
@@ -756,11 +753,8 @@ class TestScenarioTenantIsolation:
     def test_tenant_scope_context_manager_restores(self):
         from core.tenant_context import (
             get_current_tenant,
-            reset_current_tenant,
-            set_current_tenant,
             tenant_scope,
         )
-        from models.models import DEFAULT_TENANT_ID
 
         original = get_current_tenant()
         with tenant_scope("tenant-A"):

@@ -191,6 +191,6 @@ async def call_with_circuit(
         result = await coro_fn()
         await circuit.record_success()
         return result
-    except Exception as e:
+    except Exception:
         await circuit.record_failure()
         raise

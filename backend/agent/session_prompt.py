@@ -439,7 +439,6 @@ class SessionPrompt:
         """格式化工具调用结果为一条 user message。"""
         lines: List[str] = []
         for tc in tool_calls:
-            result = self.tool_registry.execute_tool  # noqa
             # 结果已在 run_loop 中执行，这里只格式化 input
             try:
                 input_str = json.dumps(tc.input, ensure_ascii=False, default=str)

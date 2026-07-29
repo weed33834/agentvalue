@@ -37,7 +37,6 @@ from core.llm_events import (
     ToolInputEnd,
     ToolInputStart,
     ToolResult,
-    Usage,
 )
 from models.chat_models import ChatMessage, ChatSession
 from services.chat_service import ChatService

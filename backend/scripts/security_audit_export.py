@@ -404,7 +404,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     args = parser.parse_args(argv)
     zip_path = asyncio.run(export_package(Path(args.output)))
     print(f"安全审计数据包已生成: {zip_path}")
-    print(f"包含文件: README.md, 01-06 共 7 个文件")
+    print("包含文件: README.md, 01-06 共 7 个文件")
     return 0
 
 

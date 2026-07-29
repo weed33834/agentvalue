@@ -4,7 +4,6 @@
 
 import logging
 import time
-import uuid
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status

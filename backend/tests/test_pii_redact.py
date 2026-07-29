@@ -8,7 +8,6 @@ core/utils/pii.py 单元测试
 - 边界:None / 空串 / 无 PII 文本 / 非字符串类型原样返回
 """
 
-import pytest
 
 from core.utils import redact_audit_details, redact_dict, redact_pii
 from core.utils.pii import redact_pii as redact_pii_direct

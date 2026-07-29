@@ -18,7 +18,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from core.job_queue import JobQueue, RedisJobQueue, _report_active_jobs
+from core.job_queue import JobQueue, RedisJobQueue
 
 logger = logging.getLogger(__name__)
 

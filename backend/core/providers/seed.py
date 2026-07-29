@@ -398,13 +398,11 @@ async def seed_provider_templates(session) -> None:
     import uuid
 
     from sqlalchemy import select
-    from sqlalchemy.dialects.postgresql import insert as pg_insert
-    from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
     from models.provider_models import ModelTemplate, ProviderTemplate
 
     # 判断是否 SQLite(开发环境)
-    is_sqlite = "sqlite" in str(session.bind.url).lower()
+    "sqlite" in str(session.bind.url).lower()
 
     for tmpl in PROVIDER_TEMPLATES:
         provider = tmpl["provider"]

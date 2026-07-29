@@ -15,7 +15,7 @@
 """
 
 import re
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional
 
 # PII 模式注册表：集中定义各类 PII 的正则模式,作为单一来源供本模块
 # (掩码脱敏,用于日志/审计)与 core.guards.output_guard(占位符脱敏,用于展示视图)

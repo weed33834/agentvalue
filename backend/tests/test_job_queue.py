@@ -8,7 +8,6 @@ core/job_queue.py 单元测试
 """
 
 from types import SimpleNamespace
-from unittest.mock import patch
 
 import pytest
 

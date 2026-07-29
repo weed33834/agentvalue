@@ -38,8 +38,6 @@ from core.storage import AttachmentStorage, get_storage
 from core.tenant_context import get_current_tenant
 from core.job_queue import JobQueue, create_job_queue
 from core.metrics import (
-    record_approval_transition,
-    record_evaluation,
     record_evaluation_failure,
     record_feedback,
 )
@@ -293,7 +291,7 @@ async def _run_evaluation_job(
                         await _update_job(
                             job_id, {"status": "failed", "error": "未生成评估结果"}
                         )
-            except Exception as e:
+            except Exception:
                 logger.exception("评估处理失败 job_id=%s", job_id)
                 try:
                     await session.rollback()
@@ -1179,8 +1177,8 @@ async def get_pending_approvals(
         report_ids = None
     pending = []
     total = 0
-    for status in (EvaluationStatus.AI_DRAFTED, EvaluationStatus.MANAGER_REVIEW):
-        result = await eval_service.list_evaluations(status=status, limit=200)
+    for eval_status in (EvaluationStatus.AI_DRAFTED, EvaluationStatus.MANAGER_REVIEW):
+        result = await eval_service.list_evaluations(status=eval_status, limit=200)
         items = result["items"]
         if report_ids is not None:
             items = [e for e in items if e.employee_id in report_ids]
@@ -1224,8 +1222,8 @@ async def get_manager_dashboard(
     else:
         report_ids = None
     pending = []
-    for status in (EvaluationStatus.AI_DRAFTED, EvaluationStatus.MANAGER_REVIEW):
-        items = (await eval_service.list_evaluations(status=status, limit=200))["items"]
+    for eval_status in (EvaluationStatus.AI_DRAFTED, EvaluationStatus.MANAGER_REVIEW):
+        items = (await eval_service.list_evaluations(status=eval_status, limit=200))["items"]
         if report_ids is not None:
             items = [e for e in items if e.employee_id in report_ids]
         pending.extend(items)

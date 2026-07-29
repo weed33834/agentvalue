@@ -9,8 +9,6 @@ import pytest
 from agent.graph import create_evaluation_graph
 from agent.prompt_loader import PromptLoader
 from agent.tools import AgentToolkit, DummyCompanyKB, DummyMemoryStore
-from core.config import Settings
-from core.model_router import ModelRouter
 from core.providers.base import (
     BaseProvider,
     ChatCompletion,

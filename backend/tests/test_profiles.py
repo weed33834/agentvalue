@@ -2,7 +2,6 @@
 Mock 员工画像数据加载测试
 """
 
-from pathlib import Path
 
 from data.loader import ProfileLoader
 

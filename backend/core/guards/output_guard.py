@@ -4,7 +4,7 @@
 
 import re
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from core.guards.input_guard import record_guard_check
 from core.utils.pii import PII_PATTERNS as _PII_REGISTRY

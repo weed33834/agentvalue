@@ -106,7 +106,7 @@ async def _make_user(service, user_id="E1001", role="employee"):
 async def test_update_status_to_approved_sets_approver_and_time(service, db_session):
     """转入 approved 应设置 approver_id 与 approved_at"""
     await _make_user(service)
-    eval_obj = await service.create_evaluation(_eval_data())
+    await service.create_evaluation(_eval_data())
     await db_session.flush()
 
     updated = await service.update_status(
@@ -120,7 +120,7 @@ async def test_update_status_to_approved_sets_approver_and_time(service, db_sess
 async def test_update_status_leaving_approved_resets_approval_info(service, db_session):
     """从 approved 转出应重置 approved_at 与 approver_id"""
     await _make_user(service)
-    eval_obj = await service.create_evaluation(_eval_data())
+    await service.create_evaluation(_eval_data())
     await db_session.flush()
     await service.update_status("EVAL-1", EvaluationStatus.APPROVED, approver_id="M001")
     await db_session.flush()

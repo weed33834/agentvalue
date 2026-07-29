@@ -234,7 +234,7 @@ const chatStore = useChatStore()
 
 // 从消息文本中提取代码块作为 artifacts (客户端正则提取, 无需后端)
 const artifacts = ref([])
-const CODE_FENCE_RE = /```([a-zA-Z0-9_+\-]*)\n([\s\S]*?)```/g
+const CODE_FENCE_RE = /```([a-zA-Z0-9_+-]*)\n([\s\S]*?)```/g
 
 function detectArtifactType(lang, content) {
   const l = (lang || '').toLowerCase()

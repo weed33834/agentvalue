@@ -17,7 +17,6 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.tenant_context import get_current_tenant
 from models import (
     AuditLog,
     Evaluation,

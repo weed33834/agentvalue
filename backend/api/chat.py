@@ -38,8 +38,7 @@ from auth.rbac import get_current_user_id
 from core.config import get_settings
 from core.database import get_db, get_db_session
 from core.llm_events import event_to_sse_dict
-from core.tenant_context import get_current_tenant
-from models.chat_models import ChatMessage, ChatPart, ChatSession
+from models.chat_models import ChatPart, ChatSession
 from services.chat_service import ChatService
 
 logger = logging.getLogger(__name__)

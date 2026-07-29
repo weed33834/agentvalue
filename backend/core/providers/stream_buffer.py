@@ -17,7 +17,7 @@ OpenAI 流式响应中 delta.tool_calls 是稀疏的:
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from core.providers.base import StreamChunk, ToolCallDelta
 

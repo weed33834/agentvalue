@@ -38,14 +38,12 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.db_prompt_loader import get_global_db_prompt_loader
 from auth.rbac import Role, require_role
-from core.database import get_db
-from core.providers.base import ChatMessage, StreamChunk
+from core.providers.base import ChatMessage
 from core.providers.stream_buffer import ToolCallAggregator
-from models.models import PromptLabel, PromptTemplate, PromptVersion
+from models.models import PromptTemplate
 
 logger = logging.getLogger(__name__)
 
@@ -502,7 +500,7 @@ def _infer_provider_from_model_name(model_name: str, settings):
 async def _build_tools_schema(tool_names: List[str]):
     """构建工具 schema(用于 LLM function calling)"""
     try:
-        from agent.langchain_tools import build_langchain_tools, list_available_tools
+        from agent.langchain_tools import list_available_tools
 
         # 返回 OpenAI function schema 格式
         # 简化: 直接用 list_available_tools 获取元数据

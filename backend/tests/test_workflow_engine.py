@@ -19,20 +19,17 @@
 
 from __future__ import annotations
 
-import asyncio
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from core.config import get_settings
 from core.workflow_engine import (
     WorkflowEngine,
-    WorkflowExecutionError,
     WorkflowValidationError,
 )
 

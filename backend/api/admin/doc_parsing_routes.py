@@ -27,8 +27,6 @@ from core.database import get_db
 from core.tenant_context import get_current_tenant
 from models.doc_parsing_models import DocParsingTask
 from services.doc_parsing_service import (
-    SUPPORTED_FILE_TYPES,
-    SUPPORTED_STRATEGIES,
     TASK_STATUS_PROCESSING,
     DocParsingService,
 )

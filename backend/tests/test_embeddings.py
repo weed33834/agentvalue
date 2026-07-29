@@ -4,9 +4,8 @@ EmbeddingClient 单元测试
 """
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
-import pytest
 
 from core.config import Settings
 from core.embeddings import EmbeddingClient

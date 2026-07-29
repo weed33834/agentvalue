@@ -439,7 +439,7 @@ def _make_build_prompt(
                         try:
                             from core.database import get_db_session
                             from models.models import PromptLabel
-                            from sqlalchemy import select, and_
+                            from sqlalchemy import select
 
                             async with get_db_session() as sess:
                                 stmt = select(PromptLabel).where(

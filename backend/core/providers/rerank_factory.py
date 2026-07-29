@@ -11,7 +11,6 @@ Rerank Provider 工厂 (P2-2)
 """
 
 import logging
-from typing import Optional
 
 from core.config import Settings
 from core.providers.rerank_provider import (

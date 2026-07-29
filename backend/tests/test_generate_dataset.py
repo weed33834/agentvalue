@@ -20,7 +20,6 @@ from eval import generate_dataset as gd
 from eval.generate_dataset import ARCHETYPES, PERIODS, generate_case, main
 
 # scripts/generate_dataset.py（M1 补完）模块导入，别名避免与 eval 模块符号冲突
-from scripts import generate_dataset as scripts_gd
 from scripts.generate_dataset import (
     ARCHETYPES as SCRIPTS_ARCHETYPES,
     DEPARTMENTS,

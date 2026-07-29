@@ -28,7 +28,7 @@ from auth.rbac import Role, require_role
 from core.database import get_db
 from core.tenant_context import get_current_tenant
 from models.evaluation_models import EvaluationTask
-from services.llm_judge_service import DEFAULT_JUDGE_PROMPT_TEMPLATE, DEFAULT_METRICS, LLMJudgeService
+from services.llm_judge_service import LLMJudgeService
 
 logger = logging.getLogger(__name__)
 

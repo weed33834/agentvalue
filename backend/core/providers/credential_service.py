@@ -22,22 +22,16 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import get_settings
 from core.field_crypto import FieldCipher
-from core.tenant_context import get_current_tenant
-from models.models import DEFAULT_TENANT_ID
 from models.provider_models import (
-    ModelTemplate,
     ProviderHealthCheck,
-    ProviderTemplate,
     TenantDefaultModel,
     TenantProvider,
     TenantProviderCredential,
-    TenantProviderModel,
-    TenantProviderModelCredential,
 )
 
 logger = logging.getLogger(__name__)

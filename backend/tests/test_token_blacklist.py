@@ -10,7 +10,6 @@ auth/token_blacklist.py 单元测试
 - create_token_blacklist 工厂：未配置 / 不可达时降级 InMemoryTokenBlacklist
 """
 
-import asyncio
 import time
 
 import fakeredis.aioredis

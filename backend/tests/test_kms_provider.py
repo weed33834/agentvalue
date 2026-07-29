@@ -11,22 +11,19 @@
 不依赖外部服务 (Vault/AWS),全部用 LocalKMSProvider 内存模拟。
 """
 
-import asyncio
 import base64
 import os
 import time
-from unittest.mock import patch
 
 import pytest
 
 from core.kms.base import (
     KMSAuthenticationError,
     KMSCiphertextInvalidError,
-    KMSProvider,
     KMSProviderError,
     KMSUnavailableError,
 )
-from core.kms.dek_cache import DEKCache, DEKCacheEntry
+from core.kms.dek_cache import DEKCache
 from core.kms.envelope import EnvelopeCipher
 from core.kms.providers.local import LocalKMSProvider
 

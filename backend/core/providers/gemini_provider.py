@@ -14,7 +14,6 @@ https://github.com/langgenius/dify/tree/main/api/core/model_runtime/model_provid
 Gemini API 文档: https://ai.google.dev/api/rest/v1beta/models/generateContent
 """
 
-import base64
 import json
 import logging
 from typing import Any, Dict, List, Optional

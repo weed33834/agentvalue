@@ -582,7 +582,7 @@ async def main():
             skip_score=args.mock,
         )
         report = compare_versions(current_results, version_results, version)
-        print(f"\n=== 对比报告 ===")
+        print("\n=== 对比报告 ===")
         print(f"当前版本通过: {report['current_pass']}/{report['current_total']}")
         print(
             f"目标版本 {version} 通过: {report['version_pass']}/{report['version_total']}"

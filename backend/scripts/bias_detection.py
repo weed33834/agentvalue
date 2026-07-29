@@ -35,10 +35,9 @@ AgentValue-AI AI 偏差检测增强
 from __future__ import annotations
 
 import logging
-import re
 import statistics
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence
 
 from scripts._stats_utils import std
 
@@ -932,7 +931,6 @@ class BiasDetector:
             from models.models import DimensionScore, Evaluation  # noqa: F401
 
             from sqlalchemy import select
-            from sqlalchemy.orm import selectinload
 
             async with self.db_session_factory() as session:
                 stmt = (

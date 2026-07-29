@@ -13,7 +13,6 @@ https://github.com/langgenius/dify/tree/main/api/core/model_runtime/model_provid
 Anthropic API 文档: https://docs.anthropic.com/en/api/messages
 """
 
-import asyncio
 import json
 import logging
 from typing import Any, Dict, List, Optional
@@ -249,7 +248,6 @@ class AnthropicProvider(BaseProvider):
         model: Optional[str] = None,
     ) -> str:
         """视觉模型: 图片 + 文本 → 文本"""
-        import base64
 
         if is_url:
             # Anthropic 支持 URL
