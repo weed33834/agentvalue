@@ -70,10 +70,48 @@ function onContentClick(e) {
 }
 
 // ---- 渲染 ----
+// 流式渲染优化：流式过程中使用防抖，避免每个 token 都触发完整的 markdown 解析
+const _debouncedHtml = ref('')
+let _renderTimer = null
+
 const renderedText = computed(() => {
   const textPart = props.message.parts?.find((p) => p.type === 'text')
   if (!textPart?.text) return ''
-  return renderMarkdown(textPart.text)
+  // 非流式时立即渲染
+  if (!props.message.streaming) {
+    return renderMarkdown(textPart.text)
+  }
+  // 流式时通过防抖渲染，_debouncedHtml 由 watch 更新
+  return _debouncedHtml.value
+})
+
+// 流式文本变化时防抖更新 HTML
+watch(
+  () => {
+    const textPart = props.message.parts?.find((p) => p.type === 'text')
+    return textPart?.text || ''
+  },
+  (text) => {
+    if (!text) {
+      _debouncedHtml.value = ''
+      return
+    }
+    // 流式结束后立即完整渲染
+    if (!props.message.streaming) {
+      _debouncedHtml.value = renderMarkdown(text)
+      return
+    }
+    // 流式中防抖渲染（300ms 间隔，平衡流畅度与性能）
+    if (_renderTimer) clearTimeout(_renderTimer)
+    _renderTimer = setTimeout(() => {
+      _debouncedHtml.value = renderMarkdown(text)
+    }, 300)
+  },
+  { immediate: true },
+)
+
+onBeforeUnmount(() => {
+  if (_renderTimer) clearTimeout(_renderTimer)
 })
 
 const reasoningText = computed(() => {
@@ -435,7 +473,16 @@ onMounted(() => {
 
       <!-- 思考过程（可折叠） -->
       <div v-if="reasoningText" class="reasoning-block">
-        <div class="reasoning-toggle" @click="showThinking = !showThinking">
+        <div
+          class="reasoning-toggle"
+          :tabindex="0"
+          :aria-expanded="showThinking"
+          role="button"
+          aria-label="思考过程"
+          @click="showThinking = !showThinking"
+          @keydown.enter="showThinking = !showThinking"
+          @keydown.space.prevent="showThinking = !showThinking"
+        >
           <el-icon><CaretRight v-if="!showThinking" /><CaretBottom v-else /></el-icon>
           <span>{{ showThinking ? '收起思考过程' : '展开思考过程' }}</span>
         </div>

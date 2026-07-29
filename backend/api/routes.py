@@ -711,7 +711,7 @@ async def approve_evaluation(
         )
         await session.rollback()
         logger.debug("approve 状态机拒绝 eval=%s: %s", evaluation_id, e)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="当前评估状态不允许执行此操作")
 
 
 @router.post("/evaluations/{evaluation_id}/reject")
@@ -772,7 +772,7 @@ async def reject_evaluation(
         )
         await session.rollback()
         logger.debug("reject 状态机拒绝 eval=%s: %s", evaluation_id, e)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="当前评估状态不允许执行此操作")
 
 
 @router.post("/evaluations/{evaluation_id}/feedback")
@@ -1162,7 +1162,7 @@ async def request_hr_review(
         )
         await session.rollback()
         logger.debug("request_hr_review 状态机拒绝 eval=%s: %s", evaluation_id, e)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="当前评估状态不允许执行此操作")
 
 
 @router.post("/evaluations/{evaluation_id}/require-reeval")
@@ -1220,7 +1220,7 @@ async def require_reeval(
         )
         await session.rollback()
         logger.debug("require_reeval 状态机拒绝 eval=%s: %s", evaluation_id, e)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="当前评估状态不允许执行此操作")
 
     # 自动触发后台重新评估：拉取该周期原始输入，复用 _run_evaluation_job
     raw_inputs = [
@@ -1343,7 +1343,7 @@ async def appeal_evaluation(
         )
         await session.rollback()
         logger.debug("appeal 状态机拒绝 eval=%s: %s", evaluation_id, e)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="当前评估状态不允许执行此操作")
     except HTTPException:
         await session.rollback()
         raise
@@ -1982,7 +1982,7 @@ async def create_period(
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"日期格式无效，需 ISO 8601: {e}",
+            detail="日期格式无效，需 ISO 8601 格式",
         )
     if end_dt < start_dt:
         raise HTTPException(

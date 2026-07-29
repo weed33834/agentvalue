@@ -300,7 +300,15 @@ defineExpose({
           <span class="file-name">{{ file.name }}</span>
           <span class="file-size">{{ formatSize(file.size) }}</span>
         </div>
-        <el-icon class="remove-btn" @click="removeAttachment(idx)"><Close /></el-icon>
+        <el-icon
+          class="remove-btn"
+          :tabindex="0"
+          role="button"
+          aria-label="移除附件"
+          @click="removeAttachment(idx)"
+          @keydown.enter="removeAttachment(idx)"
+          @keydown.space.prevent="removeAttachment(idx)"
+        ><Close /></el-icon>
       </div>
     </div>
 
@@ -360,7 +368,12 @@ defineExpose({
               v-for="tpl in templates"
               :key="tpl.id || tpl.name"
               class="template-item"
+              :tabindex="0"
+              role="button"
+              :aria-label="`选择模板: ${tpl.name || tpl.title}`"
               @click="selectTemplate(tpl)"
+              @keydown.enter="selectTemplate(tpl)"
+              @keydown.space.prevent="selectTemplate(tpl)"
             >
               <div class="tpl-row">
                 <span class="tpl-name">{{ tpl.name || tpl.title }}</span>

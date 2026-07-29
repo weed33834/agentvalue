@@ -166,22 +166,22 @@ async def lifespan(app: FastAPI):
         app.state.app_state.tool_registry = ToolRegistry(
             toolkit=app.state.app_state.toolkit, settings=settings
         )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("ToolRegistry 初始化失败: %s", e, exc_info=True)
     # review 修复: 让 graph 节点复用 app_state 的 rerank_provider / feature_flag_service,
     # 避免每次 retrieve_context 都 new 新实例(导致 60s LRU 缓存失效 + 双实例并存)
     try:
         from agent.graph import set_app_state_for_graph
         set_app_state_for_graph(app.state.app_state)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Graph app state 设置失败: %s", e, exc_info=True)
     # P1-1: OpenTelemetry 分布式追踪 (降级容错：未安装/未配置时跳过)
     try:
         from core.tracing import setup_tracing
         from core.database import engine as _db_engine
         setup_tracing(app, _db_engine)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("OpenTelemetry 追踪初始化失败: %s", e, exc_info=True)
     # 启动定时任务调度器（APScheduler, 降级容错：启动失败不影响应用）
     try:
         from core.scheduler import TaskScheduler, set_scheduler
@@ -189,16 +189,16 @@ async def lifespan(app: FastAPI):
         _task_scheduler = TaskScheduler()
         await _task_scheduler.start()
         set_scheduler(_task_scheduler)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("定时任务调度器启动失败: %s", e, exc_info=True)
     # 注册知识库自动同步定时任务（降级容错：注册失败不影响应用）
     try:
         from services.kb_sync_service import KbSyncService
 
         _kb_sync_service = KbSyncService()
         await _kb_sync_service._register_scheduler()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("知识库自动同步注册失败: %s", e, exc_info=True)
     # P0: 注册数据库自动备份定时任务（每天凌晨 2:00, 降级容错）
     try:
         from scripts.db_backup import schedule_backup
@@ -210,15 +210,15 @@ async def lifespan(app: FastAPI):
             # P0-4: 注册备份恢复验证任务（每周日凌晨 4:00, 避开备份时间）
             from scripts.db_backup import schedule_restore_test
             schedule_restore_test(_sched, day_of_week="sun", hour=4, minute=0)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("数据库备份任务注册失败: %s", e, exc_info=True)
     # 注册事件总线订阅者（webhook 事件 → 站内通知）
     try:
         from core.event_subscribers import register_event_subscribers
 
         register_event_subscribers()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("事件总线订阅者注册失败: %s", e, exc_info=True)
     # P0-4: 初始化 Redis 客户端供幂等中间件使用(降级容错：Redis 不可用时幂等中间件透传)
     try:
         if settings.redis_url:
@@ -234,8 +234,8 @@ async def lifespan(app: FastAPI):
             try:
                 from core.circuit_breaker import get_global_registry
                 get_global_registry().set_redis_client(app.state._redis_client)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("熔断器 Redis 模式切换失败: %s", e, exc_info=True)
     except Exception as e:
         logger.warning("Redis 连接失败,幂等中间件降级透传: %s", e)
         app.state._redis_client = None
@@ -247,8 +247,8 @@ async def lifespan(app: FastAPI):
             from core.event_subscribers import unregister_event_subscribers
 
             unregister_event_subscribers()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("事件总线订阅者注销失败: %s", e, exc_info=True)
         # 停止定时任务调度器
         try:
             from core.scheduler import get_scheduler, set_scheduler
@@ -257,26 +257,26 @@ async def lifespan(app: FastAPI):
             if _sched is not None:
                 await _sched.stop()
                 set_scheduler(None)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("定时任务调度器停止失败: %s", e, exc_info=True)
         # P1-1: 关闭 OpenTelemetry 追踪
         try:
             from core.tracing import shutdown_tracing
             shutdown_tracing()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("OpenTelemetry 追踪关闭失败: %s", e, exc_info=True)
         await app.state.app_state.close()
         # 关闭 Redis 连接
         try:
             _redis = getattr(app.state, "_redis_client", None)
             if _redis:
                 await _redis.aclose()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Redis 连接关闭失败: %s", e, exc_info=True)
         try:
             tracer.close()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Tracer 关闭失败: %s", e, exc_info=True)
         await close_db()
 
 

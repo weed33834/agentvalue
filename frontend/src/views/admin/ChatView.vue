@@ -122,6 +122,8 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onGlobalKeydown)
+  // 清理 SSE 流式连接，防止内存泄漏
+  chat.cleanup()
 })
 
 async function onSend(text, attachments) {
@@ -268,7 +270,12 @@ async function onForkMessage(message) {
           :key="s.id"
           class="session-item"
           :class="{ active: chat.currentSession && chat.currentSession.id === s.id }"
+          :tabindex="editingSessionId === s.id ? -1 : 0"
+          :aria-current="chat.currentSession && chat.currentSession.id === s.id ? 'true' : undefined"
+          role="button"
           @click="chat.selectSession(s.id)"
+          @keydown.enter="chat.selectSession(s.id)"
+          @keydown.space.prevent="chat.selectSession(s.id)"
         >
           <el-icon class="session-icon"><ChatDotRound /></el-icon>
           <div class="session-info">

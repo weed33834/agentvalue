@@ -37,6 +37,9 @@ services:
       - REDIS_URL=redis://redis:6379/0
     deploy:
       resources:
+        limits:
+          memory: 4G
+          cpus: '4.0'
         reservations:
           devices:
             # NVIDIA GPU 加速本地模型推理。
@@ -46,6 +49,11 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # PostgreSQL 生产数据库(替代 SQLite)
   postgres:
@@ -65,6 +73,16 @@ services:
       retries: 5
       start_period: 30s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # MinIO 对象存储(S3 兼容,用于原始附件:截图/语音/PDF)
   minio:
@@ -88,6 +106,16 @@ services:
       retries: 3
       start_period: 30s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Prometheus 指标采集(抓 backend /metrics,评估 alerts.yml 告警规则)
   prometheus:
@@ -104,6 +132,16 @@ services:
     ports:
       - "9090:9090"
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Grafana 可视化(provisioning 自动加载 Prometheus 数据源 + AgentValue-AI 看板)
   grafana:
@@ -125,6 +163,16 @@ services:
     ports:
       - "3000:3000"
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
 
   # P1: Alertmanager 告警通知(将 Prometheus 告警路由到飞书/钉钉/邮件)
   alertmanager:
@@ -143,6 +191,16 @@ services:
       - ALERT_WEBHOOK_URL=${ALERT_WEBHOOK_URL:-}
       - ALERT_EMAIL_TO=${ALERT_EMAIL_TO:-admin@agentvalue.ai}
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
 
   # P0-2: Loki 日志聚合(轻量级,与 Prometheus/Grafana 同生态)
   # Promtail 采集容器日志 → Loki 存储 → Grafana 查询
@@ -155,6 +213,16 @@ services:
     ports:
       - "3100:3100"
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # P0-2: Promtail 日志采集(读取容器 stdout/stderr → 发送到 Loki)
   promtail:
@@ -168,6 +236,16 @@ services:
     depends_on:
       - loki
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
 
   # P1-1: Jaeger 分布式追踪(接收 OTLP,存储 span,提供 UI 查询)
   # 后端通过 OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317 发送 trace
@@ -183,6 +261,16 @@ services:
       - "4317:4317"    # OTLP gRPC
       - "4318:4318"    # OTLP HTTP
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   agentvalue_pg_data:

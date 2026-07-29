@@ -92,6 +92,8 @@ class InMemoryTokenBlacklist:
 
     def __init__(self) -> None:
         self._store: dict[str, float] = {}
+        # user_id 级别的全局吊销时间戳,密码变更/重置时批量吊销该用户所有 Token
+        self._user_revocations: dict[str, float] = {}
         self._lock = asyncio.Lock()
 
     async def is_revoked(self, jti: str) -> bool:
@@ -117,6 +119,7 @@ class InMemoryTokenBlacklist:
         """清空黑名单(测试间状态清理用)"""
         async with self._lock:
             self._store.clear()
+            self._user_revocations.clear()
 
     async def close(self) -> None:
         await self.clear()
@@ -234,16 +237,57 @@ async def blacklist_all_user_tokens(user_id: str) -> int:
         user_id: 用户 ID
 
     Returns:
-        总是返回 1（标记成功），Redis 不可用时返回 0
+        标记成功返回 1，失败返回 0
     """
     try:
-        import time
-        key = f"agentvalue:user_revoke:{user_id}"
-        # 尝试 Redis
-        if hasattr(token_blacklist, '_redis') and token_blacklist._redis:
-            await token_blacklist._redis.setex(key, 86400, str(int(time.time())))  # 24h TTL
+        now = int(time.time())
+        # Redis 后端：RedisTokenBlacklist 使用 self._client
+        if hasattr(token_blacklist, '_client') and token_blacklist._client:
+            key = f"agentvalue:user_revoke:{user_id}"
+            await token_blacklist._client.setex(key, 86400, str(now))  # 24h TTL
             logger.info("已吊销用户 %s 的所有 Token (Redis)", user_id)
+            return 1
+        # 内存后端：InMemoryTokenBlacklist 使用 _user_revocations 记录吊销时间戳
+        if hasattr(token_blacklist, '_user_revocations'):
+            token_blacklist._user_revocations[user_id] = float(now)
+            logger.info("已吊销用户 %s 的所有 Token (内存)", user_id)
             return 1
     except Exception as e:
         logger.warning("吊销用户 Token 失败(降级): %s", e)
     return 0
+
+
+async def is_user_tokens_revoked(user_id: str, token_iat: int) -> bool:
+    """检查指定用户的 Token 是否已被全局吊销
+
+    在 JWT 验证时调用，比较 token 的签发时间（iat）与用户的吊销时间戳。
+    若 token 签发时间早于吊销时间戳，则该 token 已被吊销，应拒绝。
+
+    与 blacklist_all_user_tokens 配对使用：前者写入 user_id 级别的吊销时间戳，
+    本函数在 JWT 验证流程中读取该时间戳并判定当前 token 是否失效。
+
+    Args:
+        user_id: 用户 ID
+        token_iat: token 的签发时间戳（秒）
+
+    Returns:
+        True 表示该 token 已被全局吊销，应拒绝；
+        False 表示未吊销或查询失败（降级放行，与 is_revoked 的降级策略一致）
+    """
+    try:
+        # Redis 后端
+        if hasattr(token_blacklist, '_client') and token_blacklist._client:
+            key = f"agentvalue:user_revoke:{user_id}"
+            value = await token_blacklist._client.get(key)
+            if value is None:
+                return False
+            return token_iat < int(value)
+        # 内存后端
+        if hasattr(token_blacklist, '_user_revocations'):
+            revoke_ts = token_blacklist._user_revocations.get(user_id)
+            if revoke_ts is None:
+                return False
+            return token_iat < revoke_ts
+    except Exception as e:
+        logger.warning("查询用户 Token 吊销状态失败(降级放行): %s", e)
+    return False

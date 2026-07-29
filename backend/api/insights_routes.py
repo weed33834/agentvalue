@@ -133,6 +133,12 @@ _FORBIDDEN_KEYWORDS = [
     "END", "DETACH", "LOAD", "IMPORT", "EXPORT",
 ]
 
+# 允许查询的表白名单 (多租户安全: 防止 LLM 查询未授权的表/系统表)
+_ALLOWED_TABLES = {
+    "users", "evaluations", "dimension_scores", "evaluation_scores",
+    "review_cycles", "calibration_items", "calibration_sessions",
+}
+
 
 # ====== Pydantic 模型 ======
 
@@ -180,6 +186,44 @@ def _strip_string_literals(sql: str) -> str:
     return sql
 
 
+def _extract_table_names(sql: str) -> set[str]:
+    """从 SQL 的 FROM 和 JOIN 子句中提取表名 (统一小写)。
+
+    用于与 _ALLOWED_TABLES 白名单比对, 防止 LLM 生成查询未授权表
+    (如系统表 sqlite_master、其他业务表) 的 SQL。
+
+    支持以下形态:
+    - FROM table / FROM table alias / FROM table AS alias
+    - FROM table1, table2, ... (旧式逗号连接)
+    - [INNER|LEFT|RIGHT|CROSS|OUTER] JOIN table [AS] [alias]
+    - 子查询中的 FROM/JOIN (正则会递归命中内层表名)
+
+    Args:
+        sql: 已清理 (移除注释/分号) 的 SQL 字符串
+
+    Returns:
+        表名集合 (均为小写)
+    """
+    tables: set[str] = set()
+    # JOIN 子句: 匹配 * JOIN <table> ...
+    for m in re.finditer(r"\bJOIN\s+(\w+)", sql, re.IGNORECASE):
+        tables.add(m.group(1).lower())
+    # FROM 子句: 截取 FROM 之后到下一个 SQL 关键字之前的内容,
+    # 按逗号分割以支持多表, 取每段第一个 token 作为表名 (忽略别名/AS)
+    for m in re.finditer(
+        r"\bFROM\s+([\w\s,]+?)"
+        r"(?=\bWHERE\b|\bGROUP\b|\bORDER\b|\bLIMIT\b|\bUNION\b|\bJOIN\b|\bHAVING\b|$)",
+        sql,
+        re.IGNORECASE | re.DOTALL,
+    ):
+        for segment in m.group(1).split(","):
+            segment = segment.strip()
+            if segment:
+                token = segment.split()[0]
+                tables.add(token.lower())
+    return tables
+
+
 def _validate_sql(sql: str) -> str:
     """验证 SQL 安全性: 只允许 SELECT/WITH, 禁止 DDL/DML/多语句。
 
@@ -214,6 +258,19 @@ def _validate_sql(sql: str) -> str:
     for kw in _FORBIDDEN_KEYWORDS:
         if re.search(rf"\b{kw}\b", stripped):
             raise ValueError(f"SQL 中禁止使用关键词: {kw}")
+    # 校验表名白名单: 只允许查询已知的业务表 (防止访问系统表/未授权表)
+    table_names = _extract_table_names(sql)
+    if not table_names:
+        raise ValueError("SQL 未识别到任何表名 (FROM/JOIN)")
+    unknown_tables = table_names - _ALLOWED_TABLES
+    if unknown_tables:
+        raise ValueError(
+            f"SQL 查询了不在白名单中的表: {', '.join(sorted(unknown_tables))}"
+        )
+    # 校验 tenant_id 过滤条件存在 (多租户隔离, 不依赖 LLM 自觉)
+    # 在已移除字符串字面量的文本上检查, 防止字面量伪造 tenant_id 存在
+    if "TENANT_ID" not in stripped:
+        raise ValueError("SQL 必须包含 tenant_id 过滤条件 (多租户隔离)")
     # 如果没有 LIMIT, 自动添加
     if not re.search(r"\bLIMIT\b", upper):
         sql = f"{sql} LIMIT {MAX_RESULT_ROWS}"
@@ -504,13 +561,13 @@ async def query_insights(
             logger.error("LLM Provider 不可用: %s", e)
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"LLM 服务不可用: {e}",
+                detail="LLM 服务暂时不可用，请稍后重试",
             )
         except ValueError as e:
             logger.warning("LLM SQL 生成失败: %s", e)
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"SQL 生成失败: {e}",
+                detail="SQL 生成失败，请尝试重新提问",
             )
 
         # 步骤2: SQL 安全验证
@@ -520,7 +577,7 @@ async def query_insights(
             logger.warning("SQL 安全验证失败: %s | SQL: %s", e, raw_sql)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"SQL 安全验证失败: {e}",
+                detail="SQL 安全验证失败，请尝试重新提问",
             )
 
         # 步骤3: 执行 SQL (只读)
@@ -531,7 +588,7 @@ async def query_insights(
             logger.warning("SQL 执行失败: %s | SQL: %s", e, safe_sql)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"SQL 执行失败: {e}",
+                detail="SQL 执行失败，请检查查询语法或稍后重试",
             )
 
         # 步骤4: 构建列定义
@@ -563,7 +620,7 @@ async def query_insights(
         logger.error("洞察查询异常: %s", e, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"洞察查询异常: {e}",
+            detail="洞察查询服务异常，请稍后重试",
         )
 
 
@@ -892,7 +949,7 @@ async def export_insights(
         logger.error("导出失败: %s", e, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"导出失败: {e}",
+            detail="导出失败，请稍后重试",
         )
 
 

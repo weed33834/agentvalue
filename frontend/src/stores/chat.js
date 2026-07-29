@@ -51,6 +51,10 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   async function selectSession(id) {
+    // 切换会话前中止正在进行的流式请求，防止旧流更新到新会话
+    if (isStreaming.value) {
+      stopStreaming()
+    }
     try {
       loading.value = true
       currentSession.value = await chatApi.getSession(id)
@@ -105,6 +109,10 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   async function deleteSession(id) {
+    // 如果删除的是当前会话且有流式请求在进行，先中止
+    if (currentSession.value && currentSession.value.id === id && isStreaming.value) {
+      stopStreaming()
+    }
     try {
       await chatApi.deleteSession(id)
       sessions.value = sessions.value.filter((s) => s.id !== id)
@@ -568,6 +576,17 @@ export const useChatStore = defineStore('chat', () => {
     )
   })
 
+  // ============================================================
+  // 组件卸载时清理资源
+  // ============================================================
+
+  function cleanup() {
+    // 组件卸载时清理资源：中止流式请求
+    if (isStreaming.value) {
+      stopStreaming()
+    }
+  }
+
   return {
     sessions,
     currentSession,
@@ -586,6 +605,7 @@ export const useChatStore = defineStore('chat', () => {
     sendMessage,
     stopStreaming,
     stopGeneration,
+    cleanup,
     // P0 新增
     regenerate,
     editMessage,
