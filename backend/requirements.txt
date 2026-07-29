@@ -78,3 +78,5 @@ openpyxl>=3.1.0
 python-pptx>=0.6.23
 # SSO LDAP 认证 (可选, 未安装时 LDAP 登录返回错误提示)
 ldap3>=2.9
+# 定时任务调度器 (数据留存清理 / SLA 监控 / 公平性审计 / API Key 过期检查 / 通知清理)
+apscheduler>=3.10.0

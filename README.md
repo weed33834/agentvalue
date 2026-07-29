@@ -85,37 +85,46 @@ AgentValue-AI 把三件事拼到了一个平台里:
 
 | 页面 | 路由 | 对标 |
 |---|---|---|
+| 模型管理 | `/admin` | Dify 系统设置 |
 | 模型供应商 | `/admin/providers` | Dify model-providers |
+| LLM 配置 | `/admin/llm-config` | OpenAI Dashboard |
 | Prompt 调试台 | `/admin/playground` | Langfuse Playground |
+| Prompt 管理 | `/admin/prompts` | Langfuse Prompt Management |
 | 知识库管理 | `/admin/knowledge-base` | Dify Dataset |
 | 链路追踪 | `/admin/trace` | Langfuse Trace |
+| 调试追踪 | `/admin/debug` | Langfuse Debug |
 | Token 趋势 | `/admin/metrics` | Langfuse Usage |
+| 审计日志 | `/admin/audit-logs` | GDPR Audit Trail |
 | 功能开关 | `/admin/feature-flags` | LaunchDarkly |
 | 多 Agent 协作 | `/admin/multi-agent` | LangGraph Supervisor |
 | 工作流编排 | `/admin/workflows` | Dify Workflow |
 | 自定义工具 | `/admin/tools` | Dify Custom Tool |
-| 模型 Fallback | `/admin/model-fallback` | 阿里百炼 AI 网关 |
-| 会话分析 | `/admin/analytics-v2` | Langfuse Dashboard |
-| API 健康 | `/admin/api-health` | Langfuse 延迟监控 |
-| 数据集管理 | `/admin/datasets` | Langfuse 数据集 |
-| LLM 评测 | `/admin/llm-judge` | Langfuse LLM-as-a-Judge |
-| RAG 评测 | `/admin/rag-eval` | RagFlow 检索测试 |
-| 人工标注 | `/admin/annotations` | Langfuse HITL |
-| SSO 配置 | `/admin/sso` | Dify SSO |
-| 模板市场 | `/admin/agent-templates` | Coze 插件市场 |
-| NL2SQL | `/admin/nl2sql` | RagFlow NL2SQL |
-| 文档解析 | `/admin/doc-parsing` | RagFlow DeepDoc |
-| 配额管理 | `/admin/quota` | 阿里百炼 Token Plan |
-| 预算告警 | `/admin/budgets` | Langfuse 预算 |
-| 计费账单 | `/admin/billing` | 阿里百炼统一计量 |
-| Agent 版本 | `/admin/agent-versions` | Langfuse 版本 |
-| 多渠道发布 | `/admin/publish` | Coze 全域分发 |
-| 敏感词管理 | `/admin/sensitive-words` | 腾讯混元内容安全 |
-| 告警通知 | `/admin/alerts` | Grafana Alerting |
-| 工具配置 | `/admin/tool-config` | Dify 工具管理 |
-| 混合检索 | `/admin/search` | Dify 检索 |
+| 人才九宫格 | `/admin/talent-matrix` | 人才盘点 |
+| Skills 管理 | `/admin/skills` | Coze Skills |
+| Agent 预设 | `/admin/agent-presets` | Coze Bot |
+| AI 对话 | `/admin/chat` | ChatGPT / Claude.ai |
+| 模型 Fallback * | `/admin/model-fallback` | 阿里百炼 AI 网关 |
+| 会话分析 * | `/admin/analytics-v2` | Langfuse Dashboard |
+| API 健康 * | `/admin/api-health` | Langfuse 延迟监控 |
+| 数据集管理 * | `/admin/datasets` | Langfuse 数据集 |
+| LLM 评测 * | `/admin/llm-judge` | Langfuse LLM-as-a-Judge |
+| RAG 评测 * | `/admin/rag-eval` | RagFlow 检索测试 |
+| 人工标注 * | `/admin/annotations` | Langfuse HITL |
+| SSO 配置 * | `/admin/sso` | Dify SSO |
+| 模板市场 * | `/admin/agent-templates` | Coze 插件市场 |
+| NL2SQL * | `/admin/nl2sql` | RagFlow NL2SQL |
+| 文档解析 * | `/admin/doc-parsing` | RagFlow DeepDoc |
+| 配额管理 * | `/admin/quota` | 阿里百炼 Token Plan |
+| 预算告警 * | `/admin/budgets` | Langfuse 预算 |
+| 计费账单 * | `/admin/billing` | 阿里百炼统一计量 |
+| Agent 版本 * | `/admin/agent-versions` | Langfuse 版本 |
+| 多渠道发布 * | `/admin/publish` | Coze 全域分发 |
+| 敏感词管理 * | `/admin/sensitive-words` | 腾讯混元内容安全 |
+| 告警通知 * | `/admin/alerts` | Grafana Alerting |
+| 工具配置 * | `/admin/tool-config` | Dify 工具管理 |
+| 混合检索 * | `/admin/search` | Dify 检索 |
 
-> **注**: 标 `*` 的页面已有后端 API 与数据模型,前端管理 UI 逐步建设中。已建成前端页面的路由包括: providers / playground / knowledge-base / trace / metrics / feature-flags / multi-agent / workflows / tools / prompts / skills / chat / agent-presets。
+> **注**: 标 `*` 的页面已有后端 API 与数据模型,前端管理 UI 逐步建设中。其余路由均已建成前端页面。
 
 ---
 

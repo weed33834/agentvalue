@@ -1,10 +1,12 @@
-FROM python:3.14-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
-# 安装 chromadb 等依赖可能需要的系统库
+# 安装系统依赖:
+# - gcc/libsqlite3-dev/libpq-dev: chromadb/aiosqlite/asyncpg 编译需要
+# - tesseract-ocr: OCR 功能 (pytesseract Python 封装需要系统二进制, 默认未启用 OCR)
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc libsqlite3-dev libpq-dev \
+    && apt-get install -y --no-install-recommends gcc libsqlite3-dev libpq-dev tesseract-ocr \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .

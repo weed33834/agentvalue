@@ -726,7 +726,7 @@ Feature Flag、Multi-Agent 协作、Workflow 可视化编排,管理后台从"基
 - `core/config.py` 新增 `cors_origins` / `jwt_audience` / `jwt_issuer` /
   `jwt_leeway_seconds` / `vision_model` 配置项
 - `CORS` 中间件改用配置驱动(`CORS_ORIGINS` 逗号分隔),不再硬编码 `*`
-- `.github/workflows/security-scan.yml`:Trivy 文件系统扫描 + pip-audit 依赖漏洞
+- `.github/workflows/security.yml`:Trivy 文件系统扫描 + pip-audit 依赖漏洞
   + gitleaks secrets 扫描,SARIF 上传 GitHub Code Scanning(P0-5 漏洞硬阻断)
 - `backend/pyproject.toml`:ruff 配置(line=100 / py310 / E F W)
 - `backend/alembic/README`:alembic 初始化默认说明文档(迁移命令参考 `alembic --help`)
@@ -749,9 +749,9 @@ Feature Flag、Multi-Agent 协作、Workflow 可视化编排,管理后台从"基
 
 #### 安全扫描修复(全绿)
 
-- `security-scan.yml` Trivy action `@0.28.0`(已被删除的供应链攻击受污染标签)→ `@v0.36.0`
+- `security.yml` Trivy action `@0.28.0`(已被删除的供应链攻击受污染标签)→ `@v0.36.0`
   (修复后安全版本,正确 `v` 前缀)
-- `security-scan.yml` gitleaks 从 docker 调用改为直接安装二进制,修复 SARIF 写入
+- `security.yml` gitleaks 从 docker 调用改为直接安装二进制,修复 SARIF 写入
   `permission denied` + 规避 docker 镜像供应链风险
 - 新增 `.gitleaks.toml`:allowlist `test_business_flow.py` 中的测试夹具假密钥
   (指向 kuncode 测试端点的 demo key,非真实凭证)
@@ -1012,7 +1012,14 @@ MVP 首个正式版本:覆盖 Phase 1-5 + 补完轮 + Phase 6 关键项。
 
 ## 版本比较链接
 
-[Unreleased]: https://gitcode.com/badhope/agentvalue/compare/v1.1.0...HEAD
+[Unreleased]: https://gitcode.com/badhope/agentvalue/compare/v2.2.0...HEAD
+[v2.2.0]: https://gitcode.com/badhope/agentvalue/releases/tag/v2.2.0
+[v2.1.0]: https://gitcode.com/badhope/agentvalue/releases/tag/v2.1.0
+[v2.0.0]: https://gitcode.com/badhope/agentvalue/releases/tag/v2.0.0
+[v1.5.0]: https://gitcode.com/badhope/agentvalue/releases/tag/v1.5.0
+[v1.4.0]: https://gitcode.com/badhope/agentvalue/releases/tag/v1.4.0
+[v1.3.0]: https://gitcode.com/badhope/agentvalue/releases/tag/v1.3.0
+[v1.2.0]: https://gitcode.com/badhope/agentvalue/releases/tag/v1.2.0
 [v1.1.0]: https://gitcode.com/badhope/agentvalue/releases/tag/v1.1.0
 [v1.0.0]: https://gitcode.com/badhope/agentvalue/releases/tag/v1.0.0
 

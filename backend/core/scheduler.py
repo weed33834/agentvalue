@@ -14,8 +14,6 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Dict, List, Optional
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy import delete, select
 
 from core.database import AsyncSessionLocal
@@ -32,9 +30,14 @@ logger = logging.getLogger(__name__)
 
 # APScheduler 可选依赖标志，缺失时降级为空操作（不影响应用启动）
 try:
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+    from apscheduler.triggers.cron import CronTrigger
+
     _APSCHEDULER_AVAILABLE = True
 except ImportError:  # pragma: no cover
     _APSCHEDULER_AVAILABLE = False
+    AsyncIOScheduler = None  # type: ignore
+    CronTrigger = None  # type: ignore
 
 
 # 默认任务定义：task_id -> (name, description, cron, task_type, func_factory)
@@ -276,17 +279,27 @@ class TaskScheduler:
     """基于 APScheduler 的定时任务调度器"""
 
     def __init__(self):
+        if not _APSCHEDULER_AVAILABLE:
+            logger.warning("apscheduler 未安装，定时任务调度器不可用")
+            self.scheduler = None
+            self._tasks: Dict[str, Any] = {}
+            return
         self.scheduler = AsyncIOScheduler()
         self._tasks: Dict[str, Any] = {}  # task_id -> job
 
     async def start(self):
         """启动调度器"""
+        if self.scheduler is None:
+            logger.warning("apscheduler 不可用，跳过调度器启动")
+            return
         self.scheduler.start()
         await self._register_default_tasks()
         logger.info("TaskScheduler 已启动，注册 %s 个默认任务", len(self._tasks))
 
     async def stop(self):
         """停止调度器"""
+        if self.scheduler is None:
+            return
         self.scheduler.shutdown(wait=False)
         logger.info("TaskScheduler 已停止")
 
