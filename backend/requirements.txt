@@ -101,3 +101,9 @@ opentelemetry-instrumentation-fastapi>=0.45b0
 opentelemetry-instrumentation-sqlalchemy>=0.45b0
 opentelemetry-instrumentation-redis>=0.45b0
 opentelemetry-exporter-otlp>=1.24
+# P1-26: 高级 Prompt 注入检测 (AdvancedInjectionDetector 语义级 ML 检测)
+# transformers + torch 为可选依赖 (体积过大, 不纳入默认安装)
+# 未安装时 AdvancedInjectionDetector 自动降级为仅规则检测 (规则级 + 编码绕过 + 多语言)
+# 安装方式: pip install transformers torch
+# transformers>=4.30
+# torch>=2.0

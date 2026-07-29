@@ -205,6 +205,16 @@ class Settings(BaseSettings):
     # 护栏误报率统计开关
     guard_rails_metrics_enabled: bool = True
 
+    # ===== P1-26: 高级 Prompt 注入检测 (可选增强, 向后兼容) =====
+    # 启用 AdvancedInjectionDetector (语义级 ML + 规则级 + 编码绕过 + 多语言)
+    # 关闭时仅使用基础 InputGuard 正则, 完全向后兼容
+    injection_detection_enabled: bool = True
+    # 语义级注入概率判定阈值 (0-1), ML 模型分数 >= 阈值视为注入
+    injection_detection_threshold: float = 0.8
+    # ML 模型名 (deepset/deberta-v3-base-injection)
+    # 需安装可选依赖 transformers + torch, 未安装时自动降级为仅规则检测
+    injection_model_name: str = "deepset/deberta-v3-base-injection"
+
     # CORS 允许的源: 默认仅本地前端开发端口
     # 生产部署需通过环境变量 CORS_ORIGINS 配置为前端实际域名(逗号分隔)
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"

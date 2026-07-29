@@ -4,6 +4,7 @@ import { resolve } from 'path'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -17,6 +18,82 @@ export default defineConfig({
     }),
     Components({
       resolvers: [ElementPlusResolver()],
+    }),
+    // P1-45: PWA 支持 — Service Worker 自动注册 + 离线缓存 + 可安装
+    // vite-plugin-pwa 基于 Workbox,构建时生成 sw.js + manifest.webmanifest
+    // 开发模式(dev)不注入 SW(避免热更新冲突),生产模式(build)自动注入
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.svg', 'robots.txt'],
+      injectRegister: false,
+      manifest: {
+        name: 'AgentValue-AI',
+        short_name: 'AgentValue',
+        description: 'AI 驱动的员工价值量化与成长反馈系统',
+        theme_color: '#2563eb',
+        background_color: '#ffffff',
+        display: 'standalone',
+        orientation: 'portrait-primary',
+        scope: '/',
+        start_url: '/',
+        lang: 'zh-CN',
+        icons: [
+          {
+            src: 'pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable',
+          },
+        ],
+      },
+      workbox: {
+        // 预缓存应用 shell(index.html + CSS/JS chunks)
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // 静态资源缓存策略: 7天过期,最多 100 个条目
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        runtimeCaching: [
+          {
+            // API 请求: NetworkFirst(优先网络,离线降级到缓存)
+            urlPattern: /^https?:\/\/.*\/api\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 5, // 5 分钟
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          {
+            // 静态资源(字体/图片): CacheFirst(优先缓存,减少请求)
+            urlPattern: /\.(?:woff2?|png|jpg|jpeg|svg|gif)$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'asset-cache',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 天
+              },
+            },
+          },
+        ],
+      },
+      devOptions: {
+        enabled: false,
+      },
     }),
   ],
   resolve: {

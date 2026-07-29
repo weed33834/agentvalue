@@ -61,3 +61,26 @@ app.use(createPinia())
 app.use(router)
 
 app.mount('#app')
+
+// P1-45: PWA Service Worker 注册（仅生产模式,优雅降级）
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  navigator.serviceWorker
+    .register('/sw.js', { scope: '/' })
+    .then((reg) => {
+      // 监听更新提示用户刷新
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
+              // 新版 SW 已激活,提示用户刷新(可对接 ElNotification)
+              console.info('[PWA] 新版本已就绪,请刷新页面以更新')
+            }
+          })
+        }
+      })
+    })
+    .catch((err) => {
+      console.warn('[PWA] Service Worker 注册失败:', err)
+    })
+}
