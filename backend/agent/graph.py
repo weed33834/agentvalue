@@ -373,12 +373,14 @@ async def _hybrid_kb_search(query: str, top_k: int = 3) -> list:
             except Exception:
                 logger.debug("HybridSearchService 不可用，降级为纯向量检索")
 
-    # 降级：纯向量检索
-    from agent.tools import AgentToolkit
-
-    toolkit = AgentToolkit(_app_state_ref) if _app_state_ref else None
-    if toolkit:
-        return await toolkit.query_company_kb(query=query, top_k=top_k)
+    # 降级：纯向量检索 — 复用 AppState 已初始化的 toolkit (memory + kb)
+    if _app_state_ref is not None:
+        try:
+            fallback_toolkit = getattr(_app_state_ref, "toolkit", None)
+            if fallback_toolkit is not None:
+                return await fallback_toolkit.query_company_kb(query=query, top_k=top_k)
+        except Exception:
+            logger.debug("AppState toolkit 降级检索失败")
     return []
 
 

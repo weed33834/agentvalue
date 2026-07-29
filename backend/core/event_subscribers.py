@@ -70,10 +70,10 @@ async def _create_notification(
         user_id = await _get_admin_user_id()
 
     try:
-        from core.database import async_session_factory
+        from core.database import AsyncSessionLocal
         from services.notification_service import NotificationService
 
-        async with async_session_factory() as session:
+        async with AsyncSessionLocal() as session:
             service = NotificationService(session)
             await service.create_notification(
                 user_id=user_id,

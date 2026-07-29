@@ -41,6 +41,19 @@ router = APIRouter(
 # ============================================================
 
 
+class UserCreate(BaseModel):
+    """创建用户请求"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    user_id: str = Field(min_length=2, max_length=64)
+    name: str = Field(min_length=1, max_length=128)
+    email: Optional[str] = Field(default=None, max_length=256)
+    role: Optional[str] = Field(default="employee")
+    department: Optional[str] = Field(default=None, max_length=128)
+    manager_id: Optional[str] = Field(default=None, max_length=64)
+
+
 class UserUpdate(BaseModel):
     """更新用户信息请求"""
 
@@ -132,6 +145,68 @@ async def list_users(
         "page": result["page"],
         "page_size": result["page_size"],
     }
+
+
+@router.post("", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
+async def create_user(
+    payload: UserCreate,
+    request: Request,
+    eval_service: EvaluationService = Depends(get_evaluation_service),
+    audit_service: AuditService = Depends(get_audit_service),
+    current_user_id: str = Depends(get_current_user_id),
+):
+    """创建单个用户
+
+    user_id + name 必填，其余可选。同租户内 user_id 已存在则返回 409。
+    """
+    tenant_id = _get_tenant_id()
+    existing = await eval_service.get_user(payload.user_id)
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"用户 {payload.user_id} 已存在",
+        )
+    user = await eval_service.create_user({**payload.model_dump(), "tenant_id": tenant_id})
+    await audit_service.log(
+        actor_id=current_user_id,
+        action="create_user",
+        employee_id=payload.user_id,
+        details=payload.model_dump(),
+        ip_address=request.headers.get("x-forwarded-for"),
+    )
+    await eval_service.session.commit()
+    await eval_service.session.refresh(user)
+    return _user_to_dict(user)
+
+
+@router.post("/{user_id}/enable", response_model=Dict[str, Any])
+async def enable_user(
+    user_id: str,
+    request: Request,
+    eval_service: EvaluationService = Depends(get_evaluation_service),
+    audit_service: AuditService = Depends(get_audit_service),
+    current_user_id: str = Depends(get_current_user_id),
+):
+    """启用用户 (恢复 role 为 employee, 或指定 role)
+
+    与 disable 互补：disable 设 role=disabled，enable 恢复为 employee。
+    """
+    tenant_id = _get_tenant_id()
+    success = await eval_service.enable_user(tenant_id, user_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"用户 {user_id} 不存在",
+        )
+    await audit_service.log(
+        actor_id=current_user_id,
+        action="enable_user",
+        employee_id=user_id,
+        details={"user_id": user_id},
+        ip_address=request.headers.get("x-forwarded-for"),
+    )
+    await eval_service.session.commit()
+    return {"enabled": True, "user_id": user_id}
 
 
 @router.get("/{user_id}", response_model=Dict[str, Any])

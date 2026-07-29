@@ -734,6 +734,27 @@ class EvaluationService:
         await self.session.flush()
         return True
 
+    async def enable_user(self, tenant_id: str, user_id: str) -> bool:
+        """启用用户（恢复 role 为 employee）
+
+        与 disable_user 互补。不 commit（由调用方控制事务）。
+        用户不存在返回 False。
+        """
+        result = await self.session.execute(
+            select(User).where(
+                User.user_id == user_id,
+                User.tenant_id == tenant_id,
+            )
+        )
+        user = result.scalar_one_or_none()
+        if user is None:
+            return False
+        # 仅 disabled 状态才需要恢复，避免覆盖已有角色
+        if user.role == "disabled":
+            user.role = "employee"
+            await self.session.flush()
+        return True
+
     async def delete_user(self, tenant_id: str, user_id: str) -> bool:
         """删除用户（hard delete）
 

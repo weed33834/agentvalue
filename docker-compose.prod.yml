@@ -126,6 +126,24 @@ services:
       - "3000:3000"
     restart: unless-stopped
 
+  # P1: Alertmanager 告警通知(将 Prometheus 告警路由到飞书/钉钉/邮件)
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: agentvalue-alertmanager
+    depends_on:
+      - prometheus
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    ports:
+      - "9093:9093"
+    environment:
+      - ALERT_WEBHOOK_URL=${ALERT_WEBHOOK_URL:-}
+      - ALERT_EMAIL_TO=${ALERT_EMAIL_TO:-admin@agentvalue.ai}
+    restart: unless-stopped
+
 volumes:
   agentvalue_pg_data:
   agentvalue_minio_data:

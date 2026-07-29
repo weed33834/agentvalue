@@ -775,8 +775,11 @@ export const userAdminApi = {
   create: (data) => api.post('/admin/users', data),
   update: (userId, data) => api.put(`/admin/users/${encodeURIComponent(userId)}`, data),
   delete: (userId) => api.delete(`/admin/users/${encodeURIComponent(userId)}`),
-  toggleDisable: (userId, disabled) => api.patch(`/admin/users/${encodeURIComponent(userId)}/toggle`, { disabled }),
-  batchImport: (data) => api.post('/admin/users/batch-import', data),
+  toggleDisable: (userId, disabled) =>
+    disabled
+      ? api.post(`/admin/users/${encodeURIComponent(userId)}/disable`)
+      : api.post(`/admin/users/${encodeURIComponent(userId)}/enable`),
+  batchImport: (data) => api.post('/admin/users/batch', data),
 }
 
 // ============================================================
@@ -794,6 +797,6 @@ export const exportApi = {
 // ============================================================
 export const insightsApi = {
   query: (data) => api.post('/insights/query', data),
-  dashboard: (params) => api.get('/insights/dashboard', { params }),
-  export: (params) => api.get('/insights/export', { params }),
+  dashboard: (period, params) => api.get(`/insights/dashboard/${encodeURIComponent(period)}`, { params }),
+  export: (data) => api.post('/insights/export', data),
 }

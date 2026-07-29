@@ -17,6 +17,7 @@ from models.models import (
     Feedback,
     Memory,
     Notification,
+    PromptTemplate,
     RawInput,
     ScheduledTask,
     ScheduledTaskRun,

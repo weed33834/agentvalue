@@ -1,9 +1,12 @@
 <template>
-  <router-view />
+  <ErrorBoundary>
+    <router-view />
+  </ErrorBoundary>
 </template>
 
 <script setup>
-// 顶层布局由路由视图承载
+import ErrorBoundary from '@/components/ErrorBoundary.vue'
+// 顶层布局由路由视图承载, ErrorBoundary 防止组件异常导致白屏
 </script>
 
 <style>

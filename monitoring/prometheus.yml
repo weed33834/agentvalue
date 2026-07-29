@@ -12,10 +12,8 @@ rule_files:
 
 alerting:
   alertmanagers:
-    # Alertmanager 未在生产 compose 内置。启用告警通知(邮件/钉钉/飞书)时
-    # 另行部署 Alertmanager 并取消下方注释,把告警从 Prometheus 推到通知渠道。
-    # - static_configs:
-    #     - targets: ['alertmanager:9093']
+    - static_configs:
+        - targets: ['alertmanager:9093']
 
 scrape_configs:
   - job_name: agentvalue-backend

@@ -2,6 +2,7 @@
 FastAPI 应用入口
 """
 
+import logging
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -15,6 +16,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from core.logging_config import setup_logging
 
 setup_logging()
+
+logger = logging.getLogger(__name__)
 
 from api.admin.prompts import router as admin_prompts_router  # noqa: E402
 from api.admin.tools import router as admin_tools_router  # noqa: E402

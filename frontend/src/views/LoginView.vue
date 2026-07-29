@@ -114,7 +114,7 @@ async function handleJwtLogin() {
   }
   loading.value = true
   try {
-    const res = await authApi.login(jwtForm.email, jwtForm.password)
+    const res = await authApi.login({ email: jwtForm.email, password: jwtForm.password })
     auth.loginWithToken(res.access_token, {
       user_id: res.user_id,
       name: res.name,

@@ -49,12 +49,16 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest pytest-asyncio pytest-cov
-      - name: Run tests
+      - name: Run tests with coverage
         working-directory: backend
         env:
           AUTH_DEMO_MODE: "true"
           JWT_SECRET_KEY: ci-test-secret-key-not-for-production
-        run: python -m pytest -x -q --tb=short
+        run: |
+          python -m pytest -x -q --tb=short \
+            --cov=. --cov-report=term-missing --cov-report=xml \
+            --cov-fail-under=50 \
+            --ignore=tests/perf
 
   # ────────────────── 前端 ──────────────────
   frontend-lint:

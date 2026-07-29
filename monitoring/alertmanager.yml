@@ -1,0 +1,69 @@
+# P1: Alertmanager 告警通知配置
+#
+# 将 Prometheus 告警路由到通知通道:
+# - critical: 飞书/钉钉 Webhook + 邮件
+# - warning: 邮件
+#
+# 使用方式:
+#   1. 将此文件挂载到 Alertmanager 容器
+#   2. 在 prometheus.yml 中添加:
+#      alerting:
+#        alertmanagers:
+#          - static_configs:
+#              - targets: ['alertmanager:9093']
+#   3. 配置环境变量 ALERT_WEBHOOK_URL / ALERT_EMAIL_TO
+
+global:
+  resolve_timeout: 5m
+  # SMTP 配置(通过环境变量覆盖)
+  smtp_smarthost: "${SMTP_HOST:localhost:587}"
+  smtp_from: "${SMTP_FROM:alertmanager@agentvalue.ai}"
+  smtp_auth_username: "${SMTP_USER:}"
+  smtp_auth_password: "${SMTP_PASS:}"
+
+# 告警路由规则
+route:
+  group_by: ["alertname", "service", "severity"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: "default"
+  routes:
+    # critical 告警: 即时通知 Webhook + 邮件
+    - match:
+        severity: critical
+      receiver: "critical-webhook"
+      group_wait: 10s
+      repeat_interval: 1h
+    # warning 告警: 邮件通知
+    - match:
+        severity: warning
+      receiver: "warning-email"
+
+receivers:
+  - name: "default"
+    email_configs:
+      - to: "${ALERT_EMAIL_TO:admin@agentvalue.ai}"
+
+  - name: "critical-webhook"
+    webhook_configs:
+      # 飞书/钉钉 Webhook(通过环境变量配置)
+      - url: "${ALERT_WEBHOOK_URL:http://localhost:9093}"
+        send_resolved: true
+    email_configs:
+      - to: "${ALERT_EMAIL_TO:admin@agentvalue.ai}"
+        send_resolved: true
+
+  - name: "warning-email"
+    email_configs:
+      - to: "${ALERT_EMAIL_TO:admin@agentvalue.ai}"
+        send_resolved: true
+
+# 告警抑制规则(避免告警风暴)
+inhibit_rules:
+  # 评估失败率高时抑制 P99 延迟告警(失败率说明已有问题)
+  - source_match:
+      alertname: EmpvalueEvaluationFailureRateHigh
+    target_match:
+      alertname: EmpvalueEvaluationP99LatencyHigh
+    equal: ["service"]
