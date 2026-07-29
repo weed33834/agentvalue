@@ -1,4 +1,4 @@
-# 架构决断记录 (Architecture Decisions)
+# AgentValue-AI 架构决断记录 (Architecture Decisions)
 
 本文件记录 AgentValue-AI 在演进过程中做出的有意识取舍与决断,供后续维护者理解"为什么是这样"以及"何时该重新评估"。每条决断包含:背景、决策、理由、当前状态、重新评估触发条件。
 

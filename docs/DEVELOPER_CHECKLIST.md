@@ -1,4 +1,4 @@
-# Developer Checklist
+# AgentValue-AI Developer Checklist
 
 This checklist must be reviewed before every commit and pull request.
 It ensures consistent quality and prevents common issues.

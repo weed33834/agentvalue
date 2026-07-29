@@ -7,9 +7,9 @@
 
 ### 第三轮 P1 级缺失功能补全
 
-基于对标 12 个平台的深度调研,补齐剩余 5 个 P1 级缺失功能模块,新增 18 个文件、8 张数据库表、55+ API 端点。修复 SQLAlchemy async MissingGreenlet 问题。
+基于对标 12 个平台的深度调研,补齐剩余 6 个 P1 级缺失功能模块,新增 18 个文件、8 张数据库表、55+ API 端点。修复 SQLAlchemy async MissingGreenlet 问题。
 
-#### 新增功能 (5 项)
+#### 新增功能 (6 项)
 
 - **GraphRAG 知识图谱** — LLM 驱动的实体/关系抽取, BFS 图遍历增强检索, 图谱可视化 (对标 RagFlow GraphRAG+RAPTOR)
 - **灰度发布/蓝绿部署** — canary/blue_green/rolling 三种策略, 流量百分比控制, 一键回滚 (对标 Bisheng/Langfuse canary)

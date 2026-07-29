@@ -1,4 +1,4 @@
-# 架构实现说明（Architecture Notes）
+# AgentValue-AI 架构实现说明（Architecture Notes）
 
 这里记录的是 AgentValue-AI 落地过程中，实际实现相对于原始设计计划的几处**偏差与演进决策**。写出来的目的很实在：让设计和代码保持可追溯的一致，免得后来人按设计字面描述去找根本不存在的代码、白白踩坑。
 

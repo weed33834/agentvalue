@@ -1,4 +1,7 @@
-.PHONY: help install dev test lint format build docker docker-prod clean
+.PHONY: help install install-backend install-frontend dev dev-backend dev-frontend \
+       test test-backend test-frontend lint lint-backend lint-frontend format \
+       build build-frontend docker docker-prod docker-down \
+       migrate migrate-create seed clean
 
 PYTHON ?= python3
 NODE ?= npm
@@ -32,7 +35,7 @@ dev-frontend: ## 启动前端开发服务器
 test: test-backend test-frontend ## 运行所有测试
 
 test-backend: ## 运行后端测试
-	cd backend && DEMO_MODE=true $(PYTHON) -m pytest -x -q
+	cd backend && AUTH_DEMO_MODE=true $(PYTHON) -m pytest -x -q
 
 test-frontend: ## 运行前端测试
 	cd frontend && $(NODE) run test

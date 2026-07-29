@@ -1,4 +1,4 @@
-# P2 深水区设计 — Provider CRUD / Prompt Playground / 流式响应
+# AgentValue-AI P2 深水区设计 — Provider CRUD / Prompt Playground / 流式响应
 
 > 本文档基于 P0/P1 已落地的版本,继续向 Dify / Coze / Langfuse 完整功能深度对标。
 > 所有设计决策均来自联网调研(2025-2026),引用见第十一节。

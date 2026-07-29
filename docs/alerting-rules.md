@@ -1,4 +1,4 @@
-# 告警规则手册
+# AgentValue-AI 告警规则手册
 
 AgentValue-AI 生产环境的三条核心告警,规则文件 [monitoring/alerts.yml](../monitoring/alerts.yml),由 Prometheus 按 group interval(30s) 评估，持续 5m(for) 满足条件才触发(避免瞬时抖动误报)。
 
