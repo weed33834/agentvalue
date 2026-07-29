@@ -499,7 +499,7 @@ def do_replace(
 
 
 def strip_filename(filename: str, fence: Tuple[str, str]) -> Optional[str]:
-    """从可能带包装的行中提取文件名。
+    r"""从可能带包装的行中提取文件名。
 
     处理各种 LLM 输出风格:
     - ````python word_count.py```` （围栏 + 文件名）
