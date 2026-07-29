@@ -429,7 +429,9 @@ router.beforeEach(async (to, from, next) => {
       return
     }
   }
-  if (to.path === '/login') {
+  // 登录页（桌面 / 移动）均为公开页：未登录也放行，否则移动端会在
+  // /login ↔ /m/login 之间死循环（设备感知把 /login 跳 /m/login，而未登录又把它弹回 /login）
+  if (to.path === '/login' || to.path === '/m/login') {
     next()
     return
   }
