@@ -7,7 +7,7 @@
 多租户隔离: 所有模型包含 tenant_id 字段, 查询时按 tenant_id 过滤。
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import (
@@ -23,12 +23,8 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.database import Base
+from models.constants import now_utc as _now_utc
 from models.models import DEFAULT_TENANT_ID
-
-
-def _now_utc() -> datetime:
-    """当前 UTC 时间"""
-    return datetime.now(timezone.utc)
 
 
 class EvaluationTask(Base):

@@ -7,6 +7,7 @@ core/multimodal/extractors.py 补充测试
 import base64
 import sys
 import types
+from unittest.mock import patch
 
 import pytest
 
@@ -162,7 +163,9 @@ async def test_table_extractor_xlsx_without_openpyxl_degrades():
     """openpyxl 未安装时应降级提示"""
     ext = TableExtractor()
     att = {"filename": "data.xlsx", "data": base64.b64encode(b"fakexlsx").decode()}
-    result = await ext.extract(att)
+    # 模拟 openpyxl 未安装：让 import 触发 ImportError
+    with patch.dict(sys.modules, {"openpyxl": None}):
+        result = await ext.extract(att)
     assert "openpyxl" in result
 
 

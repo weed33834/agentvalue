@@ -9,7 +9,7 @@
 在 API 响应中必须脱敏, 由 SSOService._mask_config 统一处理。
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import (
@@ -25,11 +25,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.database import Base
-
-
-def _now_utc() -> datetime:
-    """当前 UTC 时间"""
-    return datetime.now(timezone.utc)
+from models.constants import now_utc as _now_utc
 
 
 class SSOConfig(Base):

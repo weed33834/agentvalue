@@ -5,14 +5,40 @@ LangGraph 评估工作流
 import asyncio
 import json
 import logging
+import sys
 import time
 import uuid
 from contextlib import nullcontext
 from typing import Any, Dict, Literal, Optional
 
+from langchain_core.runnables.config import RunnableConfig, var_child_runnable_config
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 from pydantic import ValidationError
+
+
+def _ensure_interrupt_context(config: Optional[RunnableConfig]):
+    """Python 3.10 兼容层：手动设置 contextvar 使 interrupt() 可用。
+
+    LangGraph 1.2+ 的 interrupt() 内部调用 get_config()，后者依赖
+    var_child_runnable_config contextvar。在 Python 3.11+ 中，LangGraph
+    通过 asyncio.create_task(context=...) 自动设置该 contextvar；但
+    Python 3.10 的 asyncio.create_task 不支持 context 参数，导致
+    contextvar 从未被设置，interrupt() 抛出
+    'Called get_config outside of a runnable context'。
+
+    本函数在 Python < 3.11 上手动设置 contextvar 作为兼容层，
+    Python 3.11+ 上为空操作（LangGraph 已自动处理）。
+    """
+    if sys.version_info < (3, 11) and config is not None:
+        return var_child_runnable_config.set(config)
+    return None
+
+
+def _reset_interrupt_context(token):
+    """恢复 contextvar（与 _ensure_interrupt_context 配对）。"""
+    if token is not None:
+        var_child_runnable_config.reset(token)
 
 from core.guards import InputGuard, OutputGuard
 
@@ -714,7 +740,9 @@ async def _hr_audit_marker(state: EvaluationState) -> EvaluationState:
     return {**state, "status": EvaluationStatus.HR_AUDIT}
 
 
-async def _manager_review_interrupt(state: EvaluationState) -> EvaluationState:
+async def _manager_review_interrupt(
+    state: EvaluationState, config: RunnableConfig
+) -> EvaluationState:
     """主管审批中断点(interrupt 版):使用 LangGraph 原生 interrupt 暂停执行。
 
     interrupt() 会抛出 GraphInterrupt,图状态被 checkpointer 持久化。
@@ -725,20 +753,29 @@ async def _manager_review_interrupt(state: EvaluationState) -> EvaluationState:
     且 resume 后节点重入可能丢数据/状态不一致。现在 interrupt() 之前完全不修改 state,
     只读取快照构建审批 payload;interrupt() 返回后对 parsed_evaluation 的【副本】操作,
     状态值统一使用 EvaluationStatus 枚举(而非裸字符串)。
+
+    Python 3.10 兼容: 手动设置 var_child_runnable_config contextvar,
+    使 interrupt() 内部的 get_config() 能正常获取配置。
     """
-    # interrupt() 之前只读取,不修改 state(避免污染 checkpoint)
-    parsed_snapshot = state.get("parsed_evaluation") or {}
-    # 暂停并等待人工审批,传递评估摘要供审批人查看
-    decision = interrupt(
-        {
-            "node": "manager_review",
-            "evaluation_id": parsed_snapshot.get("evaluation_id"),
-            "employee_id": state["employee_id"],
-            "period": state["period"],
-            "overall_score": parsed_snapshot.get("overall_score"),
-            "message": "等待主管审批",
-        }
-    )
+    # Python 3.10 兼容层：设置 contextvar 使 interrupt() 可用
+    _token = _ensure_interrupt_context(config)
+    try:
+        # interrupt() 之前只读取,不修改 state(避免污染 checkpoint)
+        parsed_snapshot = state.get("parsed_evaluation") or {}
+        # 暂停并等待人工审批,传递评估摘要供审批人查看
+        decision = interrupt(
+            {
+                "node": "manager_review",
+                "evaluation_id": parsed_snapshot.get("evaluation_id"),
+                "employee_id": state["employee_id"],
+                "period": state["period"],
+                "overall_score": parsed_snapshot.get("overall_score"),
+                "message": "等待主管审批",
+            }
+        )
+    finally:
+        _reset_interrupt_context(_token)
+
     # 恢复后:对副本操作,不就地修改上游 state 中的 dict
     parsed = dict(parsed_snapshot)
     action = (decision or {}).get("action", "approve")
@@ -762,23 +799,31 @@ async def _manager_review_interrupt(state: EvaluationState) -> EvaluationState:
         return {**state, "status": "error", "error": f"未知审批动作: {action}"}
 
 
-async def _hr_audit_interrupt(state: EvaluationState) -> EvaluationState:
+async def _hr_audit_interrupt(
+    state: EvaluationState, config: RunnableConfig
+) -> EvaluationState:
     """HR 复核中断点(interrupt 版)。
 
     Bug 2 修复: 同 _manager_review_interrupt,interrupt() 前不修改 state,
     返回后对副本操作;状态值统一使用 EvaluationStatus 枚举(而非裸字符串)。
+
+    Python 3.10 兼容: 手动设置 var_child_runnable_config contextvar。
     """
-    parsed_snapshot = state.get("parsed_evaluation") or {}
-    decision = interrupt(
-        {
-            "node": "hr_audit",
-            "evaluation_id": parsed_snapshot.get("evaluation_id"),
-            "employee_id": state["employee_id"],
-            "period": state["period"],
-            "overall_score": parsed_snapshot.get("overall_score"),
-            "message": "等待 HR 复核",
-        }
-    )
+    _token = _ensure_interrupt_context(config)
+    try:
+        parsed_snapshot = state.get("parsed_evaluation") or {}
+        decision = interrupt(
+            {
+                "node": "hr_audit",
+                "evaluation_id": parsed_snapshot.get("evaluation_id"),
+                "employee_id": state["employee_id"],
+                "period": state["period"],
+                "overall_score": parsed_snapshot.get("overall_score"),
+                "message": "等待 HR 复核",
+            }
+        )
+    finally:
+        _reset_interrupt_context(_token)
     parsed = dict(parsed_snapshot)
     action = (decision or {}).get("action", "approve")
     comment = (decision or {}).get("comment", "")

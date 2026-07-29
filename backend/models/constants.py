@@ -3,6 +3,13 @@
 所有模块应引用此处的常量，避免字符串散落导致不一致。
 """
 
+from datetime import datetime, timezone
+
+
+def now_utc() -> datetime:
+    """当前 UTC 时间（公共工具函数，避免各 model 重复定义）"""
+    return datetime.now(timezone.utc)
+
 
 class EvaluationStatus:
     """评估审批状态"""

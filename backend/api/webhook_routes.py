@@ -27,6 +27,8 @@ from fastapi.responses import JSONResponse
 
 from core.database import get_db_session
 from core.tenant_context import get_current_tenant
+from integrations.settings import get_integrations_settings
+from models.models import WebhookEvent
 
 # 保存后台任务引用，防止被 GC 回收
 _background_tasks: set = set()
@@ -38,8 +40,7 @@ def _spawn_task(coro):
     _background_tasks.add(task)
     task.add_done_callback(_background_tasks.discard)
     return task
-from integrations.settings import get_integrations_settings
-from models.models import WebhookEvent
+
 
 logger = logging.getLogger(__name__)
 
@@ -194,7 +195,7 @@ async def _handle_feishu_event(
             chat_id,
             sender_id,
         )
-        # TODO: 解析消息内容,转发给 AI 处理(agent.session_processor)
+        # 业务处理暂未实现(依赖 FeishuIMAdapter 真实接入),事件已落库待人工处理
     elif event_type == "card.action.trigger":
         action = event.get("action", {})
         action_value = action.get("value", {})
@@ -204,7 +205,7 @@ async def _handle_feishu_event(
             action_value,
             operator.get("open_id", ""),
         )
-        # TODO: 根据 action_value 分发到对应业务处理器
+        # 业务处理暂未实现(依赖飞书卡片回调业务逻辑),事件已落库待人工处理
     else:
         logger.debug("飞书未处理的事件类型: %s", event_type)
 
@@ -232,7 +233,7 @@ async def _handle_gitlab_event(
             user,
             len(commits),
         )
-        # TODO: 更新代码贡献统计(按 author 映射到 employee_id)
+        # 业务处理暂未实现(依赖 GitLabCodeRepoAdapter 真实接入),事件已落库待人工处理
     elif event_type == "Merge Request Hook":
         mr = payload.get("object_attributes", {})
         action = mr.get("action", "")
@@ -241,7 +242,7 @@ async def _handle_gitlab_event(
         logger.info(
             "GitLab MR: title=%s action=%s state=%s", title, action, state
         )
-        # TODO: 提取 MR 状态变化,触发评估关联
+        # 业务处理暂未实现(MR 状态联动评估待接入),事件已落库待人工处理
     elif event_type == "Issue Hook":
         issue = payload.get("object_attributes", {})
         action = issue.get("action", "")
@@ -249,7 +250,7 @@ async def _handle_gitlab_event(
         logger.info(
             "GitLab Issue: title=%s action=%s", title, action
         )
-        # TODO: 提取 issue 事件
+        # 业务处理暂未实现(Issue 事件持久化待接入),事件已落库待人工处理
     else:
         logger.debug("GitLab 未处理的事件类型: %s", event_type)
 

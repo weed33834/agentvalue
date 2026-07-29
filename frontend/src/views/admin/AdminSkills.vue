@@ -761,23 +761,31 @@ function openCreateDialog() {
   editDialogVisible.value = true
 }
 
-function openEditDialog(skill) {
+async function openEditDialog(skill) {
   editingSkill.value = skill
-  skillForm.name = skill.name || ''
-  skillForm.display_name = skill.display_name || ''
-  skillForm.description = skill.description || ''
-  skillForm.category = skill.category || 'general'
-  skillForm.version = skill.version || '1.0'
-  skillForm.system_prompt = skill.system_prompt || ''
-  skillForm.model_tier = skill.model_tier || 'L1'
-  skillForm.temperature = skill.temperature ?? 70
-  skillForm.is_public = !!skill.is_public
-  skillForm.is_active = skill.is_active !== false
-  skillForm.tags = [...(skill.tags || [])]
-  skillForm.required_tools = [...(skill.required_tools || [])]
+  // 列表端点不返回 system_prompt/input_schema/output_schema,需先获取详情
+  let full = skill
+  try {
+    const detail = await skillAdminApi.get(skill.id)
+    full = detail || skill
+  } catch {
+    // 获取详情失败时降级使用列表数据
+  }
+  skillForm.name = full.name || ''
+  skillForm.display_name = full.display_name || ''
+  skillForm.description = full.description || ''
+  skillForm.category = full.category || 'general'
+  skillForm.version = full.version || '1.0'
+  skillForm.system_prompt = full.system_prompt || ''
+  skillForm.model_tier = full.model_tier || 'L1'
+  skillForm.temperature = full.temperature ?? 70
+  skillForm.is_public = !!full.is_public
+  skillForm.is_active = full.is_active !== false
+  skillForm.tags = [...(full.tags || [])]
+  skillForm.required_tools = [...(full.required_tools || [])]
   // Schema 可能是对象或字符串,统一转字符串展示
-  skillForm.input_schema = stringifySchema(skill.input_schema)
-  skillForm.output_schema = stringifySchema(skill.output_schema)
+  skillForm.input_schema = stringifySchema(full.input_schema)
+  skillForm.output_schema = stringifySchema(full.output_schema)
   editDialogVisible.value = true
 }
 
@@ -996,7 +1004,7 @@ async function handleImport() {
   importing.value = true
   try {
     await skillAdminApi.import({
-      skill: importPreview.value,
+      skill_data: importPreview.value,
       overwrite: importForm.overwrite,
     })
     ElMessage.success('技能已导入')

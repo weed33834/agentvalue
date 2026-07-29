@@ -1,11 +1,11 @@
 """
 P3-3: _call_llm_with_fallback 降级重试测试
 
-注意:Agent 1 会把 agent.graph._call_llm_with_fallback 提取到 core/llm_call.py。
-本测试优先 import core.llm_call.call_llm_with_fallback;若该模块尚未提取,
-回退到 agent.graph._call_llm_with_fallback,保证测试在两种状态下都能跑。
+_call_llm_with_fallback 已从 agent.graph 提取到 core/llm_call.py。
+本测试直接 import core.llm_call.call_llm_with_fallback。
 
 覆盖:
+
 - 主档调用失败 → runtime_reselect 降级 → fallback 档成功,返回 (completion, new_tier)
 - 主档失败 + fallback 档也失败 → 聚合异常(RuntimeError)
 - runtime_reselect 返回 None(无可降级档位)→ 抛出首次异常
@@ -15,15 +15,12 @@ import json
 
 import pytest
 
+from core.llm_call import call_llm_with_fallback as _call_llm_with_fallback
 from core.providers.base import (
     BaseProvider,
     ChatCompletion,
     ProviderConfig,
 )
-
-
-# call_llm_with_fallback 已迁移到 core.llm_call 模块
-from core.llm_call import call_llm_with_fallback as _call_llm_with_fallback
 
 
 # ====== 可控行为的 Provider ======

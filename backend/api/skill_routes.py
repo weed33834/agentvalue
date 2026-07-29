@@ -154,11 +154,11 @@ def _serialize_skill(s: Skill, include_prompt: bool = True) -> Dict[str, Any]:
         "created_at": s.created_at.isoformat() if s.created_at else None,
         "updated_at": s.updated_at.isoformat() if s.updated_at else None,
     }
+    data["required_tools"] = s.required_tools or []
     if include_prompt:
         data["system_prompt"] = s.system_prompt
         data["input_schema"] = s.input_schema or {}
         data["output_schema"] = s.output_schema or {}
-        data["required_tools"] = s.required_tools or []
         data["config"] = s.config or {}
     return data
 

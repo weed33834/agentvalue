@@ -274,7 +274,7 @@ const routes = [
       },
       {
         // Agent 预设市场 (对标 ChatGPT GPTs / LobeChat 助手市场 / Coze Bot 商店)
-        path: '/admin/agent-presets',
+        path: 'agent-presets',
         name: 'AgentPresets',
         component: () => import('@/views/admin/AgentPresets.vue'),
         meta: { title: 'Agent预设', icon: 'Collection', roles: ['admin', 'hr'] },

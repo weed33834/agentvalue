@@ -8,7 +8,6 @@ Session/Message/Part 的 CRUD 服务层，对齐现有 services/evaluation_servi
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import select
@@ -16,12 +15,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.tenant_context import get_current_tenant
 from models.chat_models import ChatMessage, ChatPart, ChatSession
+from models.constants import now_utc as _now
 
 logger = logging.getLogger(__name__)
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 class ChatService:
