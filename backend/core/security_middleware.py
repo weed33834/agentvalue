@@ -3,6 +3,8 @@
 P0-1: 安全响应头 — 防 XSS/点击劫持/MIME 嗅探/HSTS
 P0-3: 分布式锁 — 基于 Redis 的跨实例互斥锁
 P0-4: API 幂等性 — Idempotency-Key 重复请求防护
+P0-5: 请求上下文 — trace_id 生成/传播 + 响应头注入
+P0-6: 全局异常处理 — 统一错误响应格式 + 堆栈泄露防护
 """
 
 from __future__ import annotations
@@ -11,6 +13,7 @@ import hashlib
 import json
 import logging
 import time
+import traceback
 import uuid
 from typing import Any, Callable, Optional
 
@@ -236,3 +239,111 @@ class IdempotencyMiddleware:
         except Exception as e:
             logger.warning("幂等性检查失败,降级透传: %s", e)
             return await call_next(request)
+
+
+class RequestContextMiddleware:
+    """P0-5: 请求上下文中间件
+
+    为每个 HTTP 请求生成/传播 trace_id:
+    - 优先从 X-Trace-Id 请求头读取(支持分布式追踪链路传播)
+    - 无则生成 UUID
+    - 注入到 tracer contextvar(日志自动关联 trace_id)
+    - 注入到 X-Trace-Id 响应头(前端可关联排障)
+    - 注入到 request.state.trace_id(业务代码可读取)
+
+    使用方式:
+        app.add_middleware(BaseHTTPMiddleware, dispatch=RequestContextMiddleware().dispatch)
+    """
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # 优先从请求头读取 trace_id(支持跨服务传播)
+        trace_id = request.headers.get("X-Trace-Id") or str(uuid.uuid4())
+
+        # 注入到 request.state 供业务代码读取
+        request.state.trace_id = trace_id
+
+        # 注入到 tracer contextvar(日志自动关联)
+        _token = None
+        try:
+            from core.tracing import _current_trace_id
+
+            _token = _current_trace_id.set(trace_id)
+        except Exception:
+            pass
+
+        try:
+            response = await call_next(request)
+            # 注入到响应头
+            response.headers["X-Trace-Id"] = trace_id
+            return response
+        finally:
+            if _token is not None:
+                try:
+                    _current_trace_id.reset(_token)
+                except Exception:
+                    pass
+
+
+class GlobalExceptionMiddleware:
+    """P0-6: 全局异常处理中间件
+
+    捕获所有未处理异常,返回统一错误响应格式:
+    - 生产环境: 隐藏堆栈信息, 仅返回 trace_id 供排障
+    - 开发/测试环境: 返回完整堆栈(便于调试)
+
+    统一错误响应格式:
+    {
+        "detail": "内部服务器错误",
+        "trace_id": "abc-123",
+        "type": "internal_server_error"
+    }
+
+    使用方式:
+        app.add_middleware(BaseHTTPMiddleware, dispatch=GlobalExceptionMiddleware(debug=settings.debug).dispatch)
+    """
+
+    # 不需要捕获的异常类型(这些已有 FastAPI 的异常处理器)
+    _SKIP_EXCEPTIONS = frozenset()
+
+    def __init__(self, debug: bool = False):
+        self._debug = debug
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        try:
+            return await call_next(request)
+        except Exception as exc:
+            trace_id = getattr(request.state, "trace_id", None) or str(uuid.uuid4())
+
+            # 记录完整堆栈到日志(含 trace_id)
+            logger.error(
+                "未处理异常 [trace_id=%s] %s: %s",
+                trace_id,
+                type(exc).__name__,
+                str(exc),
+                exc_info=True,
+            )
+
+            # 统一错误响应
+            if self._debug:
+                # 开发模式: 返回完整堆栈
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "detail": str(exc),
+                        "trace_id": trace_id,
+                        "type": type(exc).__name__,
+                        "traceback": traceback.format_exc(),
+                    },
+                    headers={"X-Trace-Id": trace_id},
+                )
+            else:
+                # 生产模式: 隐藏堆栈
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "detail": "内部服务器错误,请联系管理员并提供 trace_id",
+                        "trace_id": trace_id,
+                        "type": "internal_server_error",
+                    },
+                    headers={"X-Trace-Id": trace_id},
+                )

@@ -99,9 +99,11 @@ from api.auth_routes import router as auth_router  # noqa: E402
 from api.analytics_routes import router as analytics_router  # noqa: E402
 from api.middleware import ApiKeyMiddleware, TenantMiddleware  # noqa: E402
 from api.routes import router  # noqa: E402
-# P0 安全加固: 安全响应头 + 分布式锁 + API 幂等性
+# P0 安全加固: 安全响应头 + 分布式锁 + API 幂等性 + 请求上下文 + 全局异常处理
 from core.security_middleware import (  # noqa: E402
+    GlobalExceptionMiddleware,
     IdempotencyMiddleware,
+    RequestContextMiddleware,
     SecureHeadersMiddleware,
 )
 # HR 评估增强: 360° 环评 + 校准会
@@ -182,6 +184,16 @@ async def lifespan(app: FastAPI):
         await _kb_sync_service._register_scheduler()
     except Exception:
         pass
+    # P0: 注册数据库自动备份定时任务（每天凌晨 2:00, 降级容错）
+    try:
+        from scripts.db_backup import schedule_backup
+        from core.scheduler import get_scheduler
+
+        _sched = get_scheduler()
+        if _sched is not None:
+            schedule_backup(_sched, hour=2, minute=0)
+    except Exception:
+        pass
     # 注册事件总线订阅者（webhook 事件 → 站内通知）
     try:
         from core.event_subscribers import register_event_subscribers
@@ -200,6 +212,12 @@ async def lifespan(app: FastAPI):
             await app.state._redis_client.ping()
             _idempotency_mw._redis = app.state._redis_client
             logger.info("Redis 已连接,幂等中间件已激活")
+            # P0: 熔断器切换到 Redis 分布式模式
+            try:
+                from core.circuit_breaker import get_global_registry
+                get_global_registry().set_redis_client(app.state._redis_client)
+            except Exception:
+                pass
     except Exception as e:
         logger.warning("Redis 连接失败,幂等中间件降级透传: %s", e)
         app.state._redis_client = None
@@ -266,6 +284,22 @@ app = FastAPI(
 )
 
 app.add_middleware(LimitRequestBodyMiddleware)
+
+# P0-6: 全局异常处理 — 捕获未处理异常, 统一错误响应格式, 防堆栈泄露
+# 注册在最外层(最先执行), 确保所有异常都被捕获
+_settings = get_settings()
+app.add_middleware(
+    BaseHTTPMiddleware,
+    dispatch=GlobalExceptionMiddleware(
+        debug=getattr(_settings, "debug", False)
+    ).dispatch,
+)
+
+# P0-5: 请求上下文 — trace_id 生成/传播 + X-Trace-Id 响应头注入
+app.add_middleware(
+    BaseHTTPMiddleware,
+    dispatch=RequestContextMiddleware().dispatch,
+)
 
 # P0-2: GZip 响应压缩 — 大 JSON 响应压缩 60-80%，显著降低带宽和延迟
 app.add_middleware(GZipMiddleware, minimum_size=1000)

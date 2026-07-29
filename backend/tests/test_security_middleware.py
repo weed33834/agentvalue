@@ -266,3 +266,144 @@ class TestIdempotencyMiddleware:
         client.get("/data", headers={"Idempotency-Key": "key-004"})
         assert call_count == 2  # GET 不缓存
         await redis.aclose()
+
+
+# ====== RequestContextMiddleware ======
+
+
+class TestRequestContextMiddleware:
+    @pytest.mark.asyncio
+    async def test_trace_id_generated(self):
+        """无 X-Trace-Id 请求头时自动生成 trace_id"""
+        from starlette.testclient import TestClient
+        from fastapi import FastAPI
+        from starlette.middleware.base import BaseHTTPMiddleware
+
+        from core.security_middleware import RequestContextMiddleware
+
+        app = FastAPI()
+
+        @app.get("/test")
+        def test_endpoint():
+            return {"ok": True}
+
+        app.add_middleware(
+            BaseHTTPMiddleware, dispatch=RequestContextMiddleware().dispatch
+        )
+
+        client = TestClient(app)
+        resp = client.get("/test")
+        assert resp.status_code == 200
+        assert "X-Trace-Id" in resp.headers
+        assert len(resp.headers["X-Trace-Id"]) > 0
+
+    @pytest.mark.asyncio
+    async def test_trace_id_propagated(self):
+        """有 X-Trace-Id 请求头时使用传入的 trace_id"""
+        from starlette.testclient import TestClient
+        from fastapi import FastAPI
+        from starlette.middleware.base import BaseHTTPMiddleware
+
+        from core.security_middleware import RequestContextMiddleware
+
+        app = FastAPI()
+
+        @app.get("/test")
+        def test_endpoint():
+            return {"ok": True}
+
+        app.add_middleware(
+            BaseHTTPMiddleware, dispatch=RequestContextMiddleware().dispatch
+        )
+
+        client = TestClient(app)
+        resp = client.get("/test", headers={"X-Trace-Id": "my-trace-123"})
+        assert resp.status_code == 200
+        assert resp.headers["X-Trace-Id"] == "my-trace-123"
+
+
+# ====== GlobalExceptionMiddleware ======
+
+
+class TestGlobalExceptionMiddleware:
+    @pytest.mark.asyncio
+    async def test_production_mode_hides_stack(self):
+        """生产模式: 未处理异常返回统一格式, 不泄露堆栈"""
+        from starlette.testclient import TestClient
+        from fastapi import FastAPI
+        from starlette.middleware.base import BaseHTTPMiddleware
+
+        from core.security_middleware import GlobalExceptionMiddleware
+
+        app = FastAPI()
+
+        @app.get("/error")
+        def error_endpoint():
+            raise RuntimeError("数据库连接失败: password=secret123")
+
+        app.add_middleware(
+            BaseHTTPMiddleware,
+            dispatch=GlobalExceptionMiddleware(debug=False).dispatch,
+        )
+
+        client = TestClient(app, raise_server_exceptions=False)
+        resp = client.get("/error")
+        assert resp.status_code == 500
+        data = resp.json()
+        assert "trace_id" in data
+        assert data["type"] == "internal_server_error"
+        assert "password=secret123" not in data["detail"]
+        assert "traceback" not in data
+
+    @pytest.mark.asyncio
+    async def test_debug_mode_shows_stack(self):
+        """调试模式: 返回完整堆栈"""
+        from starlette.testclient import TestClient
+        from fastapi import FastAPI
+        from starlette.middleware.base import BaseHTTPMiddleware
+
+        from core.security_middleware import GlobalExceptionMiddleware
+
+        app = FastAPI()
+
+        @app.get("/error")
+        def error_endpoint():
+            raise ValueError("test error for debugging")
+
+        app.add_middleware(
+            BaseHTTPMiddleware,
+            dispatch=GlobalExceptionMiddleware(debug=True).dispatch,
+        )
+
+        client = TestClient(app, raise_server_exceptions=False)
+        resp = client.get("/error")
+        assert resp.status_code == 500
+        data = resp.json()
+        assert data["detail"] == "test error for debugging"
+        assert data["type"] == "ValueError"
+        assert "traceback" in data
+
+    @pytest.mark.asyncio
+    async def test_normal_request_unaffected(self):
+        """正常请求不受全局异常中间件影响"""
+        from starlette.testclient import TestClient
+        from fastapi import FastAPI
+        from starlette.middleware.base import BaseHTTPMiddleware
+
+        from core.security_middleware import GlobalExceptionMiddleware
+
+        app = FastAPI()
+
+        @app.get("/ok")
+        def ok_endpoint():
+            return {"status": "ok"}
+
+        app.add_middleware(
+            BaseHTTPMiddleware,
+            dispatch=GlobalExceptionMiddleware(debug=False).dispatch,
+        )
+
+        client = TestClient(app)
+        resp = client.get("/ok")
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "ok"
