@@ -130,20 +130,26 @@ class TestFactoryDefaultsToDummy:
 
 
 class TestFactoryFallbackWhenNotImplemented:
-    """配置了凭证但真实适配器未实现时,工厂捕获 NotImplementedError 并降级为 Dummy。"""
+    """配置了凭证后,工厂应返回真实适配器(已实现)而非 Dummy。
 
-    def test_create_im_adapter_falls_back_to_dummy_when_feishu_configured(self, monkeypatch):
-        # 即使配置了飞书凭证,FeishuIMAdapter.__init__ raise NotImplementedError
-        # → 工厂应降级为 DummyIMAdapter
+    历史: FeishuIMAdapter / GitLabCodeRepoAdapter 曾 raise NotImplementedError,
+    工厂降级为 Dummy。现已完整实现,测试验证工厂正确返回真实适配器。
+    """
+
+    def test_create_im_adapter_returns_real_when_feishu_configured(self, monkeypatch):
+        # 配置飞书凭证后,应返回 FeishuIMAdapter(已实现)
         monkeypatch.setenv("FEISHU_APP_ID", "fake-app-id")
         monkeypatch.setenv("FEISHU_APP_SECRET", "fake-app-secret")
         get_integrations_settings.cache_clear()
         adapter = create_im_adapter()
-        assert isinstance(adapter, DummyIMAdapter)
+        # FeishuIMAdapter 是 IMAdapter 子类,不再是 DummyIMAdapter
+        assert isinstance(adapter, IMAdapter)
+        assert not isinstance(adapter, DummyIMAdapter)
 
-    def test_create_coderepo_adapter_falls_back_to_dummy_when_gitlab_configured(self, monkeypatch):
+    def test_create_coderepo_adapter_returns_real_when_gitlab_configured(self, monkeypatch):
         monkeypatch.setenv("GITLAB_BASE_URL", "https://gitlab.example.com")
         monkeypatch.setenv("GITLAB_TOKEN", "fake-token")
         get_integrations_settings.cache_clear()
         adapter = create_coderepo_adapter()
-        assert isinstance(adapter, DummyCodeRepoAdapter)
+        assert isinstance(adapter, CodeRepoAdapter)
+        assert not isinstance(adapter, DummyCodeRepoAdapter)

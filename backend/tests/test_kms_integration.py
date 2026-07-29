@@ -264,10 +264,13 @@ class TestGetFieldCipherFactory:
         """生产环境 KMS 初始化失败,硬 raise (避免明文落库)"""
         from core.config import Settings
         key = _make_key()
+        # 显式关闭 demo 模式,避免环境变量 AUTH_DEMO_MODE=true 污染
+        monkeypatch.delenv("AUTH_DEMO_MODE", raising=False)
         settings = Settings(
             field_encryption_key=key,
             field_encryption_backend="vault",
             agentvalue_env="production",  # 生产
+            auth_demo_mode=False,
         )
         monkeypatch.setattr("core.config.get_settings", lambda: settings)
 
@@ -351,10 +354,12 @@ class TestJWTSecretVaultFallback:
     def test_vault_backend_failure_production_raises(self, monkeypatch):
         """生产环境 Vault 失败时,硬 raise"""
         from core.config import Settings
+        monkeypatch.delenv("AUTH_DEMO_MODE", raising=False)
         settings = Settings(
             jwt_secret_key="env-fallback",
             field_encryption_backend="vault",
             agentvalue_env="production",
+            auth_demo_mode=False,
         )
         monkeypatch.setattr("core.config.get_settings", lambda: settings)
 
@@ -430,10 +435,12 @@ class TestKMSFactory:
         from core.config import Settings
         from core.kms.factory import create_kms_provider
         from core.kms.base import KMSNotConfiguredError
+        monkeypatch.delenv("AUTH_DEMO_MODE", raising=False)
         settings = Settings(
             field_encryption_backend="local",
             field_encryption_key=_make_key(),
             agentvalue_env="production",
+            auth_demo_mode=False,
         )
         monkeypatch.setattr("core.config.get_settings", lambda: settings)
         with pytest.raises(KMSNotConfiguredError):
