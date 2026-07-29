@@ -1,0 +1,68 @@
+# =============================================================================
+# Ingress 配置
+# -----------------------------------------------------------------------------
+# 将外部流量路由到前端(SPA / 静态资源)与后端(API / 健康 / 指标)。
+# 前置条件: 集群需已安装 Ingress 控制器(如 ingress-nginx),并确认 ingressClassName。
+# 将 host: agentvalue.example.com 改为实际域名;TLS 需配套证书(见下方注释)。
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: agentvalue
+  labels:
+    app.kubernetes.io/name: agentvalue
+  annotations:
+    # 以下为 ingress-nginx 控制器注解,若使用其他控制器(traefik/haproxy 等)请相应调整
+    # 允许上传大附件(评测截图/语音/PDF 等)
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    # 评测类请求耗时较长,放宽读写超时
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    # 启用 HTTPS 跳转(配合下方 TLS 段使用)
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  # TLS 配置(需先创建含证书的 Secret,如:
+  #   kubectl create secret tls agentvalue-tls -n agentvalue \
+  #     --cert=tls.crt --key=tls.key
+  # 或使用 cert-manager 自动签发)。取消注释后启用:
+  # tls:
+  #   - hosts:
+  #       - agentvalue.example.com
+  #     secretName: agentvalue-tls
+  rules:
+    - host: agentvalue.example.com
+      http:
+        paths:
+          # API 接口直连后端(/api 及其子路径)
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+          # 健康检查端点直连后端(供外部探活/负载均衡器健康检查)
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+          # Prometheus 指标端点直连后端
+          - path: /metrics
+            pathType: Exact
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+          # 其余流量(前端静态资源 / SPA history 路由)走前端
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

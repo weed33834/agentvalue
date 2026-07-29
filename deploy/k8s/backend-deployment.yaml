@@ -1,0 +1,190 @@
+# =============================================================================
+# 后端 Deployment + Service + 数据持久化 PVC
+# -----------------------------------------------------------------------------
+# 镜像: agentvalue-backend:latest(本地构建,需先 docker build 并加载到集群:
+#        kind load docker-image agentvalue-backend:latest
+#        或 minikube image load agentvalue-backend:latest)
+# 端口: 8000   副本: 2   健康检查: GET /health(liveness + readiness)
+# 资源: 请求 250m/512Mi,上限 1000m/1024Mi
+#
+# 持久化说明(向量库 / 附件):
+#   - 使用 ReadWriteOnce PVC。单节点集群(如 minikube/kind)下两个副本同节点可共享挂载;
+#   - 多节点 HA 场景: 请改用支持 ReadWriteMany 的 StorageClass(如 NFS/CephFS),
+#     或将附件迁移到 S3/MinIO(S3_ENDPOINT)、向量库迁移到独立服务,以避免 RWO 跨节点冲突。
+# =============================================================================
+---
+# 向量库持久卷声明(chroma_db)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backend-chroma
+  labels:
+    app.kubernetes.io/name: agentvalue
+    app.kubernetes.io/component: backend
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi
+  # 多节点 HA: 改为 ["ReadWriteMany"] 并指定支持 RWX 的 storageClassName
+  # storageClassName: ""
+---
+# 附件持久卷声明(attachments)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backend-attachments
+  labels:
+    app.kubernetes.io/name: agentvalue
+    app.kubernetes.io/component: backend
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi
+  # storageClassName: ""
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    app.kubernetes.io/name: agentvalue
+    app.kubernetes.io/component: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentvalue
+      app.kubernetes.io/component: backend
+  strategy:
+    type: RollingUpdate
+    # 滚动更新期间不减少可用副本,保证服务连续
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agentvalue
+        app.kubernetes.io/component: backend
+    spec:
+      # 优雅终止:等待 uvicorn 处理完存量请求
+      terminationGracePeriodSeconds: 30
+      initContainers:
+        # 1) 等待 PostgreSQL 就绪(TCP 探测),避免迁移过早执行失败
+        - name: wait-for-postgres
+          image: agentvalue-backend:latest
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c"]
+          args:
+            - |
+              until python -c "import socket; socket.create_connection(('postgres', 5432), 2)" 2>/dev/null; do
+                echo "等待 PostgreSQL(postgres:5432)就绪..."
+                sleep 2
+              done
+              echo "PostgreSQL 已就绪"
+        # 2) 执行数据库迁移(alembic upgrade head)
+        #    注意:2 副本各自运行 init 容器,alembic 版本表保证幂等;
+        #    严格 HA 场景建议改为独立迁移 Job 以避免并发竞争。
+        - name: db-migrate
+          image: agentvalue-backend:latest
+          imagePullPolicy: IfNotPresent
+          command: ["alembic", "upgrade", "head"]
+          envFrom:
+            - configMapRef:
+                name: agentvalue-config
+          env:
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agentvalue-secret
+                  key: JWT_SECRET_KEY
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: agentvalue-secret
+                  key: DATABASE_URL
+      containers:
+        - name: backend
+          image: agentvalue-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+          # 非敏感配置: 批量注入 ConfigMap 所有键(REDIS_URL/AGENTVALUE_ENV/...)
+          envFrom:
+            - configMapRef:
+                name: agentvalue-config
+          env:
+            # 敏感配置: 逐项注入(仅注入后端所需,不暴露 POSTGRES_* 明文)
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agentvalue-secret
+                  key: JWT_SECRET_KEY
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: agentvalue-secret
+                  key: DATABASE_URL
+            # 字段加密密钥(可选,生产建议配置);如未启用可注释
+            - name: FIELD_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agentvalue-secret
+                  key: FIELD_ENCRYPTION_KEY
+          # 存活探针: /health 失败则重启容器
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          # 就绪探针: /health 通过才接收流量
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1024Mi"
+          volumeMounts:
+            - name: chroma-data
+              mountPath: /app/chroma_db
+            - name: attachments-data
+              mountPath: /app/attachments
+      volumes:
+        - name: chroma-data
+          persistentVolumeClaim:
+            claimName: backend-chroma
+        - name: attachments-data
+          persistentVolumeClaim:
+            claimName: backend-attachments
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  labels:
+    app.kubernetes.io/name: agentvalue
+    app.kubernetes.io/component: backend
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: agentvalue
+    app.kubernetes.io/component: backend
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http

@@ -202,6 +202,9 @@ async def lifespan(app: FastAPI):
         _sched = get_scheduler()
         if _sched is not None:
             schedule_backup(_sched, hour=2, minute=0)
+            # P0-4: 注册备份恢复验证任务（每周日凌晨 4:00, 避开备份时间）
+            from scripts.db_backup import schedule_restore_test
+            schedule_restore_test(_sched, day_of_week="sun", hour=4, minute=0)
     except Exception:
         pass
     # 注册事件总线订阅者（webhook 事件 → 站内通知）

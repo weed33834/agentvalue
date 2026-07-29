@@ -1,0 +1,202 @@
+# =============================================================================
+# NetworkPolicy - 网络访问限制(最小权限)
+# -----------------------------------------------------------------------------
+# 原则: 默认拒绝所有入站流量,仅按需放行;对后端/前端额外限制出站(egress)。
+#
+# 重要前提:
+#   - NetworkPolicy 需 CNI 插件支持(如 Calico / Cilium / Weave);裸 Flannel 不生效。
+#   - 下方放行 ingress-nginx 控制器流量时,使用 namespaceSelector 匹配命名空间
+#     kubernetes.io/metadata.name: ingress-nginx。若控制器所在命名空间不同,
+#     请调整该值(用 `kubectl get ns --show-labels` 查看 metadata.name 标签)。
+# =============================================================================
+---
+# 1) 默认拒绝命名空间内所有 Pod 的入站流量(基线策略,后续策略按需放行)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  labels:
+    app.kubernetes.io/name: agentvalue
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+# 2) 后端入站: 允许前端(nginx 反代)与 ingress-nginx 控制器访问 8000
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-ingress
+  labels:
+    app.kubernetes.io/name: agentvalue
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: backend
+  policyTypes:
+    - Ingress
+  ingress:
+    # 来自同命名空间前端 Pod
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: frontend
+      ports:
+        - protocol: TCP
+          port: 8000
+    # 来自 ingress-nginx 控制器命名空间(承载 /api 外部入口)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8000
+---
+# 3) 前端入站: 仅允许 ingress-nginx 控制器访问 80
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-ingress
+  labels:
+    app.kubernetes.io/name: agentvalue
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: frontend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 80
+---
+# 4) Redis 入站: 仅允许后端访问 6379
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-ingress
+  labels:
+    app.kubernetes.io/name: agentvalue
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: redis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: backend
+      ports:
+        - protocol: TCP
+          port: 6379
+---
+# 5) PostgreSQL 入站: 仅允许后端访问 5432
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-ingress
+  labels:
+    app.kubernetes.io/name: agentvalue
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: backend
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+# 6) 后端出站(egress): DNS + Redis + PostgreSQL + 外部 LLM API(HTTPS/HTTP)
+#    限制后端只能访问必要目标,防止横向移动。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-egress
+  labels:
+    app.kubernetes.io/name: agentvalue
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: backend
+  policyTypes:
+    - Egress
+  egress:
+    # DNS 解析(UDP/TCP 53)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # 访问 Redis(任务队列共享状态)
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    # 访问 PostgreSQL(业务数据库)
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    # 访问外部 LLM / Embedding API(OpenAI 兼容服务等)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+---
+# 7) 前端出站(egress): DNS + 反代到后端
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-egress
+  labels:
+    app.kubernetes.io/name: agentvalue
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: frontend
+  policyTypes:
+    - Egress
+  egress:
+    # DNS 解析
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # nginx 反代 /api 到后端
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: backend
+      ports:
+        - protocol: TCP
+          port: 8000

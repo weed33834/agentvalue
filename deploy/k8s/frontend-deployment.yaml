@@ -1,0 +1,86 @@
+# =============================================================================
+# 前端 Deployment + Service
+# -----------------------------------------------------------------------------
+# 镜像: agentvalue-frontend:latest(本地构建,需先加载到集群:
+#        kind load docker-image agentvalue-frontend:latest
+#        或 minikube image load agentvalue-frontend:latest)
+# 端口: 80   副本: 2   就绪检查: GET /(nginx 返回 index.html 即 200)
+# 资源: 请求 100m/128Mi,上限 250m/256Mi
+#
+# 说明: 前端 nginx.conf 内 /api 反代到 http://backend:8000,与下方 Service 名称一致;
+#       Ingress 也会将 /api 直连后端,两条路径均可用。
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app.kubernetes.io/name: agentvalue
+    app.kubernetes.io/component: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentvalue
+      app.kubernetes.io/component: frontend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agentvalue
+        app.kubernetes.io/component: frontend
+    spec:
+      terminationGracePeriodSeconds: 15
+      containers:
+        - name: frontend
+          image: agentvalue-frontend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+          # 就绪探针: GET / 返回 index.html(200)即就绪
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          # 存活探针: GET / 检测 nginx 是否存活
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  labels:
+    app.kubernetes.io/name: agentvalue
+    app.kubernetes.io/component: frontend
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: agentvalue
+    app.kubernetes.io/component: frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

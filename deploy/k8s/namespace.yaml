@@ -1,0 +1,13 @@
+# =============================================================================
+# Namespace 定义
+# -----------------------------------------------------------------------------
+# AgentValue-AI 所有资源部署在独立的 agentvalue 命名空间内,实现资源与网络隔离。
+# Kustomize 会自动把其余资源的 namespace 设为 agentvalue(见 kustomization.yaml)。
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agentvalue
+  labels:
+    app.kubernetes.io/name: agentvalue
+    app.kubernetes.io/part-of: agentvalue

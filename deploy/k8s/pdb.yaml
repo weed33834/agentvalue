@@ -1,0 +1,36 @@
+# =============================================================================
+# PodDisruptionBudget - 自愿驱逐保护
+# -----------------------------------------------------------------------------
+# 在节点维护/升级等"自愿驱逐"场景下,保证最少可用副本数,避免服务全部下线。
+# (非自愿驱逐如节点故障不在此约束范围内,需靠多副本+反亲和保障)
+# =============================================================================
+---
+# 后端: 最少保持 1 个可用副本(2 副本时仅允许驱逐 1 个)
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: backend
+  labels:
+    app.kubernetes.io/name: agentvalue
+    app.kubernetes.io/component: backend
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentvalue
+      app.kubernetes.io/component: backend
+---
+# 前端: 最少保持 1 个可用副本(2 副本时仅允许驱逐 1 个)
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: frontend
+  labels:
+    app.kubernetes.io/name: agentvalue
+    app.kubernetes.io/component: frontend
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentvalue
+      app.kubernetes.io/component: frontend

@@ -1,0 +1,44 @@
+# =============================================================================
+# HorizontalPodAutoscaler - 后端自动扩缩容
+# -----------------------------------------------------------------------------
+# 规则: 后端 CPU 平均利用率超过 70% 时自动扩容,上限 5 副本,下限 2 副本。
+# 前置条件: 集群需部署 Metrics Server(执行 `kubectl top pods` 可正常返回)。
+# 注意: HPA 基于 CPU 利用率,依赖 Deployment 中已设置 resources.requests.cpu。
+# =============================================================================
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend
+  labels:
+    app.kubernetes.io/name: agentvalue
+    app.kubernetes.io/component: backend
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          # averageUtilization 相对 requests.cpu 计算: 超过 70% 触发扩容
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    # 扩容策略: 快速响应流量突增
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 60
+    # 缩容策略: 慢速回缩,避免流量抖动导致频繁波动
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60

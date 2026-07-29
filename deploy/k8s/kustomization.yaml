@@ -1,0 +1,52 @@
+# =============================================================================
+# Kustomize 入口
+# -----------------------------------------------------------------------------
+# 部署:  kubectl apply -k deploy/k8s/
+# 查看:  kubectl -n agentvalue get all
+# 销毁:  kubectl delete -k deploy/k8s/
+#
+# 渲染预览(不应用): kubectl kustomize deploy/k8s/
+#
+# 说明:
+#   - namespace: agentvalue 自动应用到所有 namespaced 资源;
+#   - labels: 为所有资源附加统一标签(includeSelectors 同时写入选择器与模板,
+#     保证 selector 与 pod template 标签一致);
+#   - resources 顺序仅作可读性安排,kubectl apply -k 不强制依赖顺序
+#     (init 容器与就绪探针在应用层处理启动依赖)。
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: agentvalue
+
+# 所有资源部署到 agentvalue 命名空间
+namespace: agentvalue
+
+# 公共标签: 附加到所有资源,并同步写入选择器(selector)与 Pod 模板(template)
+labels:
+  - includeSelectors: true
+    includeTemplates: true
+    pairs:
+      app.kubernetes.io/name: agentvalue
+      app.kubernetes.io/part-of: agentvalue
+
+# 资源清单(按依赖顺序排列,Namespace / 配置优先,工作负载随后,策略类最后)
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - postgres-statefulset.yaml
+  - redis-statefulset.yaml
+  - backend-deployment.yaml
+  - frontend-deployment.yaml
+  - ingress.yaml
+  - hpa.yaml
+  - pdb.yaml
+  - networkpolicy.yaml
+
+# 镜像覆盖(可选): 如需统一修改镜像 tag,可在此处覆盖,无需改各 Deployment。
+# images:
+#   - name: agentvalue-backend
+#     newTag: latest
+#   - name: agentvalue-frontend
+#     newTag: latest

@@ -1,0 +1,96 @@
+# =============================================================================
+# Redis StatefulSet + Service(单副本)+ 持久化
+# -----------------------------------------------------------------------------
+# 镜像: redis:7-alpine   端口: 6379   副本: 1
+# 数据持久化: volumeClaimTemplates 自动创建 PVC redis-data-redis-0,
+#   PV 由集群默认 StorageClass 动态提供。
+#   若需启用 Redis 认证,请通过 Secret 注入密码并在启动命令追加 requirepass。
+# =============================================================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  labels:
+    app.kubernetes.io/name: agentvalue
+    app.kubernetes.io/component: redis
+spec:
+  serviceName: redis
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentvalue
+      app.kubernetes.io/component: redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agentvalue
+        app.kubernetes.io/component: redis
+    spec:
+      terminationGracePeriodSeconds: 15
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          imagePullPolicy: IfNotPresent
+          # 默认无认证;如需认证,改为:
+          #   command: ["redis-server", "--requirepass", "$(REDIS_PASSWORD)", "--appendonly", "yes"]
+          # 并通过 Secret 注入 REDIS_PASSWORD,同时更新 REDIS_URL 为 redis://:密码@redis:6379/0
+          args: ["--appendonly", "yes"]
+          ports:
+            - name: redis
+              containerPort: 6379
+          # 存活探针: redis-cli ping
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          # 就绪探针: redis-cli ping
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+  # 持久卷声明模板: 单副本即 redis-data-redis-0
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+        labels:
+          app.kubernetes.io/name: agentvalue
+          app.kubernetes.io/component: redis
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 2Gi
+        # storageClassName: ""   # 留空使用默认 StorageClass
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  labels:
+    app.kubernetes.io/name: agentvalue
+    app.kubernetes.io/component: redis
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: agentvalue
+    app.kubernetes.io/component: redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis

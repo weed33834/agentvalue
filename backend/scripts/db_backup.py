@@ -203,6 +203,59 @@ def schedule_backup(scheduler, hour: int = 2, minute: int = 0):
         logger.warning("注册数据库备份定时任务失败: %s", e)
 
 
+def schedule_restore_test(scheduler, day_of_week: str = "sun", hour: int = 4, minute: int = 0):
+    """通过 APScheduler 注册定期备份恢复验证任务
+
+    默认每周日凌晨 4:00 执行(避开备份时间 2:00)。
+    在 staging 环境运行,验证备份文件可完整恢复。
+
+    Args:
+        scheduler: APScheduler TaskScheduler 实例
+        day_of_week: 执行日期(周几),默认 "sun"(周日)
+        hour: 执行小时,默认 4
+        minute: 执行分钟,默认 0
+    """
+    import asyncio
+
+    async def _run_restore_verification():
+        """执行恢复验证(异步包装)"""
+        try:
+            from scripts.db_restore_test import _run_sqlite_restore_test, _run_postgres_restore_test
+
+            db_url = _get_database_url()
+            if db_url.startswith("sqlite"):
+                success = await _run_sqlite_restore_test(db_url)
+            else:
+                success = await _run_postgres_restore_test(db_url)
+
+            if success:
+                logger.info("✅ 定期备份恢复验证通过")
+            else:
+                logger.error("❌ 定期备份恢复验证失败,请检查备份文件完整性")
+                # TODO: 可通过 alert_service 发送告警通知
+        except Exception as e:
+            logger.error("备份恢复验证异常: %s", e, exc_info=True)
+
+    async def _register():
+        await scheduler.add_task(
+            name="数据库备份恢复验证",
+            func=_run_restore_verification,
+            cron_expression=f"{minute} {hour} * * {day_of_week}",
+            task_type="system",
+            description="每周定期验证备份文件可完整恢复(staging 环境)",
+            task_id="db_restore_verify",
+        )
+
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            asyncio.ensure_future(_register())
+        else:
+            loop.run_until_complete(_register())
+    except Exception as e:
+        logger.warning("注册备份恢复验证定时任务失败: %s", e)
+
+
 def main():
     parser = argparse.ArgumentParser(description="数据库备份工具")
     parser.add_argument(
@@ -211,7 +264,18 @@ def main():
         default=DEFAULT_RETAIN_DAYS,
         help=f"备份保留天数(默认 {DEFAULT_RETAIN_DAYS} 天)",
     )
+    parser.add_argument(
+        "--restore-test",
+        action="store_true",
+        help="执行备份恢复验证(而非备份)",
+    )
     args = parser.parse_args()
+
+    if args.restore_test:
+        # 运行恢复验证
+        from scripts.db_restore_test import main as restore_main
+        restore_main()
+        return
 
     logging.basicConfig(
         level=logging.INFO,

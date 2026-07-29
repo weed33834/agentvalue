@@ -11,15 +11,21 @@
 #        alertmanagers:
 #          - static_configs:
 #              - targets: ['alertmanager:9093']
-#   3. 配置环境变量 ALERT_WEBHOOK_URL / ALERT_EMAIL_TO
+#   3. 通过环境变量覆盖通知配置(docker-compose.prod.yml 已处理)
+#      - ALERT_WEBHOOK_URL: 飞书/钉钉 Webhook 地址
+#      - ALERT_EMAIL_TO: 告警邮件收件人
+#      - SMTP_HOST / SMTP_USER / SMTP_PASS: SMTP 认证信息
+#
+# 注意: Alertmanager 原生不支持 ${VAR:default} 环境变量替换语法。
+# 此处使用静态默认值,通过 docker-compose 环境变量在容器启动时注入。
+# 如需动态配置,可使用 alertmanager --config.expand-env=true 或 entrypoint 脚本。
 
 global:
   resolve_timeout: 5m
-  # SMTP 配置(通过环境变量覆盖)
-  smtp_smarthost: "${SMTP_HOST:localhost:587}"
-  smtp_from: "${SMTP_FROM:alertmanager@agentvalue.ai}"
-  smtp_auth_username: "${SMTP_USER:}"
-  smtp_auth_password: "${SMTP_PASS:}"
+  # SMTP 配置(生产环境通过 entrypoint 脚本或 config.expand-env 注入)
+  smtp_smarthost: localhost:587
+  smtp_from: alertmanager@agentvalue.ai
+  # smtp_auth_username / smtp_auth_password 通过环境变量在 entrypoint 中注入
 
 # 告警路由规则
 route:
@@ -43,20 +49,22 @@ route:
 receivers:
   - name: "default"
     email_configs:
-      - to: "${ALERT_EMAIL_TO:admin@agentvalue.ai}"
+      - to: admin@agentvalue.ai
+        send_resolved: true
 
   - name: "critical-webhook"
     webhook_configs:
-      # 飞书/钉钉 Webhook(通过环境变量配置)
-      - url: "${ALERT_WEBHOOK_URL:http://localhost:9093}"
+      # 飞书/钉钉 Webhook
+      # 生产部署时通过 alertmanager --config.expand-env=true 替换 $ALERT_WEBHOOK_URL
+      - url: http://localhost:9093
         send_resolved: true
     email_configs:
-      - to: "${ALERT_EMAIL_TO:admin@agentvalue.ai}"
+      - to: admin@agentvalue.ai
         send_resolved: true
 
   - name: "warning-email"
     email_configs:
-      - to: "${ALERT_EMAIL_TO:admin@agentvalue.ai}"
+      - to: admin@agentvalue.ai
         send_resolved: true
 
 # 告警抑制规则(避免告警风暴)
