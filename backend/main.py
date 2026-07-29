@@ -49,6 +49,7 @@ from api.admin import analytics as admin_analytics  # noqa: E402
 from api.admin.scheduler import router as admin_scheduler_router  # noqa: E402
 # 混合检索管理 (向量 + BM25 全文检索 + RRF 融合 + 增量更新 + 检索配置)
 from api.admin.search_routes import router as admin_search_router  # noqa: E402
+from api.admin.search_routes import multi_vector_router as admin_multi_vector_router  # noqa: E402
 # 租户配额管理 (日请求/token 配额 + 用量统计 + 重置)
 from api.admin.quota_routes import router as admin_quota_router  # noqa: E402
 # 成本预算告警 (月度/日度预算 + 阈值告警通知)
@@ -451,6 +452,11 @@ app.include_router(
 app.include_router(
     admin_search_router,
     tags=["admin-search"],
+)
+# P1-21: 多向量检索 (多粒度分块 + 多路召回 + RRF 融合 + 索引/删除/统计)
+app.include_router(
+    admin_multi_vector_router,
+    tags=["admin-multi-vector"],
 )
 # 租户配额管理 (日请求/token 配额 + 用量统计 + 重置)
 app.include_router(

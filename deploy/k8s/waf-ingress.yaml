@@ -1,0 +1,138 @@
+# P1-5: WAF (Web Application Firewall) 配置
+#
+# 方案: ingress-nginx + ModSecurity + OWASP Core Rule Set (CRS)
+#
+# 部署步骤:
+#   1. 安装带 ModSecurity 插件的 ingress-nginx:
+#      helm install ingress-nginx ingress-nginx/ingress-nginx \
+#        --set controller.config.enable-modsecurity=true \
+#        --set controller.config.modsecurity-snippet=SecRuleEngine On
+#
+#   2. 部署 OWASP CRS ConfigMap:
+#      kubectl apply -f deploy/k8s/waf-configmap.yaml
+#
+#   3. 更新 Ingress 注解启用 WAF:
+#      在 ingress.yaml 中添加:
+#        annotations:
+#          nginx.ingress.kubernetes.io/modsecurity-snippet: |
+#            Include /etc/nginx/owasp-crs/crs-setup.conf
+#            Include /etc/nginx/owasp-crs/rules/*.conf
+#          nginx.ingress.kubernetes.io/enable-modsecurity: "true"
+#
+#   4. 或使用云厂商 WAF (阿里云/腾讯云/Cloudflare):
+#      在 Ingress 中添加 WAF 注解或通过云控制台绑定
+#
+# 本文件提供 ModSecurity 自定义规则 + CRS 配置的 ConfigMap
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: waf-modsecurity-rules
+  namespace: agentvalue
+  labels:
+    app.kubernetes.io/name: agentvalue-waf
+    app.kubernetes.io/component: security
+data:
+  # ModSecurity 自定义规则 — 针对 AgentValue-AI 业务场景的补充规则
+  # OWASP CRS 已覆盖通用攻击(SQL注入/XSS/路径遍历等),此处补充业务特定规则
+
+  # 规则1: 禁止访问敏感路径(.env/.git/.svn/credentials)
+  agentvalue-custom-rules.conf: |
+    # 禁止访问敏感文件路径
+    SecRule REQUEST_URI "@rx /\.(env|git|svn|hg|credentials|aws|ssh)" \
+      "id:1001,phase:1,deny,status:403,msg:'Access to sensitive file detected',severity:CRITICAL,log"
+
+    # 规则2: 检测 JWT Token 在 URL 参数中传递(应在 Authorization 头中)
+    SecRule ARGS "@rx (eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)" \
+      "id:1002,phase:1,deny,status:403,msg:'JWT token detected in URL parameters',severity:HIGH,log"
+
+    # 规则3: 限制 JSON 请求体深度(防止深度嵌套 DoS)
+    SecRule REQUEST_HEADERS:Content-Type "@contains application/json" \
+      "id:1003,phase:1,pass,nolog,chain"
+      SecRule REQUEST_BODY "@rx (\"|\{)\s*(\"|\{)\s*(\"|\{)\s*(\"|\{)\s*(\"|\{)\s*(\"|\{)\s*(\"|\{)\s*(\"|\{)" \
+        "msg:'Excessive JSON nesting depth detected'"
+
+    # 规则4: 检测 Prompt 注入特征(SQL-like 语法在 LLM 输入中)
+    # 仅对 /api/v1/evaluations 和 /api/v1/chat 路径生效
+    SecRule REQUEST_URI "@rx /api/v1/(evaluations|chat)" \
+      "id:1004,phase:1,pass,nolog,chain"
+      SecRule REQUEST_BODY "@rx (ignore|忽略).{0,20}(previous|prompt|instruction|system|提示|指令)" \
+        "msg:'Potential prompt injection detected',severity:HIGH,log"
+
+    # 规则5: 速率限制(每IP每分钟最多60个请求到 /api/v1/ 路径)
+    # 实际速率限制由后端 slowapi 处理,此处为 WAF 层补充防护
+    SecRule REQUEST_URI "@beginsWith /api/v1/" \
+      "id:1005,phase:1,pass,nolog,initcol:ip=%{REMOTE_ADDR}"
+    SecRule IP:REQUEST_COUNT "@gt 60" \
+      "id:1006,phase:2,deny,status:429,msg:'Rate limit exceeded (60 req/min)',log"
+    SecAction "id:1007,phase:5,pass,nolog,setvar:ip.request_count=+1,expirevar:ip.request_count=60"
+
+    # 规则6: 阻止 User-Agent 为空或为已知扫描器
+    SecRule REQUEST_HEADERS:User-Agent "@rx ^$|(sqlmap|nikto|nmap|masscan|zgrab)" \
+      "id:1008,phase:1,deny,status:403,msg:'Malicious or empty User-Agent detected',severity:HIGH,log"
+
+    # 规则7: 检测路径遍历尝试
+    SecRule REQUEST_URI "@rx (\.\./|\.\.\\|%2e%2e%2f|%2e%2e/)" \
+      "id:1009,phase:1,deny,status:403,msg:'Path traversal attempt detected',severity:CRITICAL,log"
+
+    # 规则8: 检测 SSRF 尝试(URL 参数指向内网地址)
+    SecRule ARGS "@rx (http|https)://(localhost|127\.0\.0\.1|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)" \
+      "id:1010,phase:2,deny,status:403,msg:'SSRF attempt detected (internal IP in URL parameter)',severity:CRITICAL,log"
+
+  # CRS 预配置(精简版,生产环境应使用完整 OWASP CRS)
+  crs-setup.conf: |
+    # OWASP CRS 配置
+    # 威胁模式: 阻断(CRS 3.x 默认仅检测,生产环境应设为阻断)
+    SecDefaultAction "phase:1,pass,log"
+    SecDefaultAction "phase:2,pass,log"
+
+    # 异常分数阈值: 超过 5 分则阻断(CRS 默认 5)
+    SecAction "id:900110,phase:1,pass,nolog,setvar:tx.inbound_anomaly_score_threshold=5"
+
+    # 请求体大小限制: 10MB(与后端 LimitRequestBodyMiddleware 一致)
+    SecRequestBodyLimit 10485760
+
+    # 允许的 Content-Type
+    SecRule REQUEST_METHOD "!@rx ^(GET|HEAD|OPTIONS)$" \
+      "id:900200,phase:1,pass,nolog,chain"
+      SecRule REQUEST_HEADERS:Content-Type "!@rx ^(application/json|multipart/form-data|application/x-www-form-urlencoded)" \
+        "msg:'Unsupported Content-Type'"
+
+---
+# NetworkPolicy 补充: 限制 WAF Ingress Controller 只能访问 agentvalue 命名空间
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: waf-egress-policy
+  namespace: agentvalue
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/name: ingress-nginx
+  policyTypes:
+    - Egress
+  egress:
+    # 允许 DNS 解析
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # 允许访问 agentvalue 命名空间内的 Pod
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: agentvalue
+    # 允许访问 Kubernetes API
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              component: kube-apiserver
+      ports:
+        - protocol: TCP
+          port: 443

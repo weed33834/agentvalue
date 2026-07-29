@@ -29,12 +29,21 @@ from core.tenant_context import get_current_tenant
 from models.models import SearchConfig
 from services.audit_service import AuditService
 from services.hybrid_search_service import HybridSearchService
+from services.multi_vector_service import MultiVectorSearchService
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/api/v1/admin/search",
     tags=["admin-search"],
+    dependencies=[Depends(require_role(Role.ADMIN))],
+)
+
+# 多向量检索路由（多粒度分块 + 多路召回 + RRF 融合）
+# 路由前缀独立于混合检索，端点挂载在 /api/v1/admin/multi-vector 下
+multi_vector_router = APIRouter(
+    prefix="/api/v1/admin/multi-vector",
+    tags=["admin-multi-vector"],
     dependencies=[Depends(require_role(Role.ADMIN))],
 )
 
@@ -451,3 +460,176 @@ async def incremental_update_document(
     )
     await session.commit()
     return {"document_id": document_id, **result}
+
+
+# ============================================================
+# 多向量检索（多粒度分块 + 多路召回 + RRF 融合）
+# P1-21: 同一文档段落级/句子级/关键词级三粒度分块，各自嵌入，检索时多路召回 + RRF 融合
+# ============================================================
+
+
+class MultiVectorIndexRequest(BaseModel):
+    """多向量索引文档请求体"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    doc_id: str = Field(..., min_length=1, max_length=256, description="文档唯一标识")
+    content: str = Field(..., min_length=1, max_length=100000, description="文档全文")
+    metadata: Optional[Dict[str, Any]] = Field(
+        default=None, description="文档元数据（随每个 chunk 存储，便于检索回溯）"
+    )
+
+
+class MultiVectorSearchRequest(BaseModel):
+    """多向量检索请求体"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    query: str = Field(..., min_length=1, max_length=2000, description="查询文本")
+    top_k: int = Field(default=5, ge=1, le=100, description="返回结果数")
+
+
+def _get_multi_vector_service(
+    app_state: AppState, tenant_id: str
+) -> MultiVectorSearchService:
+    """获取当前租户的 MultiVectorSearchService 实例
+
+    collection 前缀按租户隔离（agentvalue_mv_{tenant_id}），避免跨租户数据串扰，
+    与混合检索的租户隔离策略保持一致。
+    """
+    kb_store = app_state.get_kb_store(tenant_id)
+    collection_prefix = f"agentvalue_mv_{tenant_id}"
+    return MultiVectorSearchService(
+        kb_store=kb_store,
+        settings=app_state.settings,
+        collection_prefix=collection_prefix,
+    )
+
+
+@multi_vector_router.post("/index")
+async def multi_vector_index(
+    payload: MultiVectorIndexRequest,
+    request: Request,
+    app_state: AppState = Depends(get_app_state),
+    audit_service: AuditService = Depends(get_audit_service),
+    session: AsyncSession = Depends(get_db),
+):
+    """索引文档（多粒度分块 + 各自嵌入 + 存储）
+
+    对文档进行段落级/句子级/关键词级三粒度分块，各自生成嵌入并写入独立 collection。
+    若文档已存在索引，先删除旧索引（支持重新索引）。
+
+    返回 {doc_id, paragraphs, sentences, keywords, total_vectors}
+    """
+    tenant_id = get_current_tenant()
+    service = _get_multi_vector_service(app_state, tenant_id)
+
+    try:
+        result = await service.index_document(
+            doc_id=payload.doc_id,
+            content=payload.content,
+            metadata=payload.metadata,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except Exception as e:
+        logger.exception("多向量索引失败: doc_id=%s", payload.doc_id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"多向量索引失败: {e}",
+        )
+
+    await audit_service.log(
+        actor_id=await get_current_user_id(request),
+        action="admin_multi_vector_index",
+        details={"doc_id": payload.doc_id, "result": result},
+        ip_address=get_client_ip(request),
+    )
+    await session.commit()
+    return result
+
+
+@multi_vector_router.post("/search")
+async def multi_vector_search(
+    payload: MultiVectorSearchRequest,
+    app_state: AppState = Depends(get_app_state),
+):
+    """多向量检索（多路召回 + RRF 融合 + 去重）
+
+    对段落/句子/关键词三路召回结果进行 RRF 融合排序，返回去重后的 top_k 结果。
+
+    返回 {results: [{content, score, metadata, doc_id, granularity,
+                     matched_granularities, source}], total: int}
+    """
+    tenant_id = get_current_tenant()
+    service = _get_multi_vector_service(app_state, tenant_id)
+
+    try:
+        results = await service.search(query=payload.query, top_k=payload.top_k)
+    except Exception as e:
+        logger.exception("多向量检索失败")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"多向量检索失败: {e}",
+        )
+    return {"results": results, "total": len(results)}
+
+
+@multi_vector_router.delete("/{doc_id}")
+async def multi_vector_delete(
+    doc_id: str,
+    request: Request,
+    app_state: AppState = Depends(get_app_state),
+    audit_service: AuditService = Depends(get_audit_service),
+    session: AsyncSession = Depends(get_db),
+):
+    """删除文档索引（删除该文档在所有粒度 collection 中的全部向量）
+
+    返回 {doc_id, deleted: {paragraph, sentence, keyword}, total_deleted}
+    """
+    tenant_id = get_current_tenant()
+    service = _get_multi_vector_service(app_state, tenant_id)
+
+    try:
+        result = await service.delete_document(doc_id=doc_id)
+    except Exception as e:
+        logger.exception("多向量删除失败: doc_id=%s", doc_id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"多向量删除失败: {e}",
+        )
+
+    await audit_service.log(
+        actor_id=await get_current_user_id(request),
+        action="admin_multi_vector_delete",
+        details={"doc_id": doc_id, "result": result},
+        ip_address=get_client_ip(request),
+    )
+    await session.commit()
+    return result
+
+
+@multi_vector_router.get("/stats")
+async def multi_vector_stats(
+    app_state: AppState = Depends(get_app_state),
+):
+    """获取多向量索引统计（各粒度 collection 的向量数）
+
+    返回 {collections: {paragraph, sentence, keyword}, total_vectors,
+          collection_names: {paragraph, sentence, keyword}}
+    """
+    tenant_id = get_current_tenant()
+    service = _get_multi_vector_service(app_state, tenant_id)
+
+    try:
+        stats = await service.get_stats()
+    except Exception as e:
+        logger.exception("多向量统计失败")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"多向量统计失败: {e}",
+        )
+    return stats
