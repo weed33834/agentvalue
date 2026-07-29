@@ -5,40 +5,21 @@ LangGraph 评估工作流
 import asyncio
 import json
 import logging
-import sys
 import time
 import uuid
 from contextlib import nullcontext
 from typing import Any, Dict, Literal, Optional
 
-from langchain_core.runnables.config import RunnableConfig, var_child_runnable_config
+from langchain_core.runnables.config import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 from pydantic import ValidationError
 
-
-def _ensure_interrupt_context(config: Optional[RunnableConfig]):
-    """Python 3.10 兼容层：手动设置 contextvar 使 interrupt() 可用。
-
-    LangGraph 1.2+ 的 interrupt() 内部调用 get_config()，后者依赖
-    var_child_runnable_config contextvar。在 Python 3.11+ 中，LangGraph
-    通过 asyncio.create_task(context=...) 自动设置该 contextvar；但
-    Python 3.10 的 asyncio.create_task 不支持 context 参数，导致
-    contextvar 从未被设置，interrupt() 抛出
-    'Called get_config outside of a runnable context'。
-
-    本函数在 Python < 3.11 上手动设置 contextvar 作为兼容层，
-    Python 3.11+ 上为空操作（LangGraph 已自动处理）。
-    """
-    if sys.version_info < (3, 11) and config is not None:
-        return var_child_runnable_config.set(config)
-    return None
-
-
-def _reset_interrupt_context(token):
-    """恢复 contextvar（与 _ensure_interrupt_context 配对）。"""
-    if token is not None:
-        var_child_runnable_config.reset(token)
+# interrupt() Python 3.10 兼容层（提取到共享模块, graph 与 multi_agent 复用）
+from agent.interrupt_compat import (
+    ensure_interrupt_context as _ensure_interrupt_context,
+    reset_interrupt_context as _reset_interrupt_context,
+)
 
 from core.guards import InputGuard, OutputGuard
 

@@ -50,6 +50,7 @@ def test_settings(monkeypatch):
         "s3_access_key",
         "s3_secret_key",
         "field_encryption_key",
+        "cloud_base_url",
     ):
         monkeypatch.setattr(settings, key, None)
     # 重置多模态/OCR/ASR provider 为默认 none/dummy，避免 .env 配置干扰

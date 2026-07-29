@@ -35,11 +35,17 @@ from typing import Annotated, Any, Dict, List, Optional
 
 import operator
 
+from langchain_core.runnables.config import RunnableConfig
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command, interrupt
 from typing_extensions import TypedDict
 
+# interrupt() Python 3.10 兼容层（与 graph.py 共用）
+from agent.interrupt_compat import (
+    ensure_interrupt_context,
+    reset_interrupt_context,
+)
 from agent.prompt_loader import PromptLoader
 from agent.tools import AgentToolkit
 from core.model_router import ModelRouter
@@ -468,6 +474,7 @@ def create_multi_agent_graph(
 
     async def _run_expert(
         state: MultiAgentState,
+        config: RunnableConfig,
         agent_name: str,
         system_prompt_template: str,
     ):
@@ -483,14 +490,19 @@ def create_multi_agent_graph(
         interrupt_at = state.get("interrupt_at")
         if interrupt_at == agent_name:
             with _node_trace(agent_name, state):
-                interrupt_info = interrupt(
-                    {
-                        "node": agent_name,
-                        "message": f"等待人工确认 {agent_name} 执行",
-                        "iteration": state.get("iteration", 0),
-                        "task": state.get("task", ""),
-                    }
-                )
+                # Python 3.10 兼容: 手动设置 contextvar 使 interrupt() 可用
+                _token = ensure_interrupt_context(config)
+                try:
+                    interrupt_info = interrupt(
+                        {
+                            "node": agent_name,
+                            "message": f"等待人工确认 {agent_name} 执行",
+                            "iteration": state.get("iteration", 0),
+                            "task": state.get("task", ""),
+                        }
+                    )
+                finally:
+                    reset_interrupt_context(_token)
             # resume 后通过返回值清 interrupt_at, 避免重复中断
             timeline = _append_timeline(
                 state, agent_name, "resumed", decision=interrupt_info
@@ -531,36 +543,41 @@ def create_multi_agent_graph(
             "messages": [f"{agent_name}: completed"],
         }
 
-    async def data_analyst(state: MultiAgentState):
+    async def data_analyst(state: MultiAgentState, config: RunnableConfig):
         """数据分析专家: 分析员工日报/任务进度"""
-        return await _run_expert(state, "data_analyst", DATA_ANALYST_PROMPT)
+        return await _run_expert(state, config, "data_analyst", DATA_ANALYST_PROMPT)
 
-    async def code_reviewer(state: MultiAgentState):
+    async def code_reviewer(state: MultiAgentState, config: RunnableConfig):
         """代码贡献评估专家: 分析 commit/PR"""
-        return await _run_expert(state, "code_reviewer", CODE_REVIEWER_PROMPT)
+        return await _run_expert(state, config, "code_reviewer", CODE_REVIEWER_PROMPT)
 
-    async def risk_assessor(state: MultiAgentState):
+    async def risk_assessor(state: MultiAgentState, config: RunnableConfig):
         """风险评估专家: 识别离职风险/合规风险"""
-        return await _run_expert(state, "risk_assessor", RISK_ASSESSOR_PROMPT)
+        return await _run_expert(state, config, "risk_assessor", RISK_ASSESSOR_PROMPT)
 
     # ---------------- report_writer 节点 ----------------
 
-    async def report_writer(state: MultiAgentState):
+    async def report_writer(state: MultiAgentState, config: RunnableConfig):
         """报告生成专家: 汇总所有 artifacts 生成 final_report, 然后 goto END"""
         # 中断检查
         interrupt_at = state.get("interrupt_at")
         if interrupt_at == "report_writer":
             with _node_trace("report_writer", state):
-                interrupt_info = interrupt(
-                    {
-                        "node": "report_writer",
-                        "message": "等待人工确认生成最终报告",
-                        "iteration": state.get("iteration", 0),
-                        "artifacts_summary": list(
-                            (state.get("artifacts") or {}).keys()
-                        ),
-                    }
-                )
+                # Python 3.10 兼容: 手动设置 contextvar 使 interrupt() 可用
+                _token = ensure_interrupt_context(config)
+                try:
+                    interrupt_info = interrupt(
+                        {
+                            "node": "report_writer",
+                            "message": "等待人工确认生成最终报告",
+                            "iteration": state.get("iteration", 0),
+                            "artifacts_summary": list(
+                                (state.get("artifacts") or {}).keys()
+                            ),
+                        }
+                    )
+                finally:
+                    reset_interrupt_context(_token)
             timeline = _append_timeline(
                 state, "report_writer", "resumed", decision=interrupt_info
             )

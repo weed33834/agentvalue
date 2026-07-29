@@ -49,7 +49,13 @@ class ModelRouter:
 
     def __init__(self, settings: Optional[Settings] = None):
         self.settings = settings or get_settings()
-        self._hardware = self._detect_hardware(self.settings.cloud_base_url)
+        # 无 API key 时跳过网络延迟探测（避免 2s 超时浪费, 尤其在测试环境中）
+        _cloud_url = self.settings.cloud_base_url
+        if _cloud_url and not (
+            self.settings.cloud_api_key or self.settings.openai_api_key
+        ):
+            _cloud_url = None
+        self._hardware = self._detect_hardware(_cloud_url)
         self._tier_map = self._build_tier_map()
         # 各档位最近 N 次 health_check 记录：(success, response_time_s)
         self._health_history: Dict[str, Deque[Tuple[bool, float]]] = {
