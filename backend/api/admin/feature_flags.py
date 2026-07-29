@@ -23,6 +23,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import AppState, get_app_state
+from api.admin._common import entity_to_dict
 from auth.rbac import Role, require_role
 from core.database import get_db
 from core.feature_flag import FeatureFlagService
@@ -101,17 +102,15 @@ class FeatureFlagCheckResponse(BaseModel):
 
 def _entity_to_dict(entity: FeatureFlag) -> Dict[str, Any]:
     """FeatureFlag entity → dict (供 API 返回)"""
-    return {
-        "key": entity.key,
-        "description": entity.description,
-        "enabled": entity.enabled,
-        "rollout_percentage": entity.rollout_percentage,
-        "target_tenant_ids": entity.target_tenant_ids or [],
-        "target_user_ids": entity.target_user_ids or [],
-        "category": entity.category,
-        "created_at": entity.created_at.isoformat() if entity.created_at else None,
-        "updated_at": entity.updated_at.isoformat() if entity.updated_at else None,
-    }
+    return entity_to_dict(
+        entity,
+        ["key", "description", "enabled", "rollout_percentage", "category"],
+        iso_fields=["created_at", "updated_at"],
+        extra={
+            "target_tenant_ids": entity.target_tenant_ids or [],
+            "target_user_ids": entity.target_user_ids or [],
+        },
+    )
 
 
 def _get_service(app_state: AppState) -> FeatureFlagService:

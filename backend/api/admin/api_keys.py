@@ -31,7 +31,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.admin._common import gen_id
+from api.admin._common import entity_to_dict, gen_id
 from api.deps import get_audit_service
 from auth.rbac import Role, get_current_user_id, require_role
 from core.database import get_db
@@ -130,23 +130,12 @@ def _scopes_from_text(scopes_text: Optional[str]) -> List[str]:
 
 def _entity_to_dict(entity: ApiKey) -> Dict[str, Any]:
     """ApiKey entity → dict (不含 key_hash, 不含明文 key)"""
-    return {
-        "id": entity.id,
-        "key_id": entity.key_id,
-        "key_prefix": entity.key_prefix,
-        "name": entity.name,
-        "scopes": _scopes_from_text(entity.scopes),
-        "rate_limit": entity.rate_limit,
-        "tenant_id": entity.tenant_id,
-        "created_by": entity.created_by,
-        "is_active": entity.is_active,
-        "last_used_at": entity.last_used_at.isoformat()
-        if entity.last_used_at
-        else None,
-        "expires_at": entity.expires_at.isoformat() if entity.expires_at else None,
-        "created_at": entity.created_at.isoformat() if entity.created_at else None,
-        "revoked_at": entity.revoked_at.isoformat() if entity.revoked_at else None,
-    }
+    return entity_to_dict(
+        entity,
+        ["id", "key_id", "key_prefix", "name", "rate_limit", "tenant_id", "created_by", "is_active"],
+        iso_fields=["last_used_at", "expires_at", "created_at", "revoked_at"],
+        extra={"scopes": _scopes_from_text(entity.scopes)},
+    )
 
 
 async def _get_api_key_entity(

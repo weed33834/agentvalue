@@ -23,11 +23,8 @@ from core.providers.base import (
 )
 
 
-# 优先用 core.llm_call(若 Agent 1 已提取);否则回退到 agent.graph 原位置
-try:
-    from core.llm_call import call_llm_with_fallback as _call_llm_with_fallback
-except ImportError:  # pragma: no cover - 兼容 Agent 1 未提取的场景
-    from agent.graph import _call_llm_with_fallback
+# call_llm_with_fallback 已迁移到 core.llm_call 模块
+from core.llm_call import call_llm_with_fallback as _call_llm_with_fallback
 
 
 # ====== 可控行为的 Provider ======

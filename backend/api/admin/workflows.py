@@ -30,6 +30,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import AppState, get_app_state
+from api.admin._common import entity_to_dict
 from auth.rbac import Role, require_role
 from core.database import get_db
 from core.tenant_context import get_current_tenant
@@ -125,18 +126,12 @@ def _gen_id(prefix: str = "wf") -> str:
 
 def _entity_to_dict(entity: Workflow) -> Dict[str, Any]:
     """Workflow entity → dict (供 API 返回)"""
-    return {
-        "id": entity.id,
-        "name": entity.name,
-        "description": entity.description,
-        "graph": entity.graph,
-        "input_schema": entity.input_schema or {},
-        "enabled": entity.enabled,
-        "version": entity.version,
-        "tenant_id": entity.tenant_id,
-        "created_at": entity.created_at.isoformat() if entity.created_at else None,
-        "updated_at": entity.updated_at.isoformat() if entity.updated_at else None,
-    }
+    return entity_to_dict(
+        entity,
+        ["id", "name", "description", "graph", "enabled", "version", "tenant_id"],
+        iso_fields=["created_at", "updated_at"],
+        extra={"input_schema": entity.input_schema or {}},
+    )
 
 
 def _run_entity_to_dict(entity: WorkflowRun) -> Dict[str, Any]:

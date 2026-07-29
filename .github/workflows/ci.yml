@@ -52,8 +52,8 @@ jobs:
       - name: Run tests
         working-directory: backend
         env:
-          DEMO_MODE: "true"
-          SECRET_KEY: ci-test-secret-key-not-for-production
+          AUTH_DEMO_MODE: "true"
+          JWT_SECRET_KEY: ci-test-secret-key-not-for-production
         run: python -m pytest -x -q --tb=short
 
   # ────────────────── 前端 ──────────────────

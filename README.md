@@ -31,7 +31,7 @@ AgentValue-AI 把三件事拼到了一个平台里:
 
 **对话** — 完整的 AI 聊天界面,支持流式输出、工具调用展示、思考过程折叠、数学公式渲染、Markdown 导出。你在 ChatGPT 或 Claude.ai 上常用的操作,这里都有。
 
-**工具调用** — Agent 能执行 bash 命令、读写文件、浏览目录、抓取网页、搜索代码、执行 Python 沙箱。14 个内置工具覆盖了日常操作,支持 MCP 协议接入 400+ 外部工具。生产环境可以按需开关高危工具。
+**工具调用** — Agent 能执行 bash 命令、读写文件、浏览目录、抓取网页、搜索代码、执行 Python 沙箱。9 个核心内置工具覆盖了日常操作,支持 MCP 协议接入 400+ 外部工具。生产环境可以按需开关高危工具。
 
 **员工价值评估** — 持续接收员工的多维工作数据(日报、任务进度、代码贡献、会议记录、截图、语音),交给 LangGraph Agent 自动分析,一次推理同时产出三套视图:
 
@@ -114,6 +114,8 @@ AgentValue-AI 把三件事拼到了一个平台里:
 | 告警通知 | `/admin/alerts` | Grafana Alerting |
 | 工具配置 | `/admin/tool-config` | Dify 工具管理 |
 | 混合检索 | `/admin/search` | Dify 检索 |
+
+> **注**: 标 `*` 的页面已有后端 API 与数据模型,前端管理 UI 逐步建设中。已建成前端页面的路由包括: providers / playground / knowledge-base / trace / metrics / feature-flags / multi-agent / workflows / tools / prompts / skills / chat / agent-presets。
 
 ---
 
@@ -423,6 +425,8 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 - v1.4 — 知识库 UI / 链路追踪 / Token 趋势 / Rerank / 自定义工具 / Feature Flag / Multi-Agent / 工作流编排
 - v1.5 — AI 对话系统 (10 项功能) + Agent 工具层 (5 个工具)
 - v2.1 — 深度对标大厂完善管理功能矩阵: 模型Fallback/会话分析/API健康/数据集/LLM评测/RAG评测/人工标注/SSO/模板市场/NL2SQL/文档解析 + 19项安全加固
+- v2.0 — 竞品对标全量实现: 语音输入输出/Artifacts/Skills/Code Interpreter/MCP协议/Repo Map/AI偏差检测
+- v2.2 — P1级缺失功能补全: GraphRAG知识图谱/灰度发布/多环境管理/知识库自动同步/Prompt优化建议/模型负载均衡
 
 **后续方向:**
 

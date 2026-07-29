@@ -29,6 +29,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.rbac import Role, require_role
+from api.admin._common import entity_to_dict
 from core.database import get_db
 from core.field_crypto import get_field_cipher
 from core.rate_limit import rate_limit
@@ -181,18 +182,12 @@ def _entity_to_dict(
     entity: CustomTool, include_tools: bool = False
 ) -> Dict[str, Any]:
     """CustomTool entity → dict (不含敏感凭证,可附带解析出的 tools)"""
-    result: Dict[str, Any] = {
-        "id": entity.id,
-        "name": entity.name,
-        "description": entity.description,
-        "base_url": entity.base_url,
-        "auth_type": entity.auth_type,
-        "has_credentials": bool(entity.auth_credentials),
-        "enabled": entity.enabled,
-        "tenant_id": entity.tenant_id,
-        "created_at": entity.created_at.isoformat() if entity.created_at else None,
-        "updated_at": entity.updated_at.isoformat() if entity.updated_at else None,
-    }
+    result = entity_to_dict(
+        entity,
+        ["id", "name", "description", "base_url", "auth_type", "enabled", "tenant_id"],
+        iso_fields=["created_at", "updated_at"],
+        extra={"has_credentials": bool(entity.auth_credentials)},
+    )
     if include_tools:
         try:
             specs = parse_openapi_to_tools_safe(

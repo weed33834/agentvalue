@@ -289,21 +289,6 @@ export const debugAdminApi = {
   getSystemHealth: () => api.get('/admin/debug/system-health'),
 }
 
-// Prometheus 指标端点挂在后端根路径 /metrics（非 /api/v1 前缀），
-// 由 admin 系统指标页解析文本展示。复用 axios 实例以走统一鉴权/拦截器。
-function metricsRequest() {
-  const base = import.meta.env.VITE_API_BASE_URL || '/api/v1'
-  // 相对地址或绝对地址均改为指向同源 /metrics
-  const url = /^https?:\/\//i.test(base) ? new URL(base).origin + '/metrics' : '/metrics'
-  return api.get(url, { baseURL: '', responseType: 'text', transformResponse: [(d) => d] })
-}
-
-export const metricsApi = {
-  // 响应拦截器已将 resolve 值替换为 response.data；对 responseType:'text'
-  // 而言 response.data 即原始文本字符串，这里直接返回即可，不应再取 .data
-  fetchText: () => metricsRequest(),
-}
-
 export const authApi = {
   login: (email, password) => api.post('/auth/login', { email, password }),
   me: () => api.get('/auth/me'),
@@ -655,19 +640,6 @@ export const presetApi = {
     api.put(`/presets/agents/${encodeURIComponent(id)}`, data),
   delete: (id) => api.delete(`/presets/agents/${encodeURIComponent(id)}`),
   use: (id) => api.post(`/presets/agents/${encodeURIComponent(id)}/use`),
-}
-
-// ============================================================
-// 会话工具配置 API
-// 管理某会话启用的工具列表
-// ============================================================
-export const sessionToolsApi = {
-  get: (sessionId) =>
-    api.get(`/chat/sessions/${encodeURIComponent(sessionId)}/tools`),
-  update: (sessionId, tools) =>
-    api.put(`/chat/sessions/${encodeURIComponent(sessionId)}/tools`, {
-      tools,
-    }),
 }
 
 // ============================================================

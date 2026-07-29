@@ -474,7 +474,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import api from '@/api/client'
+import { presetApi, templateApi } from '@/api/client'
 
 const router = useRouter()
 
@@ -566,7 +566,7 @@ async function loadPresets() {
   loading.value = true
   try {
     const category = filterCategory.value === 'all' ? undefined : filterCategory.value
-    const data = await api.presetApi.list(category)
+    const data = await presetApi.list(category)
     // 兼容 {items: [...]} 或 [...] 两种返回结构
     presets.value = Array.isArray(data) ? data : data?.items || data?.presets || []
   } catch (err) {
@@ -661,10 +661,10 @@ async function savePreset() {
       enabled_tools: presetForm.enabled_tools,
     }
     if (editingPreset.value) {
-      await api.presetApi.update(editingPreset.value.id, payload)
+      await presetApi.update(editingPreset.value.id, payload)
       ElMessage.success('预设已更新')
     } else {
-      await api.presetApi.create(payload)
+      await presetApi.create(payload)
       ElMessage.success('预设已创建')
     }
     presetDialogVisible.value = false
@@ -687,7 +687,7 @@ async function handleDelete(preset) {
     return
   }
   try {
-    await api.presetApi.delete(preset.id)
+    await presetApi.delete(preset.id)
     ElMessage.success(`已删除 ${preset.name}`)
     await loadPresets()
   } catch (err) {
@@ -699,7 +699,7 @@ async function usePreset(preset) {
   usingId.value = preset.id
   try {
     // 调用后端记录使用并返回完整配置
-    await api.presetApi.use(preset.id)
+    await presetApi.use(preset.id)
     ElMessage.success(`已启用预设「${preset.name}」, 正在跳转聊天...`)
     // 跳转聊天页并通过 query 传递 preset_id,聊天页据此加载预设配置
     router.push({ path: '/admin/chat', query: { preset_id: preset.id } })
@@ -719,7 +719,7 @@ async function loadTemplates() {
   templateLoading.value = true
   try {
     const params = templateFilterCategory.value ? { category: templateFilterCategory.value } : {}
-    const data = await api.templateApi.list(params)
+    const data = await templateApi.list(params)
     templates.value = Array.isArray(data) ? data : data?.items || data?.templates || []
   } catch (err) {
     ElMessage.error('加载模板列表失败: ' + err.message)
@@ -810,10 +810,10 @@ async function saveTemplate() {
       variables: cleanVars,
     }
     if (editingTemplate.value) {
-      await api.templateApi.update(editingTemplate.value.id, payload)
+      await templateApi.update(editingTemplate.value.id, payload)
       ElMessage.success('模板已更新')
     } else {
-      await api.templateApi.create(payload)
+      await templateApi.create(payload)
       ElMessage.success('模板已创建')
     }
     templateDialogVisible.value = false
@@ -836,7 +836,7 @@ async function handleDeleteTemplate(row) {
     return
   }
   try {
-    await api.templateApi.delete(row.id)
+    await templateApi.delete(row.id)
     ElMessage.success(`已删除 ${row.name}`)
     await loadTemplates()
   } catch (err) {
