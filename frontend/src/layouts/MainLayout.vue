@@ -197,12 +197,11 @@
             </el-button>
           </el-tooltip>
           <el-badge
-            v-if="notification.pendingCount > 0"
-            :value="notification.pendingCount"
+            :value="notification.pendingCount + notification.unreadCount"
             :max="99"
             class="approval-badge"
           >
-            <el-icon class="bell-icon" @click="goToApprovalDashboard"><Bell /></el-icon>
+            <el-icon class="bell-icon" @click="handleBellClick"><Bell /></el-icon>
           </el-badge>
           <span class="header-role" aria-live="polite">当前角色：{{ roleLabel }}</span>
         </div>
@@ -211,6 +210,37 @@
         <router-view />
       </el-main>
     </el-container>
+
+    <!-- 通知抽屉 -->
+    <el-drawer
+      v-model="notification.notificationDrawerVisible"
+      title="站内通知"
+      size="400px"
+      direction="rtl"
+    >
+      <div class="notification-drawer">
+        <div class="notification-actions">
+          <el-button size="small" @click="notification.markAllAsRead" :disabled="notification.unreadCount === 0">
+            全部标记已读
+          </el-button>
+          <el-button size="small" @click="notification.fetchNotifications({ page: 1, page_size: 20 })">
+            刷新
+          </el-button>
+        </div>
+        <el-empty v-if="notification.notifications.length === 0" description="暂无通知" />
+        <div
+          v-for="item in notification.notifications"
+          :key="item.notification_id"
+          class="notification-item"
+          :class="{ unread: !item.is_read }"
+          @click="notification.markAsRead(item.notification_id)"
+        >
+          <div class="notification-title">{{ item.title }}</div>
+          <div class="notification-content">{{ item.content }}</div>
+          <div class="notification-time">{{ item.created_at }}</div>
+        </div>
+      </div>
+    </el-drawer>
   </el-container>
 </template>
 
@@ -237,12 +267,20 @@ const roleLabel = computed(() => {
 
 const pageTitle = computed(() => route.meta.title || 'AgentValue-AI')
 
-// 按角色跳转到对应的审批看板:manager → 团队诊断,hr → HR复核,admin → 团队诊断
-function goToApprovalDashboard() {
-  if (auth.role === 'hr') {
-    router.push('/hr')
+// 铃铛点击:有未读通知则打开通知抽屉,否则跳转审批看板
+function handleBellClick() {
+  if (notification.unreadCount > 0 || notification.notifications.length > 0) {
+    notification.openNotificationDrawer()
+  } else if (['manager', 'hr', 'admin'].includes(auth.role)) {
+    // 无通知时跳转审批看板:manager → 团队诊断,hr → HR复核,admin → 团队诊断
+    if (auth.role === 'hr') {
+      router.push('/hr')
+    } else {
+      router.push('/manager')
+    }
   } else {
-    router.push('/manager')
+    // 普通员工无审批看板，打开通知抽屉
+    notification.openNotificationDrawer()
   }
 }
 
@@ -354,5 +392,44 @@ html.dark .main-content {
 .main-content {
   background-color: #f3f4f6;
   overflow-y: auto;
+}
+/* 通知抽屉 */
+.notification-drawer {
+  padding: 0 8px;
+}
+.notification-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.notification-item {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border: 1px solid var(--el-border-color-lighter);
+}
+.notification-item:hover {
+  background-color: var(--el-fill-color-light);
+}
+.notification-item.unread {
+  background-color: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-7);
+}
+.notification-title {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+.notification-content {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 4px;
+  word-break: break-all;
+}
+.notification-time {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
 }
 </style>

@@ -272,29 +272,27 @@ async function reject() {
   }
 }
 
-// 要求补充资料:复用 feedback 接口提交 HR 端补充资料请求(后端无独立端点,以 feedback 形式留痕)
+// 要求重评:调用专用 require-reeval 端点触发后台 LLM 重跑
 async function requestMoreInfo() {
   if (!evaluation.value) return
-  const value = await confirmAction('要求补充资料', '请说明需要补充的资料或澄清点')
+  const value = await confirmAction('要求重评', '请说明需要补充的资料或澄清点')
   if (value === null) return
   if (!value || !value.trim()) {
     ElMessage.warning('请填写需要补充的资料说明')
     return
   }
   submitting.value = true
-  liveStatus.value = '正在提交补充资料要求'
+  liveStatus.value = '正在提交重评要求'
   try {
-    await evaluationApi.feedback(evaluationId.value, {
-      // 以类型字段标识这是 HR 端的补充资料请求,便于后续按类型筛选
-      type: 'hr_request_more_info',
-      content: value,
+    await evaluationApi.requireReeval(evaluationId.value, {
+      reason: value,
     })
-    ElMessage.success('已要求补充资料')
+    ElMessage.success('已要求重评，评估将重新进入 AI 评估流程')
     comment.value = ''
     await loadAuditLogs()
   } catch (err) {
     ElMessage.error(err.message || '操作失败')
-    liveStatus.value = '提交补充资料要求失败'
+    liveStatus.value = '提交重评要求失败'
   } finally {
     submitting.value = false
   }

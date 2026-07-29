@@ -90,12 +90,34 @@ api.interceptors.response.use(
       redirectToLogin()
     }
 
+    // 全局错误提示: 5xx / 网络断开 / 超时
+    // 401 已由上面的 refresh 流程处理，4xx 业务错误由各视图自行处理
+    if (!error.response) {
+      // 网络断开或 CORS 拒绝
+      ElMessage.error('网络连接失败，请检查网络后重试')
+    } else if (error.code === 'ECONNABORTED') {
+      ElMessage.error('请求超时，请稍后重试')
+    } else if (status >= 500) {
+      ElMessage.error('服务器内部错误，请稍后重试')
+    }
+
     const message = error.response?.data?.detail || error.message || '请求失败'
     return Promise.reject(new Error(message))
   },
 )
 
 export default api
+
+export const authApi = {
+  login: (payload) => api.post('/auth/login', payload),
+  register: (payload) => api.post('/auth/register', payload),
+  me: () => api.get('/auth/me'),
+  refresh: () => api.post('/auth/refresh'),
+  logout: () => api.post('/auth/logout'),
+  seedDemoUsers: () => api.post('/auth/seed-demo-users'),
+  changePassword: (payload) => api.post('/auth/change-password', payload),
+  resetPassword: (payload) => api.post('/auth/reset-password', payload),
+}
 
 export const evaluationApi = {
   create: (payload) => api.post('/evaluations', payload),
@@ -107,7 +129,12 @@ export const evaluationApi = {
   appeal: (id, payload) => api.post(`/evaluations/${id}/appeal`, payload),
   reEvaluate: (id, payload) => api.post(`/evaluations/${id}/re-evaluate`, payload),
   feedback: (id, payload) => api.post(`/evaluations/${id}/feedback`, payload),
+  // HR 要求重评 (专用端点，而非绕过用 feedback)
+  requireReeval: (id, payload) => api.post(`/evaluations/${id}/require-reeval`, payload),
   auditLogs: (id) => api.get(`/evaluations/${id}/audit-logs`),
+  // 视角: employee / manager / hr
+  employeeView: (id) => api.get(`/evaluations/${id}/employee-view`),
+  managerView: (id) => api.get(`/evaluations/${id}/manager-view`),
 }
 
 export const managerApi = {
@@ -287,14 +314,6 @@ export const debugAdminApi = {
     api.get(`/admin/debug/evaluation/${encodeURIComponent(evaluationId)}/trace`),
   // 系统健康汇总(circuit breaker / health cache / MCP 状态)
   getSystemHealth: () => api.get('/admin/debug/system-health'),
-}
-
-export const authApi = {
-  login: (email, password) => api.post('/auth/login', { email, password }),
-  me: () => api.get('/auth/me'),
-  refresh: () => api.post('/auth/refresh'),
-  logout: () => api.post('/auth/logout'),
-  seedDemoUsers: () => api.post('/auth/seed-demo-users'),
 }
 
 // Provider CRUD API (对标 Dify model-providers 24 端点)
@@ -728,12 +747,46 @@ export const apiKeyAdminApi = {
 // 查看通知历史、配置通知渠道
 // ============================================================
 export const notificationApi = {
-  // 通知列表
+  // 通知列表 (支持 unread_only 过滤 + 分页)
   list: (params) => api.get('/notifications', { params }),
-  // 标记已读
-  markRead: (notificationId) => api.post(`/notifications/${encodeURIComponent(notificationId)}/read`),
-  // 批量标记已读
-  markAllRead: () => api.post('/notifications/read-all'),
+  // 未读通知数量
+  unreadCount: () => api.get('/notifications/unread-count'),
+  // 标记单条已读 (后端为 PUT 语义: 幂等更新)
+  markRead: (notificationId) => api.put(`/notifications/${encodeURIComponent(notificationId)}/read`),
+  // 全部标记已读
+  markAllRead: () => api.put('/notifications/read-all'),
   // 删除通知
   delete: (notificationId) => api.delete(`/notifications/${encodeURIComponent(notificationId)}`),
+}
+
+// ============================================================
+// 用户管理 API (Admin CRUD + 批量导入)
+// ============================================================
+export const userAdminApi = {
+  list: (params) => api.get('/admin/users', { params }),
+  get: (userId) => api.get(`/admin/users/${encodeURIComponent(userId)}`),
+  create: (data) => api.post('/admin/users', data),
+  update: (userId, data) => api.put(`/admin/users/${encodeURIComponent(userId)}`, data),
+  delete: (userId) => api.delete(`/admin/users/${encodeURIComponent(userId)}`),
+  toggleDisable: (userId, disabled) => api.patch(`/admin/users/${encodeURIComponent(userId)}/toggle`, { disabled }),
+  batchImport: (data) => api.post('/admin/users/batch-import', data),
+}
+
+// ============================================================
+// 数据导出 API (CSV/Excel/JSON)
+// ============================================================
+export const exportApi = {
+  evaluations: (params) => api.get('/export/evaluations', { params, responseType: params.format === 'json' ? 'json' : 'blob' }),
+  auditLogs: (params) => api.get('/export/audit-logs', { params, responseType: params.format === 'json' ? 'json' : 'blob' }),
+  analytics: (params) => api.get('/export/analytics', { params, responseType: params.format === 'json' ? 'json' : 'blob' }),
+  notifications: (params) => api.get('/export/notifications', { params, responseType: params.format === 'json' ? 'json' : 'blob' }),
+}
+
+// ============================================================
+// 对话式 HR 洞察 API (NL → SQL → 图表建议)
+// ============================================================
+export const insightsApi = {
+  query: (data) => api.post('/insights/query', data),
+  dashboard: (params) => api.get('/insights/dashboard', { params }),
+  export: (params) => api.get('/insights/export', { params }),
 }

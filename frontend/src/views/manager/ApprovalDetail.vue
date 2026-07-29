@@ -10,34 +10,7 @@
         </div>
       </template>
 
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <h3>员工视图（建设性）</h3>
-          <p><strong>总结：</strong>{{ employeeView.summary }}</p>
-          <p><strong>优势：</strong>{{ (employeeView.strengths || []).join('；') }}</p>
-          <p><strong>下周聚焦：</strong>{{ (employeeView.next_week_focus || []).join('；') }}</p>
-        </el-col>
-        <el-col :span="12">
-          <h3>管理视图（尖锐诊断）</h3>
-          <p><strong>总体判断：</strong>{{ managerView.harsh_assessment }}</p>
-          <p><strong>ROI 分析：</strong>{{ managerView.roi_analysis }}</p>
-          <p><strong>调配建议：</strong>{{ managerView.reallocation_suggestion }}</p>
-          <p><strong>隐藏问题：</strong>{{ (managerView.hidden_issues || []).join('；') }}</p>
-        </el-col>
-      </el-row>
-
-      <el-divider />
-
-      <h3>风险标记</h3>
-      <el-alert
-        v-for="(flag, idx) in managerView.risk_flags || []"
-        :key="idx"
-        :title="`${flag.level} - ${flag.category}`"
-        :description="flag.description"
-        :type="riskTagType(flag.level)"
-        show-icon
-        class="risk-alert"
-      />
+      <EvaluationDetailPanel :evaluation="evaluation" />
 
       <el-divider />
 
@@ -69,7 +42,8 @@ import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { evaluationApi } from '@/api/client'
-import { statusTagType, riskTagType } from '@/utils/evaluationStatus'
+import { statusTagType } from '@/utils/evaluationStatus'
+import EvaluationDetailPanel from '@/components/EvaluationDetailPanel.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -79,9 +53,6 @@ const loading = ref(false)
 const submitting = ref(false)
 const evaluation = ref(null)
 const comment = ref('')
-
-const employeeView = computed(() => evaluation.value?.employee_view || {})
-const managerView = computed(() => evaluation.value?.manager_view || {})
 
 const statusType = computed(() => statusTagType(evaluation.value?.status))
 
