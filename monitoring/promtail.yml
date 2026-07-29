@@ -1,0 +1,43 @@
+# Promtail 日志采集配置
+# 采集 Docker 容器 stdout/stderr → 发送到 Loki
+#
+# 用法: docker-compose.prod.yml 的 promtail 服务挂载本文件到 /etc/promtail/config.yml
+# Grafana 中添加 Loki 数据源(http://loki:3100)即可查询日志
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # 采集所有 Docker 容器日志
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    # 从容器名提取 service 标签
+    relabel_configs:
+      - source_labels: ["__meta_docker_container_name"]
+        regex: '/(.*)'
+        target_label: container_name
+      - source_labels: ["__meta_docker_container_log_stream"]
+        target_label: stream
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_service"]
+        target_label: service
+    # 仅采集 agentvalue 相关容器的日志
+    pipeline_stages:
+      # 解析 JSON 格式日志(structlog 输出)
+      - json:
+          expressions:
+            level: level
+            message: message
+            timestamp: timestamp
+            trace_id: trace_id
+      # 添加 level 标签便于过滤
+      - labels:
+          level:

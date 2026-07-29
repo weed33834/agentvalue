@@ -60,6 +60,44 @@ jobs:
             --cov-fail-under=50 \
             --ignore=tests/perf
 
+  # P1-4: 数据库迁移往返测试(upgrade → downgrade → upgrade)
+  backend-migration-test:
+    name: Backend Migration Round-trip
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install alembic aiosqlite
+      - name: Test migration round-trip
+        working-directory: backend
+        env:
+          DATABASE_URL: "sqlite+aiosqlite:///./migration_test.db"
+          AUTH_DEMO_MODE: "true"
+          JWT_SECRET_KEY: ci-test-secret-key-not-for-production
+        run: |
+          # 1. upgrade head
+          alembic upgrade head
+          # 2. downgrade -1 (回退一个版本)
+          alembic downgrade -1
+          # 3. upgrade head again (验证可重新升级)
+          alembic upgrade head
+          # 4. downgrade base (回退到初始状态)
+          alembic downgrade base
+          # 5. upgrade head (从零开始完整升级)
+          alembic upgrade head
+          echo "✅ Migration round-trip test passed"
+      - name: Cleanup
+        working-directory: backend
+        run: rm -f migration_test.db
+
   # ────────────────── 前端 ──────────────────
   frontend-lint:
     name: Frontend Lint (eslint + prettier)

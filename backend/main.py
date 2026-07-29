@@ -170,6 +170,13 @@ async def lifespan(app: FastAPI):
         set_app_state_for_graph(app.state.app_state)
     except Exception:
         pass
+    # P1-1: OpenTelemetry 分布式追踪 (降级容错：未安装/未配置时跳过)
+    try:
+        from core.tracing import setup_tracing
+        from core.database import engine as _db_engine
+        setup_tracing(app, _db_engine)
+    except Exception:
+        pass
     # 启动定时任务调度器（APScheduler, 降级容错：启动失败不影响应用）
     try:
         from core.scheduler import TaskScheduler, set_scheduler
@@ -242,6 +249,12 @@ async def lifespan(app: FastAPI):
             if _sched is not None:
                 await _sched.stop()
                 set_scheduler(None)
+        except Exception:
+            pass
+        # P1-1: 关闭 OpenTelemetry 追踪
+        try:
+            from core.tracing import shutdown_tracing
+            shutdown_tracing()
         except Exception:
             pass
         await app.state.app_state.close()

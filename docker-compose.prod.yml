@@ -144,8 +144,49 @@ services:
       - ALERT_EMAIL_TO=${ALERT_EMAIL_TO:-admin@agentvalue.ai}
     restart: unless-stopped
 
+  # P0-2: Loki 日志聚合(轻量级,与 Prometheus/Grafana 同生态)
+  # Promtail 采集容器日志 → Loki 存储 → Grafana 查询
+  loki:
+    image: grafana/loki:latest
+    container_name: agentvalue-loki
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - agentvalue_loki_data:/loki
+    ports:
+      - "3100:3100"
+    restart: unless-stopped
+
+  # P0-2: Promtail 日志采集(读取容器 stdout/stderr → 发送到 Loki)
+  promtail:
+    image: grafana/promtail:latest
+    container_name: agentvalue-promtail
+    volumes:
+      - ./monitoring/promtail.yml:/etc/promtail/config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  # P1-1: Jaeger 分布式追踪(接收 OTLP,存储 span,提供 UI 查询)
+  # 后端通过 OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317 发送 trace
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: agentvalue-jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      # 内存存储(开发/staging),生产环境应换为 Elasticsearch/Cassandra 后端
+      - MEMORY_MAX_TRACES=50000
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+    restart: unless-stopped
+
 volumes:
   agentvalue_pg_data:
   agentvalue_minio_data:
   agentvalue_prom_data:
   agentvalue_grafana_data:
+  agentvalue_loki_data:

@@ -25,6 +25,11 @@ class Settings(BaseSettings):
 
     # 数据库：默认 SQLite（异步），生产可改为 postgresql+asyncpg://...
     database_url: str = "sqlite+aiosqlite:///./agentvalue_ai.db"
+    # P0-3: 数据库连接池调优（仅 PostgreSQL 生效，SQLite 使用 NullPool）
+    db_pool_size: int = 20
+    db_max_overflow: int = 10
+    db_pool_recycle: int = 3600  # 秒，防止长连接被数据库断开
+    db_pool_pre_ping: bool = True  # 连接前检测存活，避免使用已断开的连接
 
     # 任务队列 Redis：配置后启用 RedisJobQueue,多实例共享异步评估任务状态
     # 留空则降级为 InMemoryJobQueue(单实例,测试与本地开发默认)

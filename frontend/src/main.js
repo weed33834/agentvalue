@@ -17,7 +17,30 @@ import './styles/theme.css'
 import App from './App.vue'
 import router from './router'
 
+// P1-2: Sentry 前端错误监控 (优雅降级：未安装或未配置 VITE_SENTRY_DSN 时跳过)
+const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN
+let SentryInstance = null
+if (SENTRY_DSN) {
+  try {
+    const Sentry = await import('@sentry/vue')
+    SentryInstance = Sentry
+  } catch {
+    console.warn('Sentry SDK 加载失败，降级为无错误监控')
+  }
+}
+
 const app = createApp(App)
+
+// P1-2: Sentry 初始化（绑定 app + router，启用性能追踪）
+if (SentryInstance) {
+  SentryInstance.init({
+    app,
+    dsn: SENTRY_DSN,
+    integrations: [SentryInstance.browserTracingIntegration({ router })],
+    tracesSampleRate: import.meta.env.PROD ? 0.1 : 1.0,
+    environment: import.meta.env.MODE,
+  })
+}
 
 // 图标仍全局注册(体积小,且 unplugin 按需对图标支持需额外配置)
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
@@ -26,6 +49,10 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 
 app.config.errorHandler = (err, instance, info) => {
   console.error('全局错误:', err, info)
+  // P1-2: 同时上报到 Sentry(如果已初始化)
+  if (SentryInstance) {
+    SentryInstance.captureException(err, { contexts: { vue: { info } } })
+  }
 }
 
 app.use(createPinia())
