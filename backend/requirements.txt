@@ -55,8 +55,7 @@ hvac>=2.4.0
 # H5 KMS / Vault 集成: AWS KMS Envelope Encryption (可选,启用 field_encryption_backend=aws 时需要)
 # aioboto3 原生 async,基于 aiobotocore + aiohttp
 aioboto3>=15.5.0
-# H5 KMS / Vault 集成: moto 用于 AWS KMS 单测 mock (无需生产部署)
-moto>=5.2.0
+
 # 异步邮件发送 (P7 通知系统): SMTP 未配置时降级为仅日志,不阻塞主流程
 # 未安装时 EmailService 自动降级为 no-op
 aiosmtplib>=3.0.0
@@ -86,26 +85,12 @@ ldap3>=2.9
 # 定时任务调度器 (数据留存清理 / SLA 监控 / 公平性审计 / API Key 过期检查 / 通知清理)
 apscheduler>=3.10.0
 # ====== 可选依赖 (未安装时对应功能自动降级) ======
-# 结构化日志 (未安装时降级到标准 logging)
-structlog>=24.1.0
-# 高级时间处理 (未安装时降级到标准 datetime)
-pendulum>=3.0
-# PDF 深度解析 (未安装时降级到 pypdf)
-pymupdf>=1.24
 # Anthropic Claude provider (未安装时该 provider 不可用)
 anthropic>=0.40
 # Google Gemini provider (未安装时该 provider 不可用)
 google-generativeai>=0.8
 # Ollama 本地模型 provider (未安装时该 provider 不可用)
 ollama>=0.4
-# 密码哈希增强 (未安装时降级到 bcrypt)
-passlib>=1.7
-# JWT 增强 (未安装时降级到 pyjwt)
-python-jose>=3.3
-# Cohere Rerank provider (未安装时降级到纯向量检索)
-cohere>=5.0
-# Jina Rerank provider (未安装时降级到纯向量检索)
-jina>=3.0
 # P1-1: OpenTelemetry 分布式追踪 (未安装时降级为无追踪)
 opentelemetry-api>=1.24
 opentelemetry-sdk>=1.24

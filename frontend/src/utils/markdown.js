@@ -252,4 +252,3 @@ export function renderMarkdown(text) {
   })
 }
 
-export { marked, DOMPurify, hljs, katex }

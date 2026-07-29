@@ -52,10 +52,6 @@ export const useThemeStore = defineStore('theme', () => {
     isDark.value = !isDark.value
   }
 
-  function setDark(value) {
-    isDark.value = !!value
-  }
-
   // 监听变化同步 DOM 与 localStorage
   watch(
     isDark,
@@ -73,6 +69,5 @@ export const useThemeStore = defineStore('theme', () => {
   return {
     isDark,
     toggle,
-    setDark,
   }
 })

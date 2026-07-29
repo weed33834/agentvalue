@@ -119,13 +119,10 @@ export default api
 
 export const authApi = {
   login: (payload) => api.post('/auth/login', payload),
-  register: (payload) => api.post('/auth/register', payload),
   me: () => api.get('/auth/me'),
   refresh: () => api.post('/auth/refresh'),
   logout: () => api.post('/auth/logout'),
   seedDemoUsers: () => api.post('/auth/seed-demo-users'),
-  changePassword: (payload) => api.post('/auth/change-password', payload),
-  resetPassword: (payload) => api.post('/auth/reset-password', payload),
 }
 
 export const evaluationApi = {
@@ -141,9 +138,6 @@ export const evaluationApi = {
   // HR 要求重评 (专用端点，而非绕过用 feedback)
   requireReeval: (id, payload) => api.post(`/evaluations/${id}/require-reeval`, payload),
   auditLogs: (id) => api.get(`/evaluations/${id}/audit-logs`),
-  // 视角: employee / manager / hr
-  employeeView: (id) => api.get(`/evaluations/${id}/employee-view`),
-  managerView: (id) => api.get(`/evaluations/${id}/manager-view`),
 }
 
 export const managerApi = {
@@ -257,9 +251,6 @@ export const promptAdminApi = {
   getTemplate: (name) => api.get(`/admin/prompts/${encodeURIComponent(name)}`),
   // 删除模板(级联,protected label 需先取消)
   deleteTemplate: (name) => api.delete(`/admin/prompts/${encodeURIComponent(name)}`),
-  // 版本列表
-  listVersions: (name, params) =>
-    api.get(`/admin/prompts/${encodeURIComponent(name)}/versions`, { params }),
   // 新建版本(不可变历史 + 自增版本号)
   createVersion: (name, payload) =>
     api.post(`/admin/prompts/${encodeURIComponent(name)}/versions`, payload),
@@ -328,13 +319,8 @@ export const debugAdminApi = {
 // Provider CRUD API (对标 Dify model-providers 24 端点)
 // 完整功能: Provider 模板 / 租户配置 / 凭证管理 / 模型管理 / 健康检查
 export const providerAdminApi = {
-  // Provider 模板列表(内置 + 已启用)
-  listProviders: (params) => api.get('/admin/model-providers/providers', { params }),
-  getProvider: (provider) => api.get(`/admin/model-providers/providers/${provider}`),
   // 当前工作空间 Provider 视图(template + tenant config 合并)
   getWorkspaceProviders: () => api.get('/admin/model-providers/workspaces/current/providers'),
-  getWorkspaceProvider: (provider) =>
-    api.get(`/admin/model-providers/workspaces/current/providers/${provider}`),
   // 启用/禁用 Provider
   setPreferredType: (provider, payload) =>
     api.post(`/admin/model-providers/workspaces/current/providers/${provider}/preferred-type`, payload),
@@ -402,8 +388,6 @@ export const kbAdminApi = {
   listDocs: (params) => api.get('/admin/kb/docs', { params }),
   // 创建文档(可指定 chunk_size/chunk_overlap 元信息)
   createDoc: (payload) => api.post('/admin/kb/docs', payload),
-  // 文档详情
-  getDoc: (kbId) => api.get(`/admin/kb/docs/${encodeURIComponent(kbId)}`),
   // 更新文档(标题/内容/元信息)
   updateDoc: (kbId, payload) =>
     api.put(`/admin/kb/docs/${encodeURIComponent(kbId)}`, payload),
@@ -460,9 +444,6 @@ export const customToolAdminApi = {
   create: (payload) => api.post('/admin/custom-tools', payload),
   // 详情
   get: (toolId) => api.get(`/admin/custom-tools/${encodeURIComponent(toolId)}`),
-  // 更新 (重新解析 OpenAPI)
-  update: (toolId, payload) =>
-    api.put(`/admin/custom-tools/${encodeURIComponent(toolId)}`, payload),
   // 删除
   delete: (toolId) =>
     api.delete(`/admin/custom-tools/${encodeURIComponent(toolId)}`),
@@ -485,8 +466,6 @@ export const featureFlagAdminApi = {
   list: (params) => api.get('/admin/feature-flags', { params }),
   // 创建
   create: (payload) => api.post('/admin/feature-flags', payload),
-  // 详情
-  get: (key) => api.get(`/admin/feature-flags/${encodeURIComponent(key)}`),
   // 更新 (任意字段, key 不可改)
   update: (key, payload) =>
     api.put(`/admin/feature-flags/${encodeURIComponent(key)}`, payload),
@@ -514,9 +493,6 @@ export const multiAgentAdminApi = {
   // 恢复暂停的任务 (body: {decision?, comment?})
   resume: (threadId, payload) =>
     api.post(`/admin/multi-agent/threads/${encodeURIComponent(threadId)}/resume`, payload),
-  // 查询各 Agent 产出 (artifacts + final_report)
-  getArtifacts: (threadId) =>
-    api.get(`/admin/multi-agent/threads/${encodeURIComponent(threadId)}/artifacts`),
   // 同步测试 (不进队列, 直接执行返回结果, 供前端"测试"按钮)
   test: (payload) => api.post('/admin/multi-agent/test', payload),
   // 列出所有任务 (供左侧任务列表, 可选 status 过滤)
@@ -546,11 +522,6 @@ export const workflowAdminApi = {
   // 7. 执行工作流 (body: {inputs: dict, thread_id?}, 返回 {run_id, thread_id, status, ...})
   run: (workflowId, payload) =>
     api.post(`/admin/workflows/${encodeURIComponent(workflowId)}/run`, payload),
-  // 8. 查询运行状态
-  getRun: (runId) => api.get(`/admin/workflows/runs/${encodeURIComponent(runId)}`),
-  // 9. 节点级执行状态 (供前端时间线展示)
-  getRunNodeStates: (runId) =>
-    api.get(`/admin/workflows/runs/${encodeURIComponent(runId)}/node-states`),
   // 10. 工作流的运行历史 (按创建时间倒序)
   listRuns: (workflowId, params) =>
     api.get(`/admin/workflows/${encodeURIComponent(workflowId)}/runs`, { params }),
@@ -581,8 +552,6 @@ export const chatApi = {
   // 注意：发送消息走 SSE 流式，用 utils/sse.js 的 streamSSE，不在此处
 
   // ---- P0 新增 ----
-  // P0-2: 重新生成最后一条 assistant 消息（走 SSE，URL 供 streamSSE 使用）
-  regenerateUrl: (sessionId) => `/chat/sessions/${encodeURIComponent(sessionId)}/regenerate`,
   // P0-3: 删除单条消息（含 parts 级联）
   deleteMessage: (sessionId, messageId) =>
     api.delete(`/chat/sessions/${encodeURIComponent(sessionId)}/messages/${encodeURIComponent(messageId)}`),
@@ -600,9 +569,6 @@ export const chatApi = {
   // 生成会话分享链接：返回 {share_url, share_id}
   shareSession: (sessionId) =>
     api.post(`/chat/sessions/${encodeURIComponent(sessionId)}/share`),
-  // 通过 share_id 只读访问会话（公开端点，无需认证）
-  getSharedSession: (shareId) =>
-    api.get(`/chat/sessions/shared/${encodeURIComponent(shareId)}`),
   // 从指定消息分叉出新会话：返回新会话 dict
   forkSession: (sessionId, fromMessageId, title) =>
     api.post(`/chat/sessions/${encodeURIComponent(sessionId)}/fork`, {
@@ -619,15 +585,6 @@ export const chatApi = {
   // 导出偏好数据集 (format: jsonl | csv)
   exportDataset: (format = 'jsonl') =>
     api.get('/chat/feedback/dataset', { params: { format }, responseType: 'blob' }),
-}
-
-// ============================================================
-// Evidence 引用 API（暴露 EvidenceRef 查询）
-// ============================================================
-export const evidenceApi = {
-  // 查询某评估的所有证据引用（按 dimension 分组）
-  list: (evaluationId) =>
-    api.get(`/evaluations/${encodeURIComponent(evaluationId)}/evidence`),
 }
 
 // ============================================================
@@ -657,10 +614,6 @@ export const templateApi = {
     api.put(`/presets/templates/${encodeURIComponent(id)}`, data),
   delete: (id) =>
     api.delete(`/presets/templates/${encodeURIComponent(id)}`),
-  instantiate: (id, variables) =>
-    api.post(`/presets/templates/${encodeURIComponent(id)}/instantiate`, {
-      variables,
-    }),
 }
 
 // ============================================================
@@ -669,7 +622,6 @@ export const templateApi = {
 // ============================================================
 export const presetApi = {
   list: (category) => api.get('/presets/agents', { params: { category } }),
-  get: (id) => api.get(`/presets/agents/${encodeURIComponent(id)}`),
   create: (data) => api.post('/presets/agents', data),
   update: (id, data) =>
     api.put(`/presets/agents/${encodeURIComponent(id)}`, data),
@@ -683,12 +635,6 @@ export const presetApi = {
 // ============================================================
 export const artifactApi = {
   create: (data) => api.post('/artifacts', data),
-  listBySession: (sessionId) => api.get(`/artifacts/session/${sessionId}`),
-  get: (id) => api.get(`/artifacts/${id}`),
-  update: (id, data) => api.put(`/artifacts/${id}`, data),
-  delete: (id) => api.delete(`/artifacts/${id}`),
-  fork: (id) => api.post(`/artifacts/${id}/fork`),
-  extract: (text) => api.post('/artifacts/extract', { text }),
 }
 
 // ============================================================
@@ -698,8 +644,6 @@ export const artifactApi = {
 export const skillAdminApi = {
   // 列表 (支持 category 过滤)
   list: (params) => api.get('/skills', { params }),
-  // 内置技能列表
-  listBuiltin: () => api.get('/skills/builtin'),
   // 详情
   get: (skillId) => api.get(`/skills/${encodeURIComponent(skillId)}`),
   // 创建
@@ -710,16 +654,12 @@ export const skillAdminApi = {
   delete: (skillId) => api.delete(`/skills/${encodeURIComponent(skillId)}`),
   // 执行测试
   execute: (skillId, data) => api.post(`/skills/${encodeURIComponent(skillId)}/execute`, data),
-  // 标记使用
-  use: (skillId) => api.post(`/skills/${encodeURIComponent(skillId)}/use`),
   // AI 自动生成 Skill
   generate: (data) => api.post('/skills/generate', data),
   // 导出 Skill
   export: (skillId) => api.get(`/skills/${encodeURIComponent(skillId)}/export`),
   // 导入 Skill
   import: (data) => api.post('/skills/import', data),
-  // 批量导入
-  batchImport: (data) => api.post('/skills/batch-import', data),
 }
 
 // ============================================================
@@ -746,8 +686,6 @@ export const apiKeyAdminApi = {
   create: (data) => api.post('/admin/api-keys', data),
   // 列表 (分页)
   list: (params) => api.get('/admin/api-keys', { params }),
-  // 详情
-  get: (keyId) => api.get(`/admin/api-keys/${encodeURIComponent(keyId)}`),
   // 更新 (name/scopes/rate_limit)
   update: (keyId, data) => api.put(`/admin/api-keys/${encodeURIComponent(keyId)}`, data),
   // 吊销 (soft delete)
@@ -771,8 +709,6 @@ export const notificationApi = {
   markRead: (notificationId) => api.put(`/notifications/${encodeURIComponent(notificationId)}/read`),
   // 全部标记已读
   markAllRead: () => api.put('/notifications/read-all'),
-  // 删除通知
-  delete: (notificationId) => api.delete(`/notifications/${encodeURIComponent(notificationId)}`),
 }
 
 // ============================================================
@@ -780,7 +716,6 @@ export const notificationApi = {
 // ============================================================
 export const userAdminApi = {
   list: (params) => api.get('/admin/users', { params }),
-  get: (userId) => api.get(`/admin/users/${encodeURIComponent(userId)}`),
   create: (data) => api.post('/admin/users', data),
   update: (userId, data) => api.put(`/admin/users/${encodeURIComponent(userId)}`, data),
   delete: (userId) => api.delete(`/admin/users/${encodeURIComponent(userId)}`),
@@ -799,13 +734,4 @@ export const exportApi = {
   auditLogs: (params) => api.get('/export/audit-logs', { params, responseType: params.format === 'json' ? 'json' : 'blob' }),
   analytics: (params) => api.get('/export/analytics', { params, responseType: params.format === 'json' ? 'json' : 'blob' }),
   notifications: (params) => api.get('/export/notifications', { params, responseType: params.format === 'json' ? 'json' : 'blob' }),
-}
-
-// ============================================================
-// 对话式 HR 洞察 API (NL → SQL → 图表建议)
-// ============================================================
-export const insightsApi = {
-  query: (data) => api.post('/insights/query', data),
-  dashboard: (period, params) => api.get(`/insights/dashboard/${encodeURIComponent(period)}`, { params }),
-  export: (data) => api.post('/insights/export', data),
 }
