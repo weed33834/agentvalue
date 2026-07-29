@@ -369,14 +369,51 @@ def _make_data_cleaning(multimodal_cleaner: MultimodalCleaner, input_guard: Inpu
     return data_cleaning
 
 
+async def _hybrid_kb_search(query: str, top_k: int = 3) -> list:
+    """混合检索知识库 (向量+BM25+RRF 融合)。
+
+    优先使用 HybridSearchService (已配置时)，降级为 toolkit 纯向量检索。
+    """
+    # 尝试使用 HybridSearchService
+    if _app_state_ref is not None:
+        store = getattr(_app_state_ref, "company_kb", None)
+        settings = getattr(_app_state_ref, "settings", None)
+        if store and settings:
+            try:
+                from services.hybrid_search_service import HybridSearchService
+
+                service = HybridSearchService(store, settings)
+                results = await service.search(query=query, top_k=top_k)
+                if results:
+                    return [
+                        {"content": r.get("content", ""), "metadata": r.get("metadata", {})}
+                        for r in results
+                    ]
+            except Exception:
+                logger.debug("HybridSearchService 不可用，降级为纯向量检索")
+
+    # 降级：纯向量检索
+    from agent.tools import AgentToolkit
+
+    toolkit = AgentToolkit(_app_state_ref) if _app_state_ref else None
+    if toolkit:
+        return await toolkit.query_company_kb(query=query, top_k=top_k)
+    return []
+
+
 def _make_retrieve_context(toolkit: AgentToolkit):
-    """构建 retrieve_context 节点(普通版与 interrupt 版共享)。"""
+    """构建 retrieve_context 节点(普通版与 interrupt 版共享)。
+
+    知识库检索优先使用 HybridSearchService (向量+BM25+RRF 融合)，
+    降级为纯向量检索 (toolkit.query_company_kb)。
+    """
 
     async def retrieve_context(state: EvaluationState) -> EvaluationState:
         """获取员工历史记忆与公司知识库"""
         with _node_trace("retrieve_context", state):
             if state.get("error"):
                 return state
+            query = f"员工评估标准 {state['employee_id']} {state['period']}"
             # P1-N1：并发获取历史与 KB，return_exceptions=True 防止单点失败拖垮整体；
             # 任一失败降级为空，不阻断评估主流程
             history_result, kb_result = await asyncio.gather(
@@ -385,10 +422,7 @@ def _make_retrieve_context(toolkit: AgentToolkit):
                     period=state["period"],
                     limit=5,
                 ),
-                toolkit.query_company_kb(
-                    query=f"员工评估标准 {state['employee_id']} {state['period']}",
-                    top_k=3,
-                ),
+                _hybrid_kb_search(query, top_k=3),
                 return_exceptions=True,
             )
             if isinstance(history_result, Exception):
@@ -403,7 +437,7 @@ def _make_retrieve_context(toolkit: AgentToolkit):
                 kb = kb_result
             # P2-2: 若启用 rerank (rerank_provider != "dummy"), 对 KB 结果二次重排
             kb = await _rerank_kb_if_enabled(
-                query=f"员工评估标准 {state['employee_id']} {state['period']}",
+                query=query,
                 documents=kb,
             )
             return {

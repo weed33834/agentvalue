@@ -2190,7 +2190,10 @@ async def create_kb_doc(
     session: AsyncSession = Depends(get_db),
     role: Role = Depends(require_role(Role.HR, Role.ADMIN)),
 ):
-    """创建知识库文档（仅 HR/ADMIN）"""
+    """创建知识库文档（仅 HR/ADMIN）
+
+    同时写入关系数据库和向量库(ChromaDB)，保证检索可用。
+    """
     existing = await eval_service.get_kb_doc(payload.kb_id)
     if existing:
         raise HTTPException(
@@ -2212,6 +2215,14 @@ async def create_kb_doc(
             "metadata": payload.metadata,
         }
     )
+    # 同步写入向量库（与 admin/kb.py 保持一致，避免双路径断链）
+    try:
+        from api.admin.kb import _index_doc
+        app_state = request.app.state.app_state
+        store = app_state.company_kb
+        await _index_doc(store, doc, app_state.settings)
+    except Exception:
+        logger.exception("向量库索引失败 kb_id=%s", doc.kb_id)
     await audit_service.log(
         actor_id=await get_current_user_id(request),
         action="create_kb_doc",
@@ -2271,12 +2282,23 @@ async def delete_kb_doc(
     session: AsyncSession = Depends(get_db),
     role: Role = Depends(require_role(Role.ADMIN)),
 ):
-    """删除知识库文档（仅 ADMIN）"""
+    """删除知识库文档（仅 ADMIN）
+
+    同时删除关系数据库记录和向量库索引。
+    """
     deleted = await eval_service.delete_kb_doc(kb_id)
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="知识库文档不存在"
         )
+    # 同步删除向量库索引
+    try:
+        from api.admin.kb import _delete_doc_vectors
+        app_state = request.app.state.app_state
+        store = app_state.company_kb
+        await _delete_doc_vectors(store, kb_id)
+    except Exception:
+        logger.exception("向量库删除失败 kb_id=%s", kb_id)
     await audit_service.log(
         actor_id=await get_current_user_id(request),
         action="delete_kb_doc",

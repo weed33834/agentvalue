@@ -98,7 +98,9 @@ async def login(
     except ValueError:
         role = Role.EMPLOYEE
 
-    token = await create_access_token_async(user.user_id, role.value, name=user.name)
+    token = await create_access_token_async(
+        user.user_id, role.value, name=user.name, tenant_id=user.tenant_id
+    )
     await audit_service.log(
         actor_id=user.user_id,
         action="login_success",
@@ -162,7 +164,9 @@ async def register(
     except ValueError:
         role = Role.EMPLOYEE
 
-    token = await create_access_token_async(user.user_id, role.value, name=user.name)
+    token = await create_access_token_async(
+        user.user_id, role.value, name=user.name, tenant_id=user.tenant_id
+    )
     await audit_service.log(
         actor_id=user.user_id,
         action="register",

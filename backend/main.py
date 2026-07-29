@@ -175,9 +175,23 @@ async def lifespan(app: FastAPI):
         await _kb_sync_service._register_scheduler()
     except Exception:
         pass
+    # 注册事件总线订阅者（webhook 事件 → 站内通知）
+    try:
+        from core.event_subscribers import register_event_subscribers
+
+        register_event_subscribers()
+    except Exception:
+        pass
     try:
         yield
     finally:
+        # 注销事件总线订阅者
+        try:
+            from core.event_subscribers import unregister_event_subscribers
+
+            unregister_event_subscribers()
+        except Exception:
+            pass
         # 停止定时任务调度器
         try:
             from core.scheduler import get_scheduler, set_scheduler

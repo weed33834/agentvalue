@@ -108,8 +108,18 @@ def create_access_token(
     role: str,
     name: str = "",
     expires_minutes: Optional[int] = None,
+    tenant_id: Optional[str] = None,
 ) -> str:
-    """生成 JWT access token"""
+    """生成 JWT access token
+
+    Args:
+        user_id: 用户唯一标识
+        role: 角色 (employee/manager/hr/admin)
+        name: 用户名
+        expires_minutes: 过期时间（分钟），默认使用配置
+        tenant_id: 租户 ID，写入 JWT 后 TenantMiddleware 可从 token 提取，
+                   无需客户端传 x-tenant-id header
+    """
     settings = get_settings()
     secret_key = _ensure_secret_key(settings)
     expire = datetime.now(timezone.utc) + timedelta(
@@ -124,6 +134,9 @@ def create_access_token(
         # jti: token 唯一标识,用于主动吊销(登出/密码泄露应急)
         "jti": str(uuid.uuid4()),
     }
+    # tenant_id: 写入 JWT claim，TenantMiddleware 优先从 token 提取（可信来源）
+    if tenant_id:
+        payload["tenant_id"] = tenant_id
     # P0-2：配置了 audience/issuer 时写入 aud/iss claim，decode 端会做校验，
     # 防 token 跨服务复用。未配置时不写（向后兼容）。
     if settings.jwt_audience:
@@ -169,12 +182,13 @@ async def create_access_token_async(
     role: str,
     name: str = "",
     expires_minutes: Optional[int] = None,
+    tenant_id: Optional[str] = None,
 ) -> str:
     """create_access_token 的异步版本, 用 asyncio.to_thread 包装 jwt.encode 避免阻塞事件循环"""
     import asyncio
 
     return await asyncio.to_thread(
-        create_access_token, user_id, role, name, expires_minutes
+        create_access_token, user_id, role, name, expires_minutes, tenant_id
     )
 
 
