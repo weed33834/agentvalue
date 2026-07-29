@@ -300,6 +300,20 @@ const routes = [
         component: () => import('@/views/admin/AdminApiKeys.vue'),
         meta: { title: 'API Key 管理' },
       },
+      {
+        // 用户管理 (Admin CRUD + 批量导入, 仅 admin)
+        path: 'users',
+        name: 'AdminUsers',
+        component: () => import('@/views/admin/AdminUsers.vue'),
+        meta: { title: '用户管理' },
+      },
+      {
+        // 数据导出 (CSV/Excel/JSON, admin/hr 可访问)
+        path: 'export',
+        name: 'AdminExport',
+        component: () => import('@/views/admin/AdminExport.vue'),
+        meta: { title: '数据导出', role: ['admin', 'hr'] },
+      },
     ],
   },
   {
