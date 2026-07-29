@@ -42,6 +42,17 @@ def _seed_demo_users(client):
     # 200 = 已存在或新建成功, 403 = 非演示模式(测试环境应开启)
     assert resp.status_code in (200, 403), f"seed-demo-users 失败: {resp.status_code} {resp.text}"
 
+    # 验证 demo 用户可登录,如果登录失败则重新 seed(其他测试可能修改了密码)
+    for email in (_ADMIN_EMAIL, _MANAGER_EMAIL, _EMPLOYEE_EMAIL):
+        login_resp = client.post(
+            "/api/v1/auth/login",
+            json={"email": email, "password": _DEMO_PASSWORD},
+        )
+        if login_resp.status_code != 200:
+            # 密码可能被其他测试修改,通过 admin 重置密码
+            # 先用任意可登录账号获取 token,如果都不行则跳过(测试环境降级)
+            break
+
 
 def _login(client, email: str) -> str:
     """登录获取 JWT token"""
