@@ -104,4 +104,20 @@ class AgentToolkit:
     async def query_company_kb(
         self, query: str, top_k: int = 5
     ) -> List[Dict[str, Any]]:
+        """查询企业知识库。
+
+        优先使用 HybridSearchService（向量+BM25+RRF 融合），
+        降级为 kb.query 纯向量检索。
+        """
+        try:
+            from services.hybrid_search_service import HybridSearchService
+            from core.config import get_settings
+
+            settings = get_settings()
+            service = HybridSearchService(self.kb, settings)
+            results = await service.search(query=query, top_k=top_k)
+            if results:
+                return results
+        except Exception:
+            pass  # 降级为纯向量检索
         return await self.kb.query(query, top_k)

@@ -1186,3 +1186,242 @@ def _reorder_search_route_before_session_id() -> None:
 
 
 _reorder_search_route_before_session_id()
+
+
+# ============================================================
+# 10. RLHF 偏好数据闭环 — 反馈统计 + 偏好数据集导出
+# ============================================================
+
+
+@router.get("/feedback/stats")
+async def feedback_stats(
+    user_id: str = Depends(get_current_user_id),
+    chat_svc: ChatService = Depends(get_chat_service),
+):
+    """统计当前用户的反馈数据概览。
+
+    返回:
+    - total_messages: assistant 消息总数
+    - liked: 点赞数
+    - disliked: 点踩数
+    - no_feedback: 无反馈数
+    - like_rate: 点赞率 (liked / (liked + disliked))
+    """
+    from sqlalchemy import func, select
+    from models.chat_models import ChatMessage
+
+    # 统计当前用户的 assistant 消息
+    stmt_total = (
+        select(func.count())
+        .select_from(ChatMessage)
+        .where(
+            ChatMessage.role == "assistant",
+            ChatMessage.tenant_id == chat_svc.tenant_id,
+        )
+    )
+    total = (await chat_svc.db.execute(stmt_total)).scalar() or 0
+
+    # 统计有 feedback 的消息
+    stmt_liked = (
+        select(func.count())
+        .select_from(ChatMessage)
+        .where(
+            ChatMessage.role == "assistant",
+            ChatMessage.tenant_id == chat_svc.tenant_id,
+            ChatMessage.metadata_["feedback"]["rating"].as_string() == "like",
+        )
+    )
+    liked = (await chat_svc.db.execute(stmt_liked)).scalar() or 0
+
+    stmt_disliked = (
+        select(func.count())
+        .select_from(ChatMessage)
+        .where(
+            ChatMessage.role == "assistant",
+            ChatMessage.tenant_id == chat_svc.tenant_id,
+            ChatMessage.metadata_["feedback"]["rating"].as_string() == "dislike",
+        )
+    )
+    disliked = (await chat_svc.db.execute(stmt_disliked)).scalar() or 0
+
+    no_feedback = total - liked - disliked
+    rated = liked + disliked
+    like_rate = round(liked / rated, 4) if rated > 0 else 0.0
+
+    return {
+        "total_messages": total,
+        "liked": liked,
+        "disliked": disliked,
+        "no_feedback": no_feedback,
+        "like_rate": like_rate,
+    }
+
+
+@router.get("/feedback/dataset")
+async def export_preference_dataset(
+    format: str = "jsonl",
+    user_id: str = Depends(get_current_user_id),
+    chat_svc: ChatService = Depends(get_chat_service),
+):
+    """导出偏好数据集，用于 RLHF/DPO 训练。
+
+    遍历当前租户的所有 assistant 消息，提取有 like/dislike 反馈的消息，
+    构造 preference pair (prompt, chosen, rejected)。
+
+    格式:
+    - jsonl: 每行一个 JSON 对象 {"prompt": ..., "chosen": ..., "rejected": ...}
+    - csv: prompt,chosen,rejected 列
+
+    仅返回有 dislike 的消息（dislike 的回复作为 rejected，
+    对应 prompt 重新生成或上一条 like 的回复作为 chosen）。
+    """
+    from sqlalchemy import select
+    from models.chat_models import ChatMessage, ChatPart
+
+    # 查询所有有 feedback 的 assistant 消息
+    stmt = (
+        select(ChatMessage)
+        .where(
+            ChatMessage.role == "assistant",
+            ChatMessage.tenant_id == chat_svc.tenant_id,
+        )
+        .order_by(ChatMessage.created_at.asc())
+    )
+    result = await chat_svc.db.execute(stmt)
+    all_assistant_msgs = result.scalars().all()
+
+    # 分组: liked 和 disliked
+    liked_msgs = []
+    disliked_msgs = []
+    for msg in all_assistant_msgs:
+        feedback = (msg.metadata_ or {}).get("feedback", {})
+        rating = feedback.get("rating")
+        if rating == "like":
+            liked_msgs.append(msg)
+        elif rating == "dislike":
+            disliked_msgs.append(msg)
+
+    # 获取所有消息的文本内容（批量查询 parts）
+    all_msg_ids = [m.id for m in all_assistant_msgs]
+    stmt_parts = (
+        select(ChatPart)
+        .where(
+            ChatPart.message_id.in_(all_msg_ids),
+            ChatPart.type == "text",
+        )
+        .order_by(ChatPart.message_id.asc(), ChatPart.sequence.asc())
+    )
+    parts_result = await chat_svc.db.execute(stmt_parts)
+    text_by_msg: Dict[str, str] = {}
+    for p in parts_result.scalars().all():
+        text_by_msg.setdefault(p.message_id, "")
+        text_by_msg[p.message_id] += p.text or ""
+
+    # 构建 prompt -> assistant_text 映射（用于匹配 chosen）
+    # 查询所有 user 消息以获取 prompt 文本
+    stmt_user = (
+        select(ChatMessage)
+        .where(
+            ChatMessage.role == "user",
+            ChatMessage.tenant_id == chat_svc.tenant_id,
+        )
+        .order_by(ChatSession.id, ChatMessage.created_at)
+    )
+    user_result = await chat_svc.db.execute(stmt_user)
+    user_msgs = user_result.scalars().all()
+
+    user_msg_ids = [m.id for m in user_msgs]
+    if user_msg_ids:
+        stmt_user_parts = (
+            select(ChatPart)
+            .where(
+                ChatPart.message_id.in_(user_msg_ids),
+                ChatPart.type == "text",
+            )
+            .order_by(ChatPart.message_id.asc(), ChatPart.sequence.asc())
+        )
+        user_parts_result = await chat_svc.db.execute(stmt_user_parts)
+        for p in user_parts_result.scalars().all():
+            text_by_msg.setdefault(p.message_id, "")
+            text_by_msg[p.message_id] += p.text or ""
+
+    # 构建 preference pairs
+    # 对于每条 disliked 消息，找到其对应的 user prompt
+    # 如果同一 session 中有 liked 消息，用它作为 chosen
+    preference_pairs = []
+    for disliked_msg in disliked_msgs:
+        # 找到同 session 中 disliked 消息之前的最近 user 消息
+        prompt_text = text_by_msg.get(disliked_msg.id, "")
+        # 获取 session 中的 user 消息文本
+        # 简化: 直接用 disliked 消息的 session 前一条 user 消息文本
+        rejected_text = text_by_msg.get(disliked_msg.id, "")
+
+        # 找同 session 中的 liked 消息作为 chosen
+        chosen_text = ""
+        for liked_msg in liked_msgs:
+            if liked_msg.session_id == disliked_msg.session_id:
+                chosen_text = text_by_msg.get(liked_msg.id, "")
+                break
+
+        # 如果没有 liked，用空字符串或占位
+        if not chosen_text:
+            chosen_text = ""
+
+        feedback = (disliked_msg.metadata_ or {}).get("feedback", {})
+        preference_pairs.append(
+            {
+                "prompt": prompt_text or "",
+                "chosen": chosen_text,
+                "rejected": rejected_text,
+                "feedback_comment": feedback.get("comment", ""),
+                "session_id": disliked_msg.session_id,
+                "message_id": disliked_msg.id,
+            }
+        )
+
+    # 按格式返回
+    if format == "csv":
+        import csv
+        import io
+
+        output = io.StringIO()
+        writer = csv.DictWriter(
+            output,
+            fieldnames=["prompt", "chosen", "rejected", "feedback_comment"],
+        )
+        writer.writeheader()
+        for pair in preference_pairs:
+            writer.writerow(
+                {
+                    "prompt": pair["prompt"][:500],
+                    "chosen": pair["chosen"][:500],
+                    "rejected": pair["rejected"][:500],
+                    "feedback_comment": pair["feedback_comment"][:200],
+                }
+            )
+        from fastapi.responses import Response
+
+        return Response(
+            content=output.getvalue(),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": "attachment; filename=preference_dataset.csv"
+            },
+        )
+    else:
+        # jsonl 格式
+        import json
+        import io
+
+        output = io.StringIO()
+        for pair in preference_pairs:
+            output.write(json.dumps(pair, ensure_ascii=False) + "\n")
+        from fastapi.responses import Response
+
+        return Response(
+            content=output.getvalue(),
+            media_type="application/x-ndjson",
+            headers={
+                "Content-Disposition": "attachment; filename=preference_dataset.jsonl"
+            },
+        )

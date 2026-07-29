@@ -64,7 +64,7 @@ docker: ## 用 docker-compose 启动全部服务
 	docker compose up -d --build
 
 docker-prod: ## 用生产配置启动
-	docker compose -f docker-compose.prod.yml up -d --build
+	docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
 docker-down: ## 停止 docker-compose 服务
 	docker compose down

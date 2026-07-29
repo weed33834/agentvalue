@@ -176,6 +176,10 @@
             <el-icon><Download /></el-icon>
             <span>数据导出</span>
           </el-menu-item>
+          <el-menu-item index="/admin/rlhf">
+            <el-icon><TrendCharts /></el-icon>
+            <span>RLHF 反馈</span>
+          </el-menu-item>
         </template>
 
         <el-menu-item aria-label="退出登录" @click="handleLogout">

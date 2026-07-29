@@ -402,10 +402,14 @@ async def _handle_custom_event(
 
         bus = get_event_bus()
         channel = f"webhook:custom:{hook_id}"
-        await bus.publish(
-            channel,
-            {"event_type": event_type, "payload": payload, "extra": extra},
-        )
+        event_data = {
+            "event_type": event_type,
+            "payload": payload,
+            "extra": extra,
+        }
+        await bus.publish(channel, event_data)
+        # 同时发布到通用 webhook:custom 频道，确保通用订阅者也能收到
+        await bus.publish("webhook:custom", event_data)
         logger.info(
             "自定义 webhook 已转发到事件总线 channel=%s event_type=%s",
             channel,
@@ -480,7 +484,10 @@ async def feishu_webhook(
     event_type = header.get("event_type", payload.get("type", "unknown"))
     event_id = header.get("event_id", str(uuid.uuid4()))
 
-    tenant_id = get_current_tenant()
+    tenant_id = (
+        request.headers.get("X-Tenant-Id")
+        or get_current_tenant()
+    )
 
     # 异步处理(不阻塞响应)
     _spawn_task(
@@ -540,7 +547,10 @@ async def gitlab_webhook(
 
     event_type = x_gitlab_event or payload.get("object_kind", "unknown")
 
-    tenant_id = get_current_tenant()
+    tenant_id = (
+        request.headers.get("X-Tenant-Id")
+        or get_current_tenant()
+    )
 
     # 异步处理(不阻塞响应)
     _spawn_task(
@@ -608,7 +618,10 @@ async def custom_webhook(
 
     event_type = payload.get("event_type", payload.get("type", "unknown"))
 
-    tenant_id = get_current_tenant()
+    tenant_id = (
+        request.headers.get("X-Tenant-Id")
+        or get_current_tenant()
+    )
 
     # 异步处理(不阻塞响应)
     _spawn_task(

@@ -388,7 +388,19 @@ async def test_retrieval(
     tenant_id = payload.tenant_id or get_current_tenant()
     store = app_state.get_kb_store(tenant_id)
     try:
-        results = await store.query(payload.query, top_k=payload.top_k)
+        # 优先使用混合检索（向量+BM25+RRF 融合），与评估流水线保持一致
+        try:
+            from services.hybrid_search_service import HybridSearchService
+            from core.config import get_settings
+
+            settings = get_settings()
+            hybrid_service = HybridSearchService(store, settings)
+            results = await hybrid_service.search(
+                query=payload.query, top_k=payload.top_k
+            )
+        except Exception:
+            # 降级为纯向量检索
+            results = await store.query(payload.query, top_k=payload.top_k)
     except Exception as e:
         logger.exception("检索测试台查询失败")
         raise HTTPException(

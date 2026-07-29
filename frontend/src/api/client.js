@@ -603,6 +603,13 @@ export const chatApi = {
   // 停止当前会话的 SSE 流式生成
   stop: (sessionId) =>
     api.post(`/chat/sessions/${encodeURIComponent(sessionId)}/stop`),
+
+  // ---- RLHF 偏好数据闭环 ----
+  // 反馈统计概览（点赞/点踩/无反馈数量 + 点赞率）
+  feedbackStats: () => api.get('/chat/feedback/stats'),
+  // 导出偏好数据集 (format: jsonl | csv)
+  exportDataset: (format = 'jsonl') =>
+    api.get('/chat/feedback/dataset', { params: { format }, responseType: 'blob' }),
 }
 
 // ============================================================

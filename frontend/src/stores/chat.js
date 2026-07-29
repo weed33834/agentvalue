@@ -81,6 +81,7 @@ export const useChatStore = defineStore('chat', () => {
           : null,
         // 从 metadata_ 加载反馈与延迟
         feedback: m.metadata?.feedback?.rating || null,
+        feedbackComment: m.metadata?.feedback?.comment || '',
         latency: m.metadata?.latency || null,
         createdAt: m.created_at,
       }))
@@ -437,14 +438,19 @@ export const useChatStore = defineStore('chat', () => {
   // P0-8: 点赞/点踩反馈
   // ============================================================
 
-  async function sendFeedback(message, rating) {
+  async function sendFeedback(message, rating, comment = '') {
     if (!currentSession.value) return
     try {
-      await chatApi.sendFeedback(currentSession.value.id, message.id, { rating })
+      await chatApi.sendFeedback(currentSession.value.id, message.id, { rating, comment })
       // 更新本地状态
       const msg = messages.value.find((m) => m.id === message.id)
-      if (msg) msg.feedback = rating
-      ElMessage.success(rating === 'like' ? '已点赞' : '已点踩')
+      if (msg) {
+        msg.feedback = rating
+        msg.feedbackComment = comment || ''
+      }
+      if (rating) {
+        ElMessage.success(rating === 'like' ? '已点赞' : '已点踩')
+      }
     } catch (e) {
       console.error('反馈失败:', e)
       ElMessage.error('反馈提交失败')

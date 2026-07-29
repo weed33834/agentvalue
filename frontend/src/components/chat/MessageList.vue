@@ -51,7 +51,7 @@ watch(
       @regenerate="$emit('regenerate')"
       @edit="(msg, text) => $emit('edit', msg, text)"
       @retry="$emit('retry')"
-      @feedback="(msg, rating) => $emit('feedback', msg, rating)"
+      @feedback="(msg, rating, comment) => $emit('feedback', msg, rating, comment)"
       @fork="(msg) => $emit('fork', msg)"
     />
   </div>

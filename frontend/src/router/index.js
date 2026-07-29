@@ -314,6 +314,13 @@ const routes = [
         component: () => import('@/views/admin/AdminExport.vue'),
         meta: { title: '数据导出', role: ['admin', 'hr'] },
       },
+      {
+        // RLHF 偏好数据闭环 (反馈统计 + 数据集导出)
+        path: 'rlhf',
+        name: 'AdminRLHF',
+        component: () => import('@/views/admin/AdminRLHF.vue'),
+        meta: { title: 'RLHF 反馈管理' },
+      },
     ],
   },
   {

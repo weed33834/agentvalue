@@ -114,10 +114,26 @@ const latency = computed(() => {
 
 // ---- 反馈 ----
 const feedback = computed(() => props.message.feedback || null)
+const showFeedbackDialog = ref(false)
+const feedbackRating = ref(null)
+const feedbackComment = ref('')
 
 function onFeedback(rating) {
   const newRating = feedback.value === rating ? null : rating
-  emit('feedback', props.message, newRating)
+  if (newRating === null) {
+    // 取消反馈
+    emit('feedback', props.message, null, '')
+  } else {
+    // 打开反馈对话框收集 comment
+    feedbackRating.value = newRating
+    feedbackComment.value = (props.message.feedbackComment) || ''
+    showFeedbackDialog.value = true
+  }
+}
+
+function submitFeedback() {
+  emit('feedback', props.message, feedbackRating.value, feedbackComment.value)
+  showFeedbackDialog.value = false
 }
 
 // ---- 从此分叉 ----
@@ -601,6 +617,26 @@ onMounted(() => {
         </template>
       </div>
     </div>
+
+    <!-- RLHF 反馈对话框 -->
+    <el-dialog v-model="showFeedbackDialog" :title="feedbackRating === 'like' ? '点赞反馈' : '点踩反馈'" width="400px" append-to-body>
+      <el-form label-position="top">
+        <el-form-item :label="feedbackRating === 'like' ? '您觉得好在哪里？' : '您觉得哪里需要改进？'">
+          <el-input
+            v-model="feedbackComment"
+            type="textarea"
+            :rows="3"
+            placeholder="补充说明（可选），用于优化模型输出质量"
+            maxlength="500"
+            show-word-limit
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showFeedbackDialog = false">取消</el-button>
+        <el-button type="primary" @click="submitFeedback">提交</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
