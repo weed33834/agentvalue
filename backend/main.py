@@ -3,9 +3,11 @@ FastAPI 应用入口
 """
 
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -97,6 +99,11 @@ from api.auth_routes import router as auth_router  # noqa: E402
 from api.analytics_routes import router as analytics_router  # noqa: E402
 from api.middleware import ApiKeyMiddleware, TenantMiddleware  # noqa: E402
 from api.routes import router  # noqa: E402
+# P0 安全加固: 安全响应头 + 分布式锁 + API 幂等性
+from core.security_middleware import (  # noqa: E402
+    IdempotencyMiddleware,
+    SecureHeadersMiddleware,
+)
 # HR 评估增强: 360° 环评 + 校准会
 from api.review_routes import router as review_router  # noqa: E402
 from api.calibration_routes import router as calibration_router  # noqa: E402
@@ -182,6 +189,20 @@ async def lifespan(app: FastAPI):
         register_event_subscribers()
     except Exception:
         pass
+    # P0-4: 初始化 Redis 客户端供幂等中间件使用(降级容错：Redis 不可用时幂等中间件透传)
+    try:
+        if settings.redis_url:
+            import redis.asyncio as aioredis
+
+            app.state._redis_client = aioredis.from_url(
+                settings.redis_url, decode_responses=True
+            )
+            await app.state._redis_client.ping()
+            _idempotency_mw._redis = app.state._redis_client
+            logger.info("Redis 已连接,幂等中间件已激活")
+    except Exception as e:
+        logger.warning("Redis 连接失败,幂等中间件降级透传: %s", e)
+        app.state._redis_client = None
     try:
         yield
     finally:
@@ -203,6 +224,13 @@ async def lifespan(app: FastAPI):
         except Exception:
             pass
         await app.state.app_state.close()
+        # 关闭 Redis 连接
+        try:
+            _redis = getattr(app.state, "_redis_client", None)
+            if _redis:
+                await _redis.aclose()
+        except Exception:
+            pass
         try:
             tracer.close()
         except Exception:
@@ -238,6 +266,26 @@ app = FastAPI(
 )
 
 app.add_middleware(LimitRequestBodyMiddleware)
+
+# P0-2: GZip 响应压缩 — 大 JSON 响应压缩 60-80%，显著降低带宽和延迟
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# P0-1: 安全响应头 — 防御 XSS/点击劫持/MIME 嗅探等常见攻击
+app.add_middleware(
+    BaseHTTPMiddleware,
+    dispatch=SecureHeadersMiddleware().dispatch,
+)
+
+# P0-4: API 幂等性 — Idempotency-Key 重复请求防护(Redis 不可用时自动降级透传)
+def _get_redis_for_idempotency() -> Any:
+    """惰性获取 Redis 客户端(在 lifespan 设置后可用)"""
+    return getattr(app.state, "_redis_client", None)
+
+_idempotency_mw = IdempotencyMiddleware(redis_client=None)
+app.add_middleware(
+    BaseHTTPMiddleware,
+    dispatch=_idempotency_mw.dispatch,
+)
 
 # P1-7：注册 slowapi 限流中间件与异常处理器（slowapi 可选依赖，未安装时降级跳过）
 if SLOWAPI_AVAILABLE:
