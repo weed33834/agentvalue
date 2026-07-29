@@ -108,6 +108,20 @@ from models.kb_sync_models import KbDataSource, KbSyncLog
 from models.prompt_optimization_models import PromptOptimizationTask
 # 模型负载均衡 (对标阿里百炼 AI 网关 GPU 感知负载均衡)
 from models.model_load_balancer_models import LoadBalancerConfig, ModelInstance
+# P1-7: ABAC 属性级访问控制 (用户组 + 访问策略)
+from models.user_group import UserGroup, UserGroupMember
+from models.policy import (
+    DEFAULT_PRIORITY,
+    EFFECT_ALLOW,
+    EFFECT_DENY,
+    EFFECTS,
+    SUBJECT_TYPE_GROUP,
+    SUBJECT_TYPE_ROLE,
+    SUBJECT_TYPE_USER,
+    SUBJECT_TYPES,
+    WILDCARD,
+    Policy,
+)
 
 __all__ = [
     "Tenant",
@@ -225,4 +239,17 @@ __all__ = [
     # 模型负载均衡
     "ModelInstance",
     "LoadBalancerConfig",
+    # P1-7: ABAC 属性级访问控制 (用户组 + 访问策略)
+    "UserGroup",
+    "UserGroupMember",
+    "Policy",
+    "SUBJECT_TYPE_USER",
+    "SUBJECT_TYPE_ROLE",
+    "SUBJECT_TYPE_GROUP",
+    "SUBJECT_TYPES",
+    "EFFECT_ALLOW",
+    "EFFECT_DENY",
+    "EFFECTS",
+    "WILDCARD",
+    "DEFAULT_PRIORITY",
 ]

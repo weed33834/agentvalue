@@ -37,6 +37,8 @@ from api.admin.feature_flags import router as admin_feature_flags_router  # noqa
 from api.admin.api_keys import router as admin_api_keys_router  # noqa: E402
 # 用户管理 CRUD(列表/详情/更新/禁用/删除/批量导入)
 from api.admin.users import router as admin_users_router  # noqa: E402
+# P1-7: 用户组管理 + ABAC 策略 (CRUD / 成员管理 / 组权限策略)
+from api.admin.user_groups import router as admin_user_groups_router  # noqa: E402
 # P4-1: 多 Agent 协作(supervisor 模式,对标 Coze Multi-Agent)
 from api.admin.multi_agent import router as admin_multi_agent_router  # noqa: E402
 # P4-2: 工作流可视化编排(对标 Dify Workflow / Coze Bot 编排)
@@ -418,6 +420,11 @@ app.include_router(
 app.include_router(
     admin_users_router,
     tags=["admin-users"],
+)
+# P1-7: 用户组管理 + ABAC 策略 (CRUD / 成员管理 / 组权限策略)
+app.include_router(
+    admin_user_groups_router,
+    tags=["admin-user-groups"],
 )
 # P4-1: 多 Agent 协作(supervisor 模式,对标 Coze Multi-Agent)
 app.include_router(
