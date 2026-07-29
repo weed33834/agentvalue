@@ -686,3 +686,54 @@ export const skillAdminApi = {
   // 批量导入
   batchImport: (data) => api.post('/skills/batch-import', data),
 }
+
+// ============================================================
+// Webhook 事件管理 API
+// 查看 webhook 事件记录、处理状态、重试失败事件
+// ============================================================
+export const webhookApi = {
+  // 事件列表 (支持 source/status 过滤 + 分页)
+  list: (params) => api.get('/admin/webhook-events', { params }),
+  // 事件详情
+  get: (eventId) => api.get(`/admin/webhook-events/${encodeURIComponent(eventId)}`),
+  // 重试失败的事件
+  retry: (eventId) => api.post(`/admin/webhook-events/${encodeURIComponent(eventId)}/retry`),
+  // 删除事件记录
+  delete: (eventId) => api.delete(`/admin/webhook-events/${encodeURIComponent(eventId)}`),
+}
+
+// ============================================================
+// API Key 管理 API (企业级安全)
+// 创建/列表/更新/吊销/轮换/用量统计
+// ============================================================
+export const apiKeyAdminApi = {
+  // 创建 API Key (明文仅返回一次)
+  create: (data) => api.post('/admin/api-keys', data),
+  // 列表 (分页)
+  list: (params) => api.get('/admin/api-keys', { params }),
+  // 详情
+  get: (keyId) => api.get(`/admin/api-keys/${encodeURIComponent(keyId)}`),
+  // 更新 (name/scopes/rate_limit)
+  update: (keyId, data) => api.put(`/admin/api-keys/${encodeURIComponent(keyId)}`, data),
+  // 吊销 (soft delete)
+  delete: (keyId) => api.delete(`/admin/api-keys/${encodeURIComponent(keyId)}`),
+  // 轮换 (生成新 key, 旧 key 吊销)
+  rotate: (keyId) => api.post(`/admin/api-keys/${encodeURIComponent(keyId)}/rotate`),
+  // 用量统计
+  usage: (keyId) => api.get(`/admin/api-keys/${encodeURIComponent(keyId)}/usage`),
+}
+
+// ============================================================
+// 通知管理 API
+// 查看通知历史、配置通知渠道
+// ============================================================
+export const notificationApi = {
+  // 通知列表
+  list: (params) => api.get('/notifications', { params }),
+  // 标记已读
+  markRead: (notificationId) => api.post(`/notifications/${encodeURIComponent(notificationId)}/read`),
+  // 批量标记已读
+  markAllRead: () => api.post('/notifications/read-all'),
+  // 删除通知
+  delete: (notificationId) => api.delete(`/notifications/${encodeURIComponent(notificationId)}`),
+}

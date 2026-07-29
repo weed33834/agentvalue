@@ -116,6 +116,8 @@ from api.chat import router as chat_router  # noqa: E402
 from api.evidence import router as evidence_router  # noqa: E402
 # Webhook 接收路由（飞书/GitLab/自定义,无需 JWT,用签名/token 验证）
 from api.webhook_routes import router as webhook_router  # noqa: E402
+# Webhook 事件管理 (Admin: 查看/重试/删除 webhook 事件记录)
+from api.admin.webhook_event_routes import router as admin_webhook_event_router  # noqa: E402
 # 站内通知系统（列表/未读数/已读/删除）
 from api.notification_routes import router as notification_router  # noqa: E402
 # 数据导出 (评估/审计/分析/通知, CSV/Excel/JSON)
@@ -460,6 +462,8 @@ app.include_router(
 )
 # Webhook 接收路由(飞书/GitLab/自定义,无需 JWT,用签名/token 验证)
 app.include_router(webhook_router)
+# Webhook 事件管理 (Admin: 查看/重试/删除 webhook 事件记录)
+app.include_router(admin_webhook_event_router, tags=["admin-webhook-events"])
 # 站内通知系统(列表/未读数/已读/删除)
 app.include_router(notification_router)
 

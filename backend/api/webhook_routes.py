@@ -176,11 +176,18 @@ async def _handle_feishu_event(
 ) -> None:
     """处理飞书事件:消息接收 / 卡片回调。
 
-    im.message.receive_v1:解析消息内容,转发给 AI 处理(当前仅记录日志,
-    后续可对接 agent.session_processor)。
-    card.action.trigger:卡片按钮回调,解析 action_value 做对应处理。
+    im.message.receive_v1:解析消息内容,转发到事件总线 (webhook:feishu:message),
+    订阅方可对接 agent.session_processor 做智能回复。
+    card.action.trigger:卡片按钮回调,转发 action_value 到事件总线 (webhook:feishu:card)。
     """
     event = payload.get("event", payload)
+    try:
+        from core.event_bus import get_event_bus
+
+        bus = get_event_bus()
+    except Exception:
+        bus = None
+
     if event_type == "im.message.receive_v1":
         message = event.get("message", {})
         sender = event.get("sender", {})
@@ -188,24 +195,61 @@ async def _handle_feishu_event(
         message_id = message.get("message_id", "")
         chat_id = message.get("chat_id", "")
         sender_id = sender.get("sender_id", {}).get("open_id", "")
+
+        # 解析消息文本内容
+        content_str = message.get("content", "{}")
+        try:
+            content_obj = json.loads(content_str)
+        except (json.JSONDecodeError, TypeError):
+            content_obj = {}
+        text = content_obj.get("text", "") if msg_type == "text" else f"[{msg_type}]"
+
         logger.info(
-            "飞书消息接收 msg_type=%s message_id=%s chat_id=%s sender=%s",
+            "飞书消息接收 msg_type=%s message_id=%s chat_id=%s sender=%s text=%s",
             msg_type,
             message_id,
             chat_id,
             sender_id,
+            text[:100],
         )
-        # 业务处理暂未实现(依赖 FeishuIMAdapter 真实接入),事件已落库待人工处理
+        # 转发到事件总线,供 agent.session_processor 等订阅方消费
+        if bus:
+            await bus.publish(
+                "webhook:feishu:message",
+                {
+                    "message_id": message_id,
+                    "chat_id": chat_id,
+                    "sender_id": sender_id,
+                    "msg_type": msg_type,
+                    "text": text,
+                    "raw": payload,
+                },
+            )
+            logger.info("飞书消息已转发到事件总线 message_id=%s", message_id)
+
     elif event_type == "card.action.trigger":
         action = event.get("action", {})
         action_value = action.get("value", {})
         operator = event.get("operator", {})
+        operator_id = operator.get("open_id", "")
+
         logger.info(
             "飞书卡片回调 action_value=%s operator=%s",
             action_value,
-            operator.get("open_id", ""),
+            operator_id,
         )
-        # 业务处理暂未实现(依赖飞书卡片回调业务逻辑),事件已落库待人工处理
+        # 转发卡片回调到事件总线,按 action_value 分发
+        if bus:
+            await bus.publish(
+                "webhook:feishu:card",
+                {
+                    "action_value": action_value,
+                    "operator_id": operator_id,
+                    "raw": payload,
+                },
+            )
+            logger.info("飞书卡片回调已转发到事件总线 operator=%s", operator_id)
+
     else:
         logger.debug("飞书未处理的事件类型: %s", event_type)
 
@@ -215,17 +259,27 @@ async def _handle_gitlab_event(
     payload: Dict[str, Any],
     extra: Optional[Dict[str, Any]],
 ) -> None:
-    """处理 GitLab Webhook 事件:Push / Merge Request / Issue。
+    """处理 GitLab Webhook 事件:Push / Merge Request / Issue / Pipeline。
 
-    Push Event:提取 commits 列表,更新代码贡献统计。
-    Merge Request Event:提取 MR 状态变化。
-    Issue Event:提取 issue 创建/更新。
+    Push Event:提取 commits 列表,转发到事件总线 (webhook:gitlab:push),
+    订阅方可按 author 映射到 employee_id 更新代码贡献统计。
+    Merge Request Event:提取 MR 状态变化,转发到事件总线 (webhook:gitlab:mr)。
+    Issue Event:提取 issue 事件,转发到事件总线 (webhook:gitlab:issue)。
     """
+    try:
+        from core.event_bus import get_event_bus
+
+        bus = get_event_bus()
+    except Exception:
+        bus = None
+
     if event_type == "Push Hook":
         commits = payload.get("commits", [])
         ref = payload.get("ref", "")
         user = payload.get("user_name", "")
         project = payload.get("project", {}).get("name", "")
+        repo = payload.get("project", {}).get("path_with_namespace", "")
+
         logger.info(
             "GitLab Push: project=%s ref=%s user=%s commits=%d",
             project,
@@ -233,24 +287,101 @@ async def _handle_gitlab_event(
             user,
             len(commits),
         )
-        # 业务处理暂未实现(依赖 GitLabCodeRepoAdapter 真实接入),事件已落库待人工处理
+        # 提取 commit 摘要列表,转发到事件总线供代码贡献统计消费
+        commit_summaries = [
+            {
+                "id": c.get("id", ""),
+                "message": c.get("message", ""),
+                "author": c.get("author", {}).get("name", ""),
+                "author_email": c.get("author", {}).get("email", ""),
+                "timestamp": c.get("timestamp", ""),
+                "added": c.get("added", []),
+                "modified": c.get("modified", []),
+                "removed": c.get("removed", []),
+            }
+            for c in commits
+        ]
+
+        if bus:
+            await bus.publish(
+                "webhook:gitlab:push",
+                {
+                    "repo": repo,
+                    "branch": ref,
+                    "user": user,
+                    "commits": commit_summaries,
+                    "raw": payload,
+                },
+            )
+            logger.info(
+                "GitLab Push 已转发到事件总线 repo=%s commits=%d",
+                repo,
+                len(commit_summaries),
+            )
+
     elif event_type == "Merge Request Hook":
         mr = payload.get("object_attributes", {})
         action = mr.get("action", "")
         state = mr.get("state", "")
         title = mr.get("title", "")
+        source_branch = mr.get("source_branch", "")
+        target_branch = mr.get("target_branch", "")
+        repo = payload.get("project", {}).get("path_with_namespace", "")
+
         logger.info(
-            "GitLab MR: title=%s action=%s state=%s", title, action, state
+            "GitLab MR: title=%s action=%s state=%s source=%s→target=%s",
+            title,
+            action,
+            state,
+            source_branch,
+            target_branch,
         )
-        # 业务处理暂未实现(MR 状态联动评估待接入),事件已落库待人工处理
+        # 转发 MR 事件到事件总线,供评估关联或通知系统消费
+        if bus:
+            await bus.publish(
+                "webhook:gitlab:mr",
+                {
+                    "repo": repo,
+                    "title": title,
+                    "action": action,
+                    "state": state,
+                    "source_branch": source_branch,
+                    "target_branch": target_branch,
+                    "author": mr.get("author", {}).get("name", ""),
+                    "url": mr.get("url", ""),
+                    "raw": payload,
+                },
+            )
+            logger.info("GitLab MR 已转发到事件总线 repo=%s title=%s", repo, title)
+
     elif event_type == "Issue Hook":
         issue = payload.get("object_attributes", {})
         action = issue.get("action", "")
         title = issue.get("title", "")
+        state = issue.get("state", "")
+        repo = payload.get("project", {}).get("path_with_namespace", "")
+
         logger.info(
-            "GitLab Issue: title=%s action=%s", title, action
+            "GitLab Issue: title=%s action=%s state=%s", title, action, state
         )
-        # 业务处理暂未实现(Issue 事件持久化待接入),事件已落库待人工处理
+        # 转发 Issue 事件到事件总线
+        if bus:
+            await bus.publish(
+                "webhook:gitlab:issue",
+                {
+                    "repo": repo,
+                    "title": title,
+                    "action": action,
+                    "state": state,
+                    "author": issue.get("author", {}).get("name", ""),
+                    "url": issue.get("url", ""),
+                    "raw": payload,
+                },
+            )
+            logger.info(
+                "GitLab Issue 已转发到事件总线 repo=%s title=%s", repo, title
+            )
+
     else:
         logger.debug("GitLab 未处理的事件类型: %s", event_type)
 

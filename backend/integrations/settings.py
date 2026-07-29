@@ -27,14 +27,14 @@ class IntegrationsSettings(BaseSettings):
     )
 
     # 飞书 IM (ADR-001)
-    # 配置 app_id + app_secret 后,工厂尝试实例化 FeishuIMAdapter(当前未实现,降级 Dummy)
+    # 配置 app_id + app_secret 后,工厂实例化 FeishuIMAdapter (已完整实现)
     feishu_app_id: Optional[str] = None
     feishu_app_secret: Optional[str] = None
     # webhook 验签密钥(可选,用于校验 X-Lark-Signature)
     feishu_webhook_secret: Optional[str] = None
 
     # GitLab 代码仓库 (ADR-002)
-    # 配置 base_url + token 后,工厂尝试实例化 GitLabCodeRepoAdapter(当前未实现,降级 Dummy)
+    # 配置 base_url + token 后,工厂实例化 GitLabCodeRepoAdapter (已完整实现)
     gitlab_base_url: Optional[str] = None
     gitlab_token: Optional[str] = None
     # webhook 验签密钥(对比 X-Gitlab-Token)

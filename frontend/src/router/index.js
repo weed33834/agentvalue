@@ -277,7 +277,7 @@ const routes = [
         path: 'agent-presets',
         name: 'AgentPresets',
         component: () => import('@/views/admin/AgentPresets.vue'),
-        meta: { title: 'Agent预设', icon: 'Collection', roles: ['admin', 'hr'] },
+        meta: { title: 'Agent预设', icon: 'Collection', role: ['admin', 'hr'] },
       },
       {
         // AI 助手：流式对话 + 工具调用 + 引用（移植 opencode session/prompt）
@@ -285,6 +285,20 @@ const routes = [
         name: 'AdminChat',
         component: () => import('@/views/admin/ChatView.vue'),
         meta: { title: 'AI 助手' },
+      },
+      {
+        // Webhook 事件管理 (查看/重试/删除 webhook 事件记录)
+        path: 'webhooks',
+        name: 'AdminWebhooks',
+        component: () => import('@/views/admin/AdminWebhooks.vue'),
+        meta: { title: 'Webhook 事件' },
+      },
+      {
+        // API Key 管理 (企业级安全: 创建/吊销/轮换/用量)
+        path: 'api-keys',
+        name: 'AdminApiKeys',
+        component: () => import('@/views/admin/AdminApiKeys.vue'),
+        meta: { title: 'API Key 管理' },
       },
     ],
   },

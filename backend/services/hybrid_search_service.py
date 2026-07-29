@@ -9,29 +9,21 @@
 3. 元数据过滤（向量检索走 ChromaDB where，BM25 走结果后过滤）
 4. 文档增量更新（hash 对比 + difflib 段落级差异 + 仅重建变化部分）
 
-BM25 实现：优先使用 rank_bm25 库，未安装时降级为纯 Python 实现。
+BM25 实现：使用 rank_bm25 库（已在 requirements.txt 中声明为必选依赖）。
 """
 
 import asyncio
 import hashlib
 import json
 import logging
-import math
 import re
 from typing import Any, Dict, List, Optional, Tuple
+
+from rank_bm25 import BM25Okapi
 
 from core.config import Settings, get_settings
 
 logger = logging.getLogger(__name__)
-
-# 尝试导入 rank_bm25，未安装时使用纯 Python 实现的 BM25Okapi
-try:
-    from rank_bm25 import BM25Okapi as _RankBM25Okapi
-
-    _HAS_RANK_BM25 = True
-except ImportError:
-    _HAS_RANK_BM25 = False
-    _RankBM25Okapi = None  # type: ignore[assignment,misc]
 
 
 # ============================================================
@@ -51,75 +43,6 @@ def _tokenize(text: str) -> List[str]:
     if not text:
         return []
     return [t.lower() for t in _TOKEN_PATTERN.findall(text)]
-
-
-# ============================================================
-# 纯 Python BM25 实现（rank_bm25 未安装时的降级方案）
-# ============================================================
-
-
-class _PurePythonBM25Okapi:
-    """BM25Okapi 的纯 Python 实现，接口与 rank_bm25.BM25Okapi 保持一致。
-
-    公式：score(q, d) = Σ_t IDF(t) * (tf(t,d) * (k1+1)) / (tf(t,d) + k1*(1-b+b*|d|/avgdl))
-    其中 IDF(t) = log((N - df(t) + 0.5) / (df(t) + 0.5) + 1)
-    """
-
-    def __init__(self, corpus: List[List[str]], k1: float = 1.5, b: float = 0.75):
-        self.k1 = k1
-        self.b = b
-        self.corpus_size = len(corpus)
-        self.doc_len = [len(doc) for doc in corpus]
-        self.avgdl = (
-            sum(self.doc_len) / self.corpus_size if self.corpus_size > 0 else 0.0
-        )
-
-        # 统计每个词的文档频率 (df) 和每篇文档的词频 (tf)
-        self.df: Dict[str, int] = {}
-        self.idf: Dict[str, float] = {}
-        self.tf: List[Dict[str, int]] = []
-
-        for doc_tokens in corpus:
-            tf: Dict[str, int] = {}
-            for token in doc_tokens:
-                tf[token] = tf.get(token, 0) + 1
-            self.tf.append(tf)
-            for token in tf:
-                self.df[token] = self.df.get(token, 0) + 1
-
-        # 计算 IDF
-        for token, freq in self.df.items():
-            self.idf[token] = math.log(
-                (self.corpus_size - freq + 0.5) / (freq + 0.5) + 1
-            )
-
-    def get_scores(self, query: List[str]) -> List[float]:
-        """计算 query 与语料库中每篇文档的 BM25 分数"""
-        scores = [0.0] * self.corpus_size
-        for i in range(self.corpus_size):
-            doc_tf = self.tf[i]
-            doc_len = self.doc_len[i]
-            for token in query:
-                tf = doc_tf.get(token, 0)
-                if tf == 0:
-                    continue
-                idf = self.idf.get(token, 0.0)
-                # BM25 分数公式
-                if self.avgdl > 0:
-                    denom = tf + self.k1 * (
-                        1 - self.b + self.b * doc_len / self.avgdl
-                    )
-                else:
-                    denom = tf + self.k1
-                scores[i] += idf * tf * (self.k1 + 1) / denom
-        return scores
-
-
-def _create_bm25(corpus: List[List[str]], k1: float = 1.5, b: float = 0.75):
-    """创建 BM25 实例：优先使用 rank_bm25 库，降级为纯 Python 实现"""
-    if _HAS_RANK_BM25 and _RankBM25Okapi is not None:
-        return _RankBM25Okapi(corpus, k1=k1, b=b)
-    return _PurePythonBM25Okapi(corpus, k1=k1, b=b)
 
 
 # ============================================================
@@ -490,7 +413,7 @@ class HybridSearchService:
         k1, b = self._get_bm25_params()
 
         if tokenized_corpus:
-            bm25_instance = _create_bm25(tokenized_corpus, k1=k1, b=b)
+            bm25_instance = BM25Okapi(tokenized_corpus, k1=k1, b=b)
         else:
             bm25_instance = None
 

@@ -28,6 +28,7 @@ from .base import (
     StreamChunk,
     ToolCallDelta,
 )
+from .media_utils import parse_data_url
 
 logger = logging.getLogger(__name__)
 
@@ -414,7 +415,7 @@ class AnthropicProvider(BaseProvider):
                 blocks.append({"type": "text", "text": p["text"]})
             elif ptype == "image_url":
                 url = (p.get("image_url") or {}).get("url", "")
-                mime, data = AnthropicProvider._parse_data_url(url)
+                mime, data = parse_data_url(url)
                 if data:
                     blocks.append(
                         {
@@ -427,20 +428,6 @@ class AnthropicProvider(BaseProvider):
                         }
                     )
         return blocks if blocks else None
-
-    @staticmethod
-    def _parse_data_url(url: str) -> tuple[str, str]:
-        """从 data:image/...;base64,... 中解析出 (mimeType, base64Data)。"""
-        if not url or not url.startswith("data:"):
-            return "image/jpeg", ""
-        try:
-            header, _, data = url.partition(",")
-            mime = "image/jpeg"
-            if ";" in header and "/" in header:
-                mime = header[5:].split(";", 1)[0]
-            return mime, data
-        except Exception:
-            return "image/jpeg", ""
 
     @staticmethod
     def _convert_tools(tools: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

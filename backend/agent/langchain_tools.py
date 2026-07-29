@@ -126,11 +126,31 @@ def _build_builtin_tools(enabled_csv: Optional[str] = None) -> List[Any]:
         async def web_fetch(url: str, max_length: int = 5000) -> str:
             """Fetch the content of a web page and return it as text.
 
+            Uses trafilatura for high-quality main content extraction.
+            Falls back to basic HTML stripping if trafilatura is unavailable.
+
             Args:
                 url: The URL to fetch
                 max_length: Maximum characters to return (default 5000)
             """
             try:
+                import trafilatura
+
+                downloaded = trafilatura.fetch_url(url)
+                if not downloaded:
+                    return f"Fetch failed: could not download {url}"
+                text = trafilatura.extract(
+                    downloaded,
+                    include_links=True,
+                    include_tables=True,
+                    favor_recall=True,
+                )
+                if not text:
+                    text = trafilatura.extract(downloaded) or ""
+                return _truncate_result(text or "", max_chars=max_length)
+            except ImportError:
+                # trafilatura 未安装时降级为基本 HTML 提取
+                import re
                 import urllib.request
 
                 req = urllib.request.Request(
@@ -138,9 +158,6 @@ def _build_builtin_tools(enabled_csv: Optional[str] = None) -> List[Any]:
                 )
                 with urllib.request.urlopen(req, timeout=15) as resp:
                     content = resp.read().decode("utf-8", errors="replace")
-                # Simple HTML tag removal
-                import re
-
                 text = re.sub(
                     r"<script[^>]*>.*?</script>", "", content, flags=re.DOTALL
                 )
@@ -446,61 +463,28 @@ def _build_toolkit_tools(
                 max_results: Maximum number of results to return (default 5)
             """
             try:
-                import re as re_module
-                import urllib.parse
-                import urllib.request
-
-                encoded_query = urllib.parse.quote(query)
-                url = f"https://html.duckduckgo.com/html/?q={encoded_query}"
-                req = urllib.request.Request(
-                    url,
-                    headers={"User-Agent": "Mozilla/5.0"},
-                )
-                with urllib.request.urlopen(req, timeout=15) as resp:
-                    html = resp.read().decode("utf-8", errors="replace")
-
-                # 解析 DuckDuckGo HTML 结果
-                # 提取结果链接 (标题 + URL)
-                link_pattern = re_module.compile(
-                    r'<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>(.*?)</a>',
-                    re_module.DOTALL,
-                )
-                links = link_pattern.findall(html)
-
-                # 提取摘要
-                snippet_pattern = re_module.compile(
-                    r'<a[^>]+class="result__snippet"[^>]*>(.*?)</a>',
-                    re_module.DOTALL,
-                )
-                snippets = snippet_pattern.findall(html)
+                from duckduckgo_search import DDGS
 
                 results: List[str] = []
-                for i, (href, title) in enumerate(links):
-                    if len(results) >= max_results:
-                        break
-                    # 清理标题中的 HTML 标签
-                    clean_title = re_module.sub(r"<[^>]+>", "", title).strip()
-                    snippet = ""
-                    if i < len(snippets):
-                        snippet = re_module.sub(
-                            r"<[^>]+>", "", snippets[i]
-                        ).strip()
-                    # DuckDuckGo 通过 /l/?uddg= 重定向,提取真实 URL
-                    if "uddg=" in href:
-                        parsed = urllib.parse.parse_qs(
-                            urllib.parse.urlparse(href).query
+                with DDGS() as ddgs:
+                    for r in ddgs.text(query, max_results=max_results):
+                        results.append(
+                            f"{len(results) + 1}. {r.get('title', '')}\n"
+                            f"   URL: {r.get('href', r.get('link', ''))}\n"
+                            f"   {r.get('body', r.get('snippet', ''))}"
                         )
-                        if "uddg" in parsed:
-                            href = parsed["uddg"][0]
-                    results.append(
-                        f"{len(results) + 1}. {clean_title}\n"
-                        f"   URL: {href}\n"
-                        f"   {snippet}"
-                    )
 
                 if not results:
                     return f"No results found for '{query}'"
                 return _truncate_result("\n".join(results), max_chars=4000)
+            except ImportError:
+                logger.warning(
+                    "duckduckgo_search 未安装,web_search_tool 不可用"
+                )
+                return (
+                    "Web search unavailable (duckduckgo_search not installed). "
+                    "Try web_fetch to fetch a specific URL."
+                )
             except Exception as e:
                 logger.warning("web_search_tool 调用失败: %s", e)
                 return (

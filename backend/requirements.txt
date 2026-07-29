@@ -60,9 +60,14 @@ moto>=5.2.0
 # 异步邮件发送 (P7 通知系统): SMTP 未配置时降级为仅日志,不阻塞主流程
 # 未安装时 EmailService 自动降级为 no-op
 aiosmtplib>=3.0.0
-# 混合检索 BM25 全文检索: rank-bm25 库提供 BM25Okapi 实现
-# 未安装时 HybridSearchService 自动降级为纯 Python BM25 实现,无需强制安装
+# 混合检索 BM25 全文检索: rank-bm25 库提供 BM25Okapi 实现 (必选依赖)
 rank-bm25>=0.2.2
+# 工具管理 web_search_tool: duckduckgo-search 提供免 API Key 的网络搜索能力
+# 未安装时 web_search_tool 降级为不可用提示,不影响其他工具
+duckduckgo-search>=7.0.0
+# 工具管理 web_fetch: trafilatura 提供高质量网页正文提取 (去噪/去模板/保留结构)
+# 未安装时 web_fetch 降级为基本 HTML 标签剥离
+trafilatura>=1.12.0
 # ====== v2.1 企业管理功能 ======
 # 敏感词管理: pyahocorasick AC 自动机 (Aho-Corasick)
 # 未安装时 SensitiveWordService 自动降级为简单字符串匹配

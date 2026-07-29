@@ -424,6 +424,7 @@
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { multiAgentAdminApi } from '@/api/client'
+import { renderMarkdown } from '@/utils/markdown'
 
 // 状态枚举 (与后端 thread_store 对齐)
 const STATUS_OPTIONS = [
@@ -793,46 +794,6 @@ function copyReport() {
     .writeText(currentFinalReport.value)
     .then(() => ElMessage.success('已复制'))
     .catch(() => ElMessage.error('复制失败'))
-}
-
-// 简易 markdown 渲染 (避免引入新依赖)
-function renderMarkdown(md) {
-  if (!md) return ''
-  // 转义 HTML
-  let html = md
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-  // 标题
-  html = html.replace(/^###### (.*)$/gm, '<h6>$1</h6>')
-  html = html.replace(/^##### (.*)$/gm, '<h5>$1</h5>')
-  html = html.replace(/^#### (.*)$/gm, '<h4>$1</h4>')
-  html = html.replace(/^### (.*)$/gm, '<h3>$1</h3>')
-  html = html.replace(/^## (.*)$/gm, '<h2>$1</h2>')
-  html = html.replace(/^# (.*)$/gm, '<h1>$1</h1>')
-  // 粗体 / 斜体
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>')
-  // 行内代码
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
-  // 无序列表
-  html = html.replace(/^- (.*)$/gm, '<li>$1</li>')
-  // 段落 (空行分隔)
-  html = html
-    .split(/\n\n+/)
-    .map((block) => {
-      if (
-        block.startsWith('<h') ||
-        block.startsWith('<li')
-      ) {
-        return block
-      }
-      return `<p>${block.replace(/\n/g, '<br>')}</p>`
-    })
-    .join('')
-  // 包裹连续 <li>
-  html = html.replace(/(<li>.*?<\/li>(?:\s*<li>.*?<\/li>)*)/gs, '<ul>$1</ul>')
-  return html
 }
 
 // ============================================================

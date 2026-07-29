@@ -615,6 +615,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { skillAdminApi } from '@/api/client'
+import { renderMarkdown } from '@/utils/markdown'
 
 // ====== 常量配置 ======
 const categoryOptions = [
@@ -1103,30 +1104,6 @@ function formatJson(value) {
   } catch {
     return String(value)
   }
-}
-
-// 简单 markdown 渲染:转义 HTML + 换行 + 代码块 + 加粗
-// (避免引入额外依赖,使用最小渲染策略; 输出已通过 LLM 生成,非用户直接输入)
-function renderMarkdown(text) {
-  if (!text) return ''
-  let html = String(text)
-  // 转义 HTML 防止 XSS
-  html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  // 代码块 ```
-  html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
-    return `<pre class="md-code-block">${code.replace(/\n$/, '')}</pre>`
-  })
-  // 行内代码 `
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
-  // 加粗 **
-  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-  // 标题 ###
-  html = html.replace(/^### (.+)$/gm, '<h4>$1</h4>')
-  html = html.replace(/^## (.+)$/gm, '<h3>$1</h3>')
-  html = html.replace(/^# (.+)$/gm, '<h2>$1</h2>')
-  // 换行
-  html = html.replace(/\n/g, '<br/>')
-  return html
 }
 
 onMounted(() => {

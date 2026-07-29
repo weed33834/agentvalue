@@ -160,6 +160,14 @@
             <el-icon><DataLine /></el-icon>
             <span>系统指标</span>
           </el-menu-item>
+          <el-menu-item index="/admin/webhooks">
+            <el-icon><Connection /></el-icon>
+            <span>Webhook 事件</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/api-keys">
+            <el-icon><Key /></el-icon>
+            <span>API Key 管理</span>
+          </el-menu-item>
         </template>
 
         <el-menu-item aria-label="退出登录" @click="handleLogout">
