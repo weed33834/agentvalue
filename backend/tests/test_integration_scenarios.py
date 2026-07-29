@@ -571,9 +571,10 @@ class TestScenarioCredentialAndPII:
 class TestScenarioIntegrationsDegradationContract:
     """配置了凭证但真实适配器未实现 → 工厂降级 Dummy,Dummy 方法返回约定值"""
 
-    def test_feishu_configured_but_falls_back_to_dummy(self, monkeypatch):
+    def test_feishu_configured_creates_real_adapter(self, monkeypatch):
+        """配置飞书凭证时应创建 FeishuIMAdapter（非 Dummy）"""
         from integrations.factory import create_im_adapter
-        from integrations.dummy import DummyIMAdapter
+        from integrations.feishu import FeishuIMAdapter
 
         monkeypatch.setenv("FEISHU_APP_ID", "fake-app-id")
         monkeypatch.setenv("FEISHU_APP_SECRET", "fake-app-secret")
@@ -581,11 +582,12 @@ class TestScenarioIntegrationsDegradationContract:
         get_integrations_settings.cache_clear()
 
         adapter = create_im_adapter()
-        assert isinstance(adapter, DummyIMAdapter)
+        assert isinstance(adapter, FeishuIMAdapter)
 
-    def test_gitlab_configured_but_falls_back_to_dummy(self, monkeypatch):
+    def test_gitlab_configured_creates_real_adapter(self, monkeypatch):
+        """配置 GitLab 凭证时应创建 GitLabCodeRepoAdapter（非 Dummy）"""
         from integrations.factory import create_coderepo_adapter
-        from integrations.dummy import DummyCodeRepoAdapter
+        from integrations.gitlab import GitLabCodeRepoAdapter
 
         monkeypatch.setenv("GITLAB_BASE_URL", "https://gitlab.example.com")
         monkeypatch.setenv("GITLAB_TOKEN", "fake-token")
@@ -593,7 +595,7 @@ class TestScenarioIntegrationsDegradationContract:
         get_integrations_settings.cache_clear()
 
         adapter = create_coderepo_adapter()
-        assert isinstance(adapter, DummyCodeRepoAdapter)
+        assert isinstance(adapter, GitLabCodeRepoAdapter)
 
     def test_dummy_im_adapter_contract(self):
         from integrations.dummy import DummyIMAdapter
