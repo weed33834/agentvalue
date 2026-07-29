@@ -33,7 +33,10 @@ venv/
 # IDEs / OS
 .vscode/
 .idea/
-.trae/
+# 保留 AI-RULE 生成的协作规则与沙箱策略，忽略 .trae 其他临时文件
+.trae/*
+!.trae/rules/
+!.trae/sandbox-policy.json
 .DS_Store
 Thumbs.db
 *.swp
