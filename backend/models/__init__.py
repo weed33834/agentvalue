@@ -122,6 +122,19 @@ from models.policy import (
     WILDCARD,
     Policy,
 )
+# P1-31: 合规认证框架 (SOC2 / ISO27001, 控制矩阵 + 自动化证据收集)
+from models.compliance import (
+    CONTROL_STATUSES,
+    CONTROL_STATUS_FAIL,
+    CONTROL_STATUS_NOT_APPLICABLE,
+    CONTROL_STATUS_PASS,
+    CONTROL_STATUS_WARNING,
+    FRAMEWORK_ISO27001,
+    FRAMEWORK_SOC2,
+    SUPPORTED_FRAMEWORKS,
+    ComplianceControl,
+    ComplianceEvidence,
+)
 
 __all__ = [
     "Tenant",
@@ -252,4 +265,15 @@ __all__ = [
     "EFFECTS",
     "WILDCARD",
     "DEFAULT_PRIORITY",
+    # P1-31: 合规认证框架 (SOC2 / ISO27001)
+    "ComplianceControl",
+    "ComplianceEvidence",
+    "FRAMEWORK_SOC2",
+    "FRAMEWORK_ISO27001",
+    "SUPPORTED_FRAMEWORKS",
+    "CONTROL_STATUS_PASS",
+    "CONTROL_STATUS_FAIL",
+    "CONTROL_STATUS_WARNING",
+    "CONTROL_STATUS_NOT_APPLICABLE",
+    "CONTROL_STATUSES",
 ]

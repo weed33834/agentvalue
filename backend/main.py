@@ -100,6 +100,8 @@ from api.admin.kb_sync_routes import router as admin_kb_sync_router  # noqa: E40
 from api.admin.prompt_optimization_routes import router as admin_prompt_optimization_router  # noqa: E402
 # 模型负载均衡 (对标阿里百炼 AI 网关 GPU 感知负载均衡)
 from api.admin.model_load_balancer_routes import router as admin_model_lb_router  # noqa: E402
+# P1-31: 合规认证框架 (SOC2 / ISO27001, 控制矩阵 + 自动化证据收集)
+from api.admin.compliance_routes import router as admin_compliance_router  # noqa: E402
 from api.deps import AppState  # noqa: E402
 from api.auth_routes import router as auth_router  # noqa: E402
 from api.analytics_routes import router as analytics_router  # noqa: E402
@@ -582,6 +584,11 @@ app.include_router(
 app.include_router(
     admin_model_lb_router,
     tags=["admin-model-lb"],
+)
+# P1-31: 合规认证框架 (SOC2 / ISO27001, 控制矩阵 + 自动化证据收集)
+app.include_router(
+    admin_compliance_router,
+    tags=["admin-compliance"],
 )
 # 数据导出 (评估/审计/分析/通知, CSV/Excel/JSON)
 app.include_router(
