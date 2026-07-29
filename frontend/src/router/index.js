@@ -321,6 +321,76 @@ const routes = [
         component: () => import('@/views/admin/AdminRLHF.vue'),
         meta: { title: 'RLHF 反馈管理' },
       },
+      {
+        // 告警管理 (Alert Management)
+        path: 'alerts',
+        name: 'AdminAlerts',
+        component: () => import('@/views/admin/AdminAlerts.vue'),
+        meta: { title: '告警管理' },
+      },
+      {
+        // 配额与预算管理
+        path: 'quota-budget',
+        name: 'AdminQuotaBudget',
+        component: () => import('@/views/admin/AdminQuotaBudget.vue'),
+        meta: { title: '配额与预算' },
+      },
+      {
+        // 定时任务管理 (Scheduler)
+        path: 'scheduler',
+        name: 'AdminScheduler',
+        component: () => import('@/views/admin/AdminScheduler.vue'),
+        meta: { title: '定时任务' },
+      },
+      {
+        // 安全治理 (敏感词 + SSO)
+        path: 'security',
+        name: 'AdminSecurity',
+        component: () => import('@/views/admin/AdminSecurity.vue'),
+        meta: { title: '安全治理' },
+      },
+      {
+        // 模型运维 (容灾 / 负载均衡 / API 健康)
+        path: 'model-ops',
+        name: 'AdminModelOps',
+        component: () => import('@/views/admin/AdminModelOps.vue'),
+        meta: { title: '模型运维' },
+      },
+      {
+        // 发布运维 (Agent 版本 / 发布 / 灰度 / 环境)
+        path: 'release-ops',
+        name: 'AdminReleaseOps',
+        component: () => import('@/views/admin/AdminReleaseOps.vue'),
+        meta: { title: '发布运维' },
+      },
+      {
+        // 评测中心 (数据集 / LLM Judge / RAG 评测 / 人工标注)
+        path: 'eval-center',
+        name: 'AdminEvalCenter',
+        component: () => import('@/views/admin/AdminEvalCenter.vue'),
+        meta: { title: '评测中心' },
+      },
+      {
+        // 知识增强 (GraphRAG / 同步 / 解析 / NL2SQL / 混合检索)
+        path: 'knowledge-ops',
+        name: 'AdminKnowledgeOps',
+        component: () => import('@/views/admin/AdminKnowledgeOps.vue'),
+        meta: { title: '知识增强' },
+      },
+      {
+        // Agent 模板市场
+        path: 'agent-templates',
+        name: 'AdminAgentTemplates',
+        component: () => import('@/views/admin/AdminAgentTemplates.vue'),
+        meta: { title: 'Agent 模板' },
+      },
+      {
+        // 计费管理
+        path: 'billing',
+        name: 'AdminBilling',
+        component: () => import('@/views/admin/AdminBilling.vue'),
+        meta: { title: '计费管理' },
+      },
     ],
   },
   {

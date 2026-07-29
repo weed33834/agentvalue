@@ -122,6 +122,9 @@ export const authApi = {
   me: () => api.get('/auth/me'),
   refresh: () => api.post('/auth/refresh'),
   logout: () => api.post('/auth/logout'),
+  register: (payload) => api.post('/auth/register', payload),
+  changePassword: (payload) => api.post('/auth/change-password', payload),
+  resetPassword: (payload) => api.post('/auth/reset-password', payload),
   seedDemoUsers: () => api.post('/auth/seed-demo-users'),
 }
 
@@ -138,6 +141,9 @@ export const evaluationApi = {
   // HR 要求重评 (专用端点，而非绕过用 feedback)
   requireReeval: (id, payload) => api.post(`/evaluations/${id}/require-reeval`, payload),
   auditLogs: (id) => api.get(`/evaluations/${id}/audit-logs`),
+  // 视角: employee / manager / hr
+  employeeView: (id) => api.get(`/evaluations/${id}/employee-view`),
+  managerView: (id) => api.get(`/evaluations/${id}/manager-view`),
 }
 
 export const managerApi = {
@@ -254,6 +260,9 @@ export const promptAdminApi = {
   // 新建版本(不可变历史 + 自增版本号)
   createVersion: (name, payload) =>
     api.post(`/admin/prompts/${encodeURIComponent(name)}/versions`, payload),
+  // 版本列表
+  listVersions: (name, params) =>
+    api.get(`/admin/prompts/${encodeURIComponent(name)}/versions`, { params }),
   // 获取版本详情
   getVersion: (name, version) =>
     api.get(`/admin/prompts/${encodeURIComponent(name)}/versions/${version}`),
@@ -319,8 +328,14 @@ export const debugAdminApi = {
 // Provider CRUD API (对标 Dify model-providers 24 端点)
 // 完整功能: Provider 模板 / 租户配置 / 凭证管理 / 模型管理 / 健康检查
 export const providerAdminApi = {
-  // 当前工作空间 Provider 视图(template + tenant config 合并)
+  // Provider 模板列表(内置 + 已启用)
+  listProviders: (params) => api.get('/admin/model-providers/providers', { params }),
+  getProvider: (provider) => api.get(`/admin/model-providers/providers/${provider}`),
+  // 当前工作空间 Provider 视图(template + tenant config 合并) - 复数版本获取所有
   getWorkspaceProviders: () => api.get('/admin/model-providers/workspaces/current/providers'),
+  // 单数版本获取单个 Provider 视图(template + tenant config 合并)
+  getWorkspaceProvider: (provider) =>
+    api.get(`/admin/model-providers/workspaces/current/providers/${provider}`),
   // 启用/禁用 Provider
   setPreferredType: (provider, payload) =>
     api.post(`/admin/model-providers/workspaces/current/providers/${provider}/preferred-type`, payload),
@@ -388,6 +403,8 @@ export const kbAdminApi = {
   listDocs: (params) => api.get('/admin/kb/docs', { params }),
   // 创建文档(可指定 chunk_size/chunk_overlap 元信息)
   createDoc: (payload) => api.post('/admin/kb/docs', payload),
+  // 文档详情
+  getDoc: (kbId) => api.get(`/admin/kb/docs/${encodeURIComponent(kbId)}`),
   // 更新文档(标题/内容/元信息)
   updateDoc: (kbId, payload) =>
     api.put(`/admin/kb/docs/${encodeURIComponent(kbId)}`, payload),
@@ -457,6 +474,9 @@ export const customToolAdminApi = {
     api.post(`/admin/custom-tools/${encodeURIComponent(toolId)}/test`, payload),
   // 仅解析 OpenAPI (不入库,返回 ToolSpec 预览)
   parse: (payload) => api.post('/admin/custom-tools/parse', payload),
+  // 更新 (重新解析 OpenAPI)
+  update: (toolId, payload) =>
+    api.put(`/admin/custom-tools/${encodeURIComponent(toolId)}`, payload),
 }
 
 // Feature Flag Admin API (P3-2: 应用级功能开关, 对标 Langfuse Feature Flag)
@@ -466,6 +486,8 @@ export const featureFlagAdminApi = {
   list: (params) => api.get('/admin/feature-flags', { params }),
   // 创建
   create: (payload) => api.post('/admin/feature-flags', payload),
+  // 详情
+  get: (key) => api.get(`/admin/feature-flags/${encodeURIComponent(key)}`),
   // 更新 (任意字段, key 不可改)
   update: (key, payload) =>
     api.put(`/admin/feature-flags/${encodeURIComponent(key)}`, payload),
@@ -497,6 +519,9 @@ export const multiAgentAdminApi = {
   test: (payload) => api.post('/admin/multi-agent/test', payload),
   // 列出所有任务 (供左侧任务列表, 可选 status 过滤)
   listThreads: (params) => api.get('/admin/multi-agent/threads', { params }),
+  // 查询各 Agent 产出 (artifacts + final_report)
+  getArtifacts: (threadId) =>
+    api.get(`/admin/multi-agent/threads/${encodeURIComponent(threadId)}/artifacts`),
 }
 
 // 工作流编排 Admin API (P4-2: 对标 Dify Workflow / Coze Bot 编排)
@@ -522,6 +547,11 @@ export const workflowAdminApi = {
   // 7. 执行工作流 (body: {inputs: dict, thread_id?}, 返回 {run_id, thread_id, status, ...})
   run: (workflowId, payload) =>
     api.post(`/admin/workflows/${encodeURIComponent(workflowId)}/run`, payload),
+  // 8. 查询运行状态
+  getRun: (runId) => api.get(`/admin/workflows/runs/${encodeURIComponent(runId)}`),
+  // 9. 节点级执行状态 (供前端时间线展示)
+  getRunNodeStates: (runId) =>
+    api.get(`/admin/workflows/runs/${encodeURIComponent(runId)}/node-states`),
   // 10. 工作流的运行历史 (按创建时间倒序)
   listRuns: (workflowId, params) =>
     api.get(`/admin/workflows/${encodeURIComponent(workflowId)}/runs`, { params }),
@@ -585,6 +615,11 @@ export const chatApi = {
   // 导出偏好数据集 (format: jsonl | csv)
   exportDataset: (format = 'jsonl') =>
     api.get('/chat/feedback/dataset', { params: { format }, responseType: 'blob' }),
+  // P0-2: 重新生成最后一条 assistant 消息（走 SSE，URL 供 streamSSE 使用）
+  regenerateUrl: (sessionId) => `/chat/sessions/${encodeURIComponent(sessionId)}/regenerate`,
+  // 通过 share_id 只读访问会话（公开端点，无需认证）
+  getSharedSession: (shareId) =>
+    api.get(`/chat/sessions/shared/${encodeURIComponent(shareId)}`),
 }
 
 // ============================================================
@@ -614,6 +649,10 @@ export const templateApi = {
     api.put(`/presets/templates/${encodeURIComponent(id)}`, data),
   delete: (id) =>
     api.delete(`/presets/templates/${encodeURIComponent(id)}`),
+  instantiate: (id, variables) =>
+    api.post(`/presets/templates/${encodeURIComponent(id)}/instantiate`, {
+      variables,
+    }),
 }
 
 // ============================================================
@@ -623,6 +662,7 @@ export const templateApi = {
 export const presetApi = {
   list: (category) => api.get('/presets/agents', { params: { category } }),
   create: (data) => api.post('/presets/agents', data),
+  get: (id) => api.get(`/presets/agents/${encodeURIComponent(id)}`),
   update: (id, data) =>
     api.put(`/presets/agents/${encodeURIComponent(id)}`, data),
   delete: (id) => api.delete(`/presets/agents/${encodeURIComponent(id)}`),
@@ -635,6 +675,12 @@ export const presetApi = {
 // ============================================================
 export const artifactApi = {
   create: (data) => api.post('/artifacts', data),
+  listBySession: (sessionId) => api.get(`/artifacts/session/${sessionId}`),
+  get: (id) => api.get(`/artifacts/${id}`),
+  update: (id, data) => api.put(`/artifacts/${id}`, data),
+  delete: (id) => api.delete(`/artifacts/${id}`),
+  fork: (id) => api.post(`/artifacts/${id}/fork`),
+  extract: (text) => api.post('/artifacts/extract', { text }),
 }
 
 // ============================================================
@@ -660,6 +706,12 @@ export const skillAdminApi = {
   export: (skillId) => api.get(`/skills/${encodeURIComponent(skillId)}/export`),
   // 导入 Skill
   import: (data) => api.post('/skills/import', data),
+  // 内置技能列表
+  listBuiltin: () => api.get('/skills/builtin'),
+  // 标记使用
+  use: (skillId) => api.post(`/skills/${encodeURIComponent(skillId)}/use`),
+  // 批量导入
+  batchImport: (data) => api.post('/skills/batch-import', data),
 }
 
 // ============================================================
@@ -686,6 +738,8 @@ export const apiKeyAdminApi = {
   create: (data) => api.post('/admin/api-keys', data),
   // 列表 (分页)
   list: (params) => api.get('/admin/api-keys', { params }),
+  // 详情
+  get: (keyId) => api.get(`/admin/api-keys/${encodeURIComponent(keyId)}`),
   // 更新 (name/scopes/rate_limit)
   update: (keyId, data) => api.put(`/admin/api-keys/${encodeURIComponent(keyId)}`, data),
   // 吊销 (soft delete)
@@ -709,6 +763,8 @@ export const notificationApi = {
   markRead: (notificationId) => api.put(`/notifications/${encodeURIComponent(notificationId)}/read`),
   // 全部标记已读
   markAllRead: () => api.put('/notifications/read-all'),
+  // 删除通知
+  delete: (notificationId) => api.delete(`/notifications/${encodeURIComponent(notificationId)}`),
 }
 
 // ============================================================
@@ -717,6 +773,7 @@ export const notificationApi = {
 export const userAdminApi = {
   list: (params) => api.get('/admin/users', { params }),
   create: (data) => api.post('/admin/users', data),
+  get: (userId) => api.get(`/admin/users/${encodeURIComponent(userId)}`),
   update: (userId, data) => api.put(`/admin/users/${encodeURIComponent(userId)}`, data),
   delete: (userId) => api.delete(`/admin/users/${encodeURIComponent(userId)}`),
   toggleDisable: (userId, disabled) =>
@@ -734,4 +791,310 @@ export const exportApi = {
   auditLogs: (params) => api.get('/export/audit-logs', { params, responseType: params.format === 'json' ? 'json' : 'blob' }),
   analytics: (params) => api.get('/export/analytics', { params, responseType: params.format === 'json' ? 'json' : 'blob' }),
   notifications: (params) => api.get('/export/notifications', { params, responseType: params.format === 'json' ? 'json' : 'blob' }),
+}
+
+// ============================================================
+// 恢复 evidenceApi 和 insightsApi（后端有对应路由）
+// ============================================================
+export const evidenceApi = {
+  list: (evaluationId) =>
+    api.get(`/evaluations/${encodeURIComponent(evaluationId)}/evidence`),
+}
+
+export const insightsApi = {
+  query: (data) => api.post('/insights/query', data),
+  dashboard: (period, params) => api.get(`/insights/dashboard/${encodeURIComponent(period)}`, { params }),
+  export: (data) => api.post('/insights/export', data),
+}
+
+// ============================================================
+// 企业管理 API 模块（后端已实现，前端补充）
+// ============================================================
+
+// 告警管理 API
+export const alertApi = {
+  list: (params) => api.get('/admin/alerts', { params }),
+  create: (payload) => api.post('/admin/alerts', payload),
+  get: (alertId) => api.get(`/admin/alerts/${encodeURIComponent(alertId)}`),
+  acknowledge: (alertId) => api.post(`/admin/alerts/${encodeURIComponent(alertId)}/acknowledge`),
+  resolve: (alertId) => api.post(`/admin/alerts/${encodeURIComponent(alertId)}/resolve`),
+  stats: () => api.get('/admin/alerts/stats'),
+}
+
+// 配额管理 API
+export const quotaApi = {
+  get: (tenantId) => api.get(`/admin/quota/${encodeURIComponent(tenantId)}`),
+  update: (tenantId, payload) => api.put(`/admin/quota/${encodeURIComponent(tenantId)}`, payload),
+  usage: (tenantId) => api.get(`/admin/quota/${encodeURIComponent(tenantId)}/usage`),
+  reset: (tenantId) => api.post(`/admin/quota/${encodeURIComponent(tenantId)}/reset`),
+}
+
+// 预算管理 API
+export const budgetApi = {
+  list: (params) => api.get('/admin/budgets', { params }),
+  create: (payload) => api.post('/admin/budgets', payload),
+  get: (budgetId) => api.get(`/admin/budgets/${encodeURIComponent(budgetId)}`),
+  update: (budgetId, payload) => api.put(`/admin/budgets/${encodeURIComponent(budgetId)}`, payload),
+  delete: (budgetId) => api.delete(`/admin/budgets/${encodeURIComponent(budgetId)}`),
+  status: (budgetId) => api.get(`/admin/budgets/${encodeURIComponent(budgetId)}/status`),
+}
+
+// 计费管理 API
+export const billingApi = {
+  summary: (params) => api.get('/admin/billing/summary', { params }),
+  byUser: (params) => api.get('/admin/billing/by-user', { params }),
+  byEndpoint: (params) => api.get('/admin/billing/by-endpoint', { params }),
+  export: (params) => api.get('/admin/billing/export', { params, responseType: 'blob' }),
+}
+
+// 定时任务管理 API
+export const schedulerApi = {
+  list: (params) => api.get('/admin/scheduler/tasks', { params }),
+  create: (payload) => api.post('/admin/scheduler/tasks', payload),
+  get: (taskId) => api.get(`/admin/scheduler/tasks/${encodeURIComponent(taskId)}`),
+  update: (taskId, payload) => api.put(`/admin/scheduler/tasks/${encodeURIComponent(taskId)}`, payload),
+  delete: (taskId) => api.delete(`/admin/scheduler/tasks/${encodeURIComponent(taskId)}`),
+  trigger: (taskId) => api.post(`/admin/scheduler/tasks/${encodeURIComponent(taskId)}/trigger`),
+  history: (taskId, params) => api.get(`/admin/scheduler/tasks/${encodeURIComponent(taskId)}/history`, { params }),
+}
+
+// SSO 单点登录 API
+export const ssoApi = {
+  listConfigs: (params) => api.get('/admin/sso/configs', { params }),
+  createConfig: (payload) => api.post('/admin/sso/configs', payload),
+  getConfig: (configId) => api.get(`/admin/sso/configs/${encodeURIComponent(configId)}`),
+  updateConfig: (configId, payload) => api.put(`/admin/sso/configs/${encodeURIComponent(configId)}`, payload),
+  deleteConfig: (configId) => api.delete(`/admin/sso/configs/${encodeURIComponent(configId)}`),
+  authorize: (configId) => api.get(`/admin/sso/configs/${encodeURIComponent(configId)}/authorize`),
+  callback: (configId, params) => api.get(`/admin/sso/configs/${encodeURIComponent(configId)}/callback`, { params }),
+  ldapLogin: (payload) => api.post('/admin/sso/ldap/login', payload),
+}
+
+// 敏感词管理 API
+export const sensitiveWordApi = {
+  list: (params) => api.get('/admin/sensitive-words', { params }),
+  create: (payload) => api.post('/admin/sensitive-words', payload),
+  batchImport: (data) => api.post('/admin/sensitive-words/batch-import', data),
+  update: (wordId, payload) => api.put(`/admin/sensitive-words/${encodeURIComponent(wordId)}`, payload),
+  delete: (wordId) => api.delete(`/admin/sensitive-words/${encodeURIComponent(wordId)}`),
+  review: (wordId, payload) => api.post(`/admin/sensitive-words/${encodeURIComponent(wordId)}/review`, payload),
+}
+
+// 模型容灾策略 API
+export const modelFallbackApi = {
+  list: (params) => api.get('/admin/model-fallback', { params }),
+  create: (payload) => api.post('/admin/model-fallback', payload),
+  get: (chainId) => api.get(`/admin/model-fallback/${encodeURIComponent(chainId)}`),
+  update: (chainId, payload) => api.put(`/admin/model-fallback/${encodeURIComponent(chainId)}`, payload),
+  delete: (chainId) => api.delete(`/admin/model-fallback/${encodeURIComponent(chainId)}`),
+  test: (chainId) => api.post(`/admin/model-fallback/${encodeURIComponent(chainId)}/test`),
+}
+
+// 模型负载均衡 API
+export const modelLoadBalancerApi = {
+  listInstances: (params) => api.get('/admin/model-lb/instances', { params }),
+  createInstance: (payload) => api.post('/admin/model-lb/instances', payload),
+  updateConfig: (payload) => api.put('/admin/model-lb/config', payload),
+  getConfig: () => api.get('/admin/model-lb/config'),
+  healthCheck: (instanceId) => api.post(`/admin/model-lb/instances/${encodeURIComponent(instanceId)}/health-check`),
+}
+
+// Agent 版本管理 API
+export const agentVersionApi = {
+  list: (params) => api.get('/admin/agents', { params }),
+  create: (payload) => api.post('/admin/agents', payload),
+  get: (agentId) => api.get(`/admin/agents/${encodeURIComponent(agentId)}`),
+  publish: (agentId, payload) => api.post(`/admin/agents/${encodeURIComponent(agentId)}/publish`, payload),
+  rollback: (agentId, version) => api.post(`/admin/agents/${encodeURIComponent(agentId)}/rollback`, null, { params: { version } }),
+  compare: (agentId, params) => api.get(`/admin/agents/${encodeURIComponent(agentId)}/compare`, { params }),
+  archive: (agentId) => api.post(`/admin/agents/${encodeURIComponent(agentId)}/archive`),
+}
+
+// 多渠道发布 API
+export const publishApi = {
+  list: (params) => api.get('/admin/publish', { params }),
+  create: (payload) => api.post('/admin/publish', payload),
+  get: (publishId) => api.get(`/admin/publish/${encodeURIComponent(publishId)}`),
+  update: (publishId, payload) => api.put(`/admin/publish/${encodeURIComponent(publishId)}`, payload),
+  deploy: (publishId) => api.post(`/admin/publish/${encodeURIComponent(publishId)}/deploy`),
+  undeploy: (publishId) => api.post(`/admin/publish/${encodeURIComponent(publishId)}/undeploy`),
+  status: (publishId) => api.get(`/admin/publish/${encodeURIComponent(publishId)}/status`),
+}
+
+// 灰度发布 API
+export const grayReleaseApi = {
+  list: (params) => api.get('/admin/gray-release', { params }),
+  create: (payload) => api.post('/admin/gray-release', payload),
+  get: (releaseId) => api.get(`/admin/gray-release/${encodeURIComponent(releaseId)}`),
+  update: (releaseId, payload) => api.put(`/admin/gray-release/${encodeURIComponent(releaseId)}`, payload),
+  start: (releaseId) => api.post(`/admin/gray-release/${encodeURIComponent(releaseId)}/start`),
+  pause: (releaseId) => api.post(`/admin/gray-release/${encodeURIComponent(releaseId)}/pause`),
+  complete: (releaseId) => api.post(`/admin/gray-release/${encodeURIComponent(releaseId)}/complete`),
+  rollback: (releaseId) => api.post(`/admin/gray-release/${encodeURIComponent(releaseId)}/rollback`),
+  delete: (releaseId) => api.delete(`/admin/gray-release/${encodeURIComponent(releaseId)}`),
+  stats: (releaseId) => api.get(`/admin/gray-release/${encodeURIComponent(releaseId)}/stats`),
+}
+
+// 多环境管理 API
+export const environmentApi = {
+  list: (params) => api.get('/admin/environments', { params }),
+  create: (payload) => api.post('/admin/environments', payload),
+  get: (envId) => api.get(`/admin/environments/${encodeURIComponent(envId)}`),
+  update: (envId, payload) => api.put(`/admin/environments/${encodeURIComponent(envId)}`, payload),
+  delete: (envId) => api.delete(`/admin/environments/${encodeURIComponent(envId)}`),
+  deploy: (envId, payload) => api.post(`/admin/environments/${encodeURIComponent(envId)}/deploy`, payload),
+  undeploy: (envId) => api.post(`/admin/environments/${encodeURIComponent(envId)}/undeploy`),
+}
+
+// 数据集管理 API
+export const datasetApi = {
+  list: (params) => api.get('/admin/datasets', { params }),
+  create: (payload) => api.post('/admin/datasets', payload),
+  get: (datasetId) => api.get(`/admin/datasets/${encodeURIComponent(datasetId)}`),
+  update: (datasetId, payload) => api.put(`/admin/datasets/${encodeURIComponent(datasetId)}`, payload),
+  delete: (datasetId) => api.delete(`/admin/datasets/${encodeURIComponent(datasetId)}`),
+  listEntries: (datasetId, params) => api.get(`/admin/datasets/${encodeURIComponent(datasetId)}/entries`, { params }),
+  importEntries: (datasetId, data) => api.post(`/admin/datasets/${encodeURIComponent(datasetId)}/entries/import`, data),
+  stats: (datasetId) => api.get(`/admin/datasets/${encodeURIComponent(datasetId)}/stats`),
+  export: (datasetId, params) => api.get(`/admin/datasets/${encodeURIComponent(datasetId)}/export`, { params, responseType: 'blob' }),
+}
+
+// LLM-as-a-Judge 评测 API
+export const llmJudgeApi = {
+  list: (params) => api.get('/admin/llm-judge/tasks', { params }),
+  create: (payload) => api.post('/admin/llm-judge/tasks', payload),
+  get: (taskId) => api.get(`/admin/llm-judge/tasks/${encodeURIComponent(taskId)}`),
+  run: (taskId) => api.post(`/admin/llm-judge/tasks/${encodeURIComponent(taskId)}/run`),
+  results: (taskId, params) => api.get(`/admin/llm-judge/tasks/${encodeURIComponent(taskId)}/results`, { params }),
+  delete: (taskId) => api.delete(`/admin/llm-judge/tasks/${encodeURIComponent(taskId)}`),
+  summary: (taskId) => api.get(`/admin/llm-judge/tasks/${encodeURIComponent(taskId)}/summary`),
+}
+
+// RAG 质量评测 API
+export const ragEvalApi = {
+  list: (params) => api.get('/admin/rag-eval/tasks', { params }),
+  create: (payload) => api.post('/admin/rag-eval/tasks', payload),
+  get: (taskId) => api.get(`/admin/rag-eval/tasks/${encodeURIComponent(taskId)}`),
+  run: (taskId) => api.post(`/admin/rag-eval/tasks/${encodeURIComponent(taskId)}/run`),
+  results: (taskId, params) => api.get(`/admin/rag-eval/tasks/${encodeURIComponent(taskId)}/results`, { params }),
+  summary: (taskId) => api.get(`/admin/rag-eval/tasks/${encodeURIComponent(taskId)}/summary`),
+  delete: (taskId) => api.delete(`/admin/rag-eval/tasks/${encodeURIComponent(taskId)}`),
+}
+
+// 人工标注 API
+export const annotationApi = {
+  list: (params) => api.get('/admin/annotations/tasks', { params }),
+  create: (payload) => api.post('/admin/annotations/tasks', payload),
+  get: (taskId) => api.get(`/admin/annotations/tasks/${encodeURIComponent(taskId)}`),
+  assign: (taskId, payload) => api.post(`/admin/annotations/tasks/${encodeURIComponent(taskId)}/assign`, payload),
+  annotate: (taskId, payload) => api.post(`/admin/annotations/tasks/${encodeURIComponent(taskId)}/annotate`, payload),
+  stats: (taskId) => api.get(`/admin/annotations/tasks/${encodeURIComponent(taskId)}/stats`),
+  export: (taskId, params) => api.get(`/admin/annotations/tasks/${encodeURIComponent(taskId)}/export`, { params, responseType: 'blob' }),
+  delete: (taskId) => api.delete(`/admin/annotations/tasks/${encodeURIComponent(taskId)}`),
+}
+
+// Agent 模板市场 API
+export const agentTemplateApi = {
+  list: (params) => api.get('/admin/agent-templates', { params }),
+  get: (templateId) => api.get(`/admin/agent-templates/${encodeURIComponent(templateId)}`),
+  create: (payload) => api.post('/admin/agent-templates', payload),
+  update: (templateId, payload) => api.put(`/admin/agent-templates/${encodeURIComponent(templateId)}`, payload),
+  delete: (templateId) => api.delete(`/admin/agent-templates/${encodeURIComponent(templateId)}`),
+  stats: () => api.get('/admin/agent-templates/stats'),
+  instantiate: (templateId, payload) => api.post(`/admin/agent-templates/${encodeURIComponent(templateId)}/instantiate`, payload),
+}
+
+// NL2SQL API
+export const nl2sqlApi = {
+  generate: (payload) => api.post('/admin/nl2sql/generate', payload),
+  execute: (payload) => api.post('/admin/nl2sql/execute', payload),
+  query: (params) => api.get('/admin/nl2sql/queries', { params }),
+  getQuery: (queryId) => api.get(`/admin/nl2sql/queries/${encodeURIComponent(queryId)}`),
+  deleteQuery: (queryId) => api.delete(`/admin/nl2sql/queries/${encodeURIComponent(queryId)}`),
+  listSchemas: () => api.get('/admin/nl2sql/schemas'),
+  createSchema: (payload) => api.post('/admin/nl2sql/schemas', payload),
+  deleteSchema: (schemaId) => api.delete(`/admin/nl2sql/schemas/${encodeURIComponent(schemaId)}`),
+  refreshSchema: (schemaId) => api.post(`/admin/nl2sql/schemas/${encodeURIComponent(schemaId)}/refresh`),
+  executeSql: (payload) => api.post('/admin/nl2sql/execute-sql', payload),
+}
+
+// 深度文档解析 API
+export const docParsingApi = {
+  list: (params) => api.get('/admin/doc-parsing/tasks', { params }),
+  create: (payload) => api.post('/admin/doc-parsing/tasks', payload),
+  get: (taskId) => api.get(`/admin/doc-parsing/tasks/${encodeURIComponent(taskId)}`),
+  process: (taskId) => api.post(`/admin/doc-parsing/tasks/${encodeURIComponent(taskId)}/process`),
+  results: (taskId, params) => api.get(`/admin/doc-parsing/tasks/${encodeURIComponent(taskId)}/results`, { params }),
+  delete: (taskId) => api.delete(`/admin/doc-parsing/tasks/${encodeURIComponent(taskId)}`),
+}
+
+// GraphRAG 知识图谱 API
+export const graphRagApi = {
+  listTasks: (params) => api.get('/admin/graph-rag/tasks', { params }),
+  createTask: (payload) => api.post('/admin/graph-rag/tasks', payload),
+  getTask: (taskId) => api.get(`/admin/graph-rag/tasks/${encodeURIComponent(taskId)}`),
+  entities: (taskId, params) => api.get(`/admin/graph-rag/tasks/${encodeURIComponent(taskId)}/entities`, { params }),
+  relations: (taskId, params) => api.get(`/admin/graph-rag/tasks/${encodeURIComponent(taskId)}/relations`, { params }),
+  search: (payload) => api.post('/admin/graph-rag/search', payload),
+  visualize: (taskId) => api.get(`/admin/graph-rag/tasks/${encodeURIComponent(taskId)}/visualize`),
+  deleteTask: (taskId) => api.delete(`/admin/graph-rag/tasks/${encodeURIComponent(taskId)}`),
+}
+
+// 知识库同步 API
+export const kbSyncApi = {
+  listSources: (params) => api.get('/admin/kb-sync/sources', { params }),
+  createSource: (payload) => api.post('/admin/kb-sync/sources', payload),
+  getSource: (sourceId) => api.get(`/admin/kb-sync/sources/${encodeURIComponent(sourceId)}`),
+  updateSource: (sourceId, payload) => api.put(`/admin/kb-sync/sources/${encodeURIComponent(sourceId)}`, payload),
+  deleteSource: (sourceId) => api.delete(`/admin/kb-sync/sources/${encodeURIComponent(sourceId)}`),
+  sync: (sourceId) => api.post(`/admin/kb-sync/sources/${encodeURIComponent(sourceId)}/sync`),
+  logs: (sourceId, params) => api.get(`/admin/kb-sync/sources/${encodeURIComponent(sourceId)}/logs`, { params }),
+}
+
+// Prompt 优化 API
+export const promptOptimizationApi = {
+  list: (params) => api.get('/admin/prompt-optimization/tasks', { params }),
+  create: (payload) => api.post('/admin/prompt-optimization/tasks', payload),
+  get: (taskId) => api.get(`/admin/prompt-optimization/tasks/${encodeURIComponent(taskId)}`),
+  run: (taskId) => api.post(`/admin/prompt-optimization/tasks/${encodeURIComponent(taskId)}/run`),
+  results: (taskId, params) => api.get(`/admin/prompt-optimization/tasks/${encodeURIComponent(taskId)}/results`, { params }),
+  delete: (taskId) => api.delete(`/admin/prompt-optimization/tasks/${encodeURIComponent(taskId)}`),
+}
+
+// API 健康监控 API
+export const apiHealthApi = {
+  stats: (params) => api.get('/admin/api-health/stats', { params }),
+  endpoints: (params) => api.get('/admin/api-health/endpoints', { params }),
+  endpointDetail: (endpointId) => api.get(`/admin/api-health/endpoints/${encodeURIComponent(endpointId)}`),
+  listSLOs: () => api.get('/admin/api-health/slos'),
+  createSLO: (payload) => api.post('/admin/api-health/slos', payload),
+  updateSLO: (sloId, payload) => api.put(`/admin/api-health/slos/${encodeURIComponent(sloId)}`, payload),
+  deleteSLO: (sloId) => api.delete(`/admin/api-health/slos/${encodeURIComponent(sloId)}`),
+  status: () => api.get('/admin/api-health/status'),
+}
+
+// 会话分析看板 API
+export const analyticsV2Api = {
+  tokenTrends: (params) => api.get('/admin/analytics-v2/token-trends', { params }),
+  latency: (params) => api.get('/admin/analytics-v2/latency', { params }),
+  errorRate: (params) => api.get('/admin/analytics-v2/error-rate', { params }),
+  cost: (params) => api.get('/admin/analytics-v2/cost', { params }),
+  anomalies: (params) => api.get('/admin/analytics-v2/anomalies', { params }),
+}
+
+// 混合检索管理 API
+export const searchAdminApi = {
+  search: (payload) => api.post('/admin/search', payload),
+  vectorSearch: (payload) => api.post('/admin/search/vector', payload),
+  bm25Search: (payload) => api.post('/admin/search/bm25', payload),
+  getConfig: () => api.get('/admin/search/config'),
+  updateConfig: (payload) => api.put('/admin/search/config', payload),
+  incrementalUpdate: (payload) => api.post('/admin/search/incremental-update', payload),
+}
+
+// 工具超时配置 API
+export const toolConfigApi = {
+  list: (params) => api.get('/admin/tool-config', { params }),
+  update: (toolName, payload) => api.put(`/admin/tool-config/${encodeURIComponent(toolName)}`, payload),
+  reset: (toolName) => api.post(`/admin/tool-config/${encodeURIComponent(toolName)}/reset`),
 }

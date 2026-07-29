@@ -393,27 +393,6 @@ def _seed_eval(
     asyncio.run(_do())
 
 
-def test_api_inputs_isolated_by_tenant(client):
-    """API 层：tenant A 提交的输入对 tenant B 不可见"""
-    # acme 提交输入
-    resp = client.post(
-        "/api/v1/inputs",
-        json={"employee_id": "E1", "period": "2026-W01", "content": "acme 输入"},
-        headers=_headers("employee", "E1", "acme"),
-    )
-    assert resp.status_code == 200
-
-    # globex 查询应看不到 acme 的输入
-    resp = client.get("/api/v1/inputs", headers=_headers("employee", "E1", "globex"))
-    assert resp.status_code == 200
-    assert resp.json()["count"] == 0
-
-    # acme 自己能查到
-    resp = client.get("/api/v1/inputs", headers=_headers("employee", "E1", "acme"))
-    assert resp.status_code == 200
-    assert resp.json()["count"] == 1
-
-
 def test_api_cross_tenant_data_invisible(client):
     """跨租户：同一 employee_id 在 tenant B 看不到 tenant A 的评估历史"""
     _seed_eval("acme", "E1", "EVAL-acme", score=70.0)

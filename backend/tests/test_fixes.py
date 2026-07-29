@@ -243,7 +243,7 @@ def test_t1_jwt_blacklist_blocks_business_endpoint(client, mock_app_state):
     auth_header = {"Authorization": f"Bearer {token}"}
 
     # 2. 有效 token 可访问业务端点
-    resp = client.get("/api/v1/inputs", headers=auth_header)
+    resp = client.get("/api/v1/auth/me", headers=auth_header)
     assert resp.status_code == 200
 
     # 3. 登出吊销 token
@@ -252,7 +252,7 @@ def test_t1_jwt_blacklist_blocks_business_endpoint(client, mock_app_state):
     assert resp.json()["revoked"] is True
 
     # 4. 吊销后的 token 访问业务端点应 401
-    resp = client.get("/api/v1/inputs", headers=auth_header)
+    resp = client.get("/api/v1/auth/me", headers=auth_header)
     assert resp.status_code == 401
     assert "吊销" in resp.json()["detail"]
 

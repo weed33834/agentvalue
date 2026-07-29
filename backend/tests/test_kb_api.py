@@ -1,6 +1,9 @@
 """
-H1 公司知识库 CRUD API 单元测试
-覆盖 POST/GET/DELETE /api/v1/kb 与权限校验。
+H1 公司知识库管理 Admin API 单元测试
+覆盖 POST/GET/DELETE /api/v1/admin/kb/docs 与权限校验。
+
+旧的 /api/v1/kb 路由已废弃（被 /admin/kb 全栈替代），本测试改为覆盖新端点。
+所有 admin/kb 端点仅 admin 可访问（router 级 require_role(ADMIN)）。
 """
 
 import tempfile
@@ -58,10 +61,6 @@ def client(initialized_db):
         yield c
 
 
-def _hr_headers() -> dict:
-    return {"x-user-role": "hr", "x-user-id": "HR001"}
-
-
 def _admin_headers() -> dict:
     return {"x-user-role": "admin", "x-user-id": "ADMIN001"}
 
@@ -70,17 +69,17 @@ def _employee_headers() -> dict:
     return {"x-user-role": "employee", "x-user-id": "E1001"}
 
 
-def test_create_kb_doc_hr_success(client):
-    """HR 可创建知识库文档"""
+def test_create_kb_doc_admin_success(client):
+    """ADMIN 可创建知识库文档"""
     resp = client.post(
-        "/api/v1/kb",
+        "/api/v1/admin/kb/docs",
         json={
             "kb_id": "KB-TEST-1",
             "title": "测试文档",
             "content": "测试内容",
             "metadata": {"tag": "t1"},
         },
-        headers=_hr_headers(),
+        headers=_admin_headers(),
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -97,15 +96,15 @@ def test_create_kb_doc_duplicate_returns_409(client):
         "content": "内容",
         "metadata": {},
     }
-    client.post("/api/v1/kb", json=payload, headers=_hr_headers())
-    resp = client.post("/api/v1/kb", json=payload, headers=_hr_headers())
+    client.post("/api/v1/admin/kb/docs", json=payload, headers=_admin_headers())
+    resp = client.post("/api/v1/admin/kb/docs", json=payload, headers=_admin_headers())
     assert resp.status_code == 409
 
 
-def test_create_kb_doc_employee_forbidden(client):
-    """employee 无权创建"""
+def test_create_kb_doc_non_admin_forbidden(client):
+    """非 admin 无权访问知识库管理端点（router 级 ADMIN 守卫）"""
     resp = client.post(
-        "/api/v1/kb",
+        "/api/v1/admin/kb/docs",
         json={"kb_id": "KB-X", "title": "x", "content": "y", "metadata": {}},
         headers=_employee_headers(),
     )
@@ -116,16 +115,18 @@ def test_list_kb_docs_paginated(client):
     """分页列表返回 items/total/page/page_size"""
     for i in range(3):
         client.post(
-            "/api/v1/kb",
+            "/api/v1/admin/kb/docs",
             json={
                 "kb_id": f"KB-LIST-{i}",
                 "title": f"文档{i}",
                 "content": "内容",
                 "metadata": {},
             },
-            headers=_hr_headers(),
+            headers=_admin_headers(),
         )
-    resp = client.get("/api/v1/kb?page=1&page_size=2", headers=_employee_headers())
+    resp = client.get(
+        "/api/v1/admin/kb/docs?page=1&page_size=2", headers=_admin_headers()
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["total"] >= 3
@@ -138,43 +139,35 @@ def test_list_kb_docs_paginated(client):
 def test_get_kb_doc_found_and_not_found(client):
     """详情查询：存在/不存在"""
     client.post(
-        "/api/v1/kb",
+        "/api/v1/admin/kb/docs",
         json={"kb_id": "KB-GET", "title": "g", "content": "c", "metadata": {}},
-        headers=_hr_headers(),
+        headers=_admin_headers(),
     )
-    ok = client.get("/api/v1/kb/KB-GET", headers=_employee_headers())
+    ok = client.get("/api/v1/admin/kb/docs/KB-GET", headers=_admin_headers())
     assert ok.status_code == 200
     assert ok.json()["kb_id"] == "KB-GET"
 
-    miss = client.get("/api/v1/kb/NOPE", headers=_employee_headers())
+    miss = client.get("/api/v1/admin/kb/docs/NOPE", headers=_admin_headers())
     assert miss.status_code == 404
 
 
 def test_delete_kb_doc_admin_success(client):
     """ADMIN 可删除"""
     client.post(
-        "/api/v1/kb",
+        "/api/v1/admin/kb/docs",
         json={"kb_id": "KB-DEL", "title": "d", "content": "c", "metadata": {}},
-        headers=_hr_headers(),
+        headers=_admin_headers(),
     )
-    resp = client.delete("/api/v1/kb/KB-DEL", headers=_admin_headers())
+    resp = client.delete("/api/v1/admin/kb/docs/KB-DEL", headers=_admin_headers())
     assert resp.status_code == 200
     assert resp.json()["deleted"] is True
     # 删除后查询应 404
-    assert client.get("/api/v1/kb/KB-DEL", headers=_admin_headers()).status_code == 404
-
-
-def test_delete_kb_doc_hr_forbidden(client):
-    """HR 无权删除（仅 ADMIN）"""
-    client.post(
-        "/api/v1/kb",
-        json={"kb_id": "KB-DEL2", "title": "d", "content": "c", "metadata": {}},
-        headers=_hr_headers(),
+    assert (
+        client.get("/api/v1/admin/kb/docs/KB-DEL", headers=_admin_headers()).status_code
+        == 404
     )
-    resp = client.delete("/api/v1/kb/KB-DEL2", headers=_hr_headers())
-    assert resp.status_code == 403
 
 
 def test_delete_kb_doc_not_found(client):
-    resp = client.delete("/api/v1/kb/NOPE", headers=_admin_headers())
+    resp = client.delete("/api/v1/admin/kb/docs/NOPE", headers=_admin_headers())
     assert resp.status_code == 404

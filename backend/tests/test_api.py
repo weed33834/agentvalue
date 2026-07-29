@@ -670,20 +670,6 @@ def test_get_employee_dashboard(client, mock_app_state, created_evaluation_id):
     assert data["employee_id"] == "E1001"
 
 
-def test_create_input(client, mock_app_state):
-    payload = {
-        "employee_id": "E1002",
-        "period": "2026-W25",
-        "type": "daily_report",
-        "content": "本周完成了用户管理模块开发",
-    }
-    resp = client.post("/api/v1/inputs", json=payload, headers={"x-user-id": "E1002"})
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["employee_id"] == "E1002"
-    assert data["input_id"].startswith("input-")
-
-
 # ---------------- JWT 认证测试 ----------------
 
 
@@ -1041,52 +1027,6 @@ def test_employee_cannot_access_other_evaluation(
         headers={"x-user-id": "E9999"},
     )
     assert resp.status_code == 403
-
-
-def test_employee_cannot_create_input_for_others(client, mock_app_state):
-    """employee 角色为他人提交输入时，employee_id 被强制为自己的 ID"""
-    payload = {
-        "employee_id": "E1004",
-        "period": "2026-W25",
-        "type": "daily_report",
-        "content": "尝试为他人提交输入",
-    }
-    resp = client.post("/api/v1/inputs", json=payload, headers={"x-user-id": "E1003"})
-    assert resp.status_code == 200
-    data = resp.json()
-    # employee_id 被强制覆盖为当前用户 E1003
-    assert data["employee_id"] == "E1003"
-
-
-def test_get_input_not_found(client, mock_app_state):
-    """查询不存在的 input_id 返回 404"""
-    resp = client.get(
-        "/api/v1/inputs/nonexistent-id",
-        headers={"x-user-role": "manager"},
-    )
-    assert resp.status_code == 404
-
-
-def test_list_inputs(client, mock_app_state):
-    """测试 GET /api/v1/inputs 列表接口"""
-    # 先创建一个 input
-    payload = {
-        "employee_id": "E1005",
-        "period": "2026-W25",
-        "type": "daily_report",
-        "content": "列表接口测试输入",
-    }
-    resp = client.post("/api/v1/inputs", json=payload, headers={"x-user-id": "E1005"})
-    assert resp.status_code == 200
-
-    # 查询列表（manager 可见全部）
-    resp = client.get(
-        "/api/v1/inputs",
-        headers={"x-user-role": "manager"},
-    )
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["count"] >= 1
 
 
 def test_get_evaluation_job_not_found(client, mock_app_state):

@@ -8,10 +8,9 @@ AgentValue-AI 性能测试基线（Locust）
 未安装 locust 时可先执行：pip install locust（locust 为可选开发依赖，不纳入 requirements.txt）。
 
 测试场景：AgentValueUser 模拟员工的完整用户流程：
-    1. 提交日报输入            POST /api/v1/inputs
-    2. 触发异步评估            POST /api/v1/evaluations
-    3. 轮询评估任务结果        GET  /api/v1/evaluations/jobs/{job_id}
-    4. 查看个人 dashboard      GET  /api/v1/employees/{id}/dashboard
+    1. 触发异步评估            POST /api/v1/evaluations
+    2. 轮询评估任务结果        GET  /api/v1/evaluations/jobs/{job_id}
+    3. 查看个人 dashboard      GET  /api/v1/employees/{id}/dashboard
 """
 
 import random
@@ -47,22 +46,6 @@ class AgentValueUser(HttpUser):
         # 触发评估后缓存的最近一次 job_id，供轮询任务复用
         self.last_job_id = None
         self.period = "2026-W26"
-
-    @task(3)
-    def submit_input(self):
-        """提交日报输入（POST /api/v1/inputs）"""
-        payload = {
-            "employee_id": self.user_id,
-            "period": self.period,
-            "type": "daily_report",
-            "content": f"性能测试日报 {uuid.uuid4().hex[:8]}：完成模块开发并修复 2 个 Bug",
-        }
-        self.client.post(
-            "/api/v1/inputs",
-            json=payload,
-            headers=self.headers,
-            name="/inputs",
-        )
 
     @task(2)
     def trigger_evaluation(self):

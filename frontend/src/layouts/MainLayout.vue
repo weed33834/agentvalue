@@ -195,6 +195,46 @@
             <el-icon><TrendCharts /></el-icon>
             <span>RLHF 反馈</span>
           </el-menu-item>
+          <el-menu-item index="/admin/alerts">
+            <el-icon><BellFilled /></el-icon>
+            <span>告警管理</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/quota-budget">
+            <el-icon><Coin /></el-icon>
+            <span>配额与预算</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/scheduler">
+            <el-icon><Timer /></el-icon>
+            <span>定时任务</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/security">
+            <el-icon><Lock /></el-icon>
+            <span>安全治理</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/model-ops">
+            <el-icon><Cpu /></el-icon>
+            <span>模型运维</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/release-ops">
+            <el-icon><Promotion /></el-icon>
+            <span>发布运维</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/eval-center">
+            <el-icon><DataAnalysis /></el-icon>
+            <span>评测中心</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/knowledge-ops">
+            <el-icon><MagicStick /></el-icon>
+            <span>知识增强</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/agent-templates">
+            <el-icon><Box /></el-icon>
+            <span>Agent 模板</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/billing">
+            <el-icon><Wallet /></el-icon>
+            <span>计费管理</span>
+          </el-menu-item>
         </template>
 
       </el-menu>
