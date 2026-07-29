@@ -15,6 +15,8 @@ import 'element-plus/theme-chalk/dark/css-vars.css'
 import './styles/theme.css'
 // 全局样式：过渡动画、响应式布局、组件交互增强
 import './styles/global.css'
+// 移动端独立设计系统（/m 路由树使用，与桌面端 Element Plus 样式隔离）
+import './styles/mobile.css'
 
 import App from './App.vue'
 import router from './router'

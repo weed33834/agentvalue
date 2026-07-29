@@ -1,6 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { authFlowState, isTokenExpired } from '@/utils/auth'
+import { mobileRoutes } from './mobile'
+import { isMobile } from '@/utils/device'
+import { desktopToMobilePath } from '@/utils/mobileNav'
 
 /**
  * 角色默认首页映射(单一来源):登录跳转与兜底路由共用,避免不一致。
@@ -393,6 +396,8 @@ const routes = [
       },
     ],
   },
+  // ============ 移动端路由树（与桌面平行独立）============
+  ...mobileRoutes,
   {
     path: '/',
     redirect: '/login',
@@ -415,6 +420,15 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
   const auth = useAuthStore()
+  // 设备感知重定向：移动端访问桌面路由（含 /login）→ 跳 /m 对应页；
+  // 已处于 /m 或显式 ?desktop=1 时跳过，保证可手动回桌面端。
+  if (isMobile() && !to.path.startsWith('/m') && to.query.desktop !== '1') {
+    const target = desktopToMobilePath(to.path)
+    if (target !== to.path) {
+      next(target)
+      return
+    }
+  }
   if (to.path === '/login') {
     next()
     return
