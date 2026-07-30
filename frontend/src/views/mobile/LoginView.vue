@@ -1,7 +1,9 @@
 <template>
   <div class="m-login">
     <div class="m-login__hero">
-      <div class="m-login__logo">AV</div>
+      <div class="m-login__logo">
+        <BrandLogo :show-text="false" :size="64" />
+      </div>
       <h1 class="m-login__title">AgentValue</h1>
       <p class="m-login__sub">AI 驱动的员工价值量化与成长系统</p>
     </div>
@@ -65,6 +67,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { authApi } from '@/api/client'
 import { isDemoAuthEnabled } from '@/utils/auth'
+import BrandLogo from '@/components/BrandLogo.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -142,25 +145,15 @@ function goDesktop() {
   padding: 56px 24px 32px;
 }
 .m-login__logo {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 16px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  font-weight: 800;
-  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+  margin: 0 auto 16px;
 }
 .m-login__title {
   font-size: 26px;
   font-weight: 800;
   margin: 0 0 8px;
-}
-.m-login__title .accent {
-  color: #60a5fa;
 }
 .m-login__sub {
   font-size: 13px;

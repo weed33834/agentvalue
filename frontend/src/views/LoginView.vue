@@ -10,8 +10,8 @@
     <el-card class="login-card av-scale-in" shadow="always">
       <template #header>
         <div class="login-header">
-          <div class="logo-icon">
-            <el-icon :size="32" color="#2563eb"><DataAnalysis /></el-icon>
+          <div class="login-mark">
+            <BrandLogo :show-text="false" :size="56" />
           </div>
           <h1 class="login-title">AgentValue</h1>
           <p class="login-subtitle">AI 驱动员工价值量化与成长系统</p>
@@ -96,11 +96,12 @@
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Message, Lock, InfoFilled, WarningFilled, DataAnalysis } from '@element-plus/icons-vue'
+import { Message, Lock, InfoFilled, WarningFilled } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { authApi } from '@/api/client'
 import { isDemoAuthEnabled } from '@/utils/auth'
 import { roleHome } from '@/router'
+import BrandLogo from '@/components/BrandLogo.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -255,16 +256,10 @@ async function seedDemoUsers() {
 .login-header {
   text-align: center;
 }
-.logo-icon {
-  display: inline-flex;
-  align-items: center;
+.login-mark {
+  display: flex;
   justify-content: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #dbeafe, #eff6ff);
   margin-bottom: 16px;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 .login-title {
   font-size: 24px;
@@ -272,9 +267,6 @@ async function seedDemoUsers() {
   margin: 0 0 8px;
   color: #1f2937;
   letter-spacing: 0.5px;
-}
-.title-accent {
-  color: #2563eb;
 }
 .login-subtitle {
   font-size: 13px;
@@ -359,9 +351,8 @@ async function seedDemoUsers() {
   .login-card :deep(.el-card__body) {
     padding: 0 20px 24px !important;
   }
-  .logo-icon {
-    width: 56px;
-    height: 56px;
+  .login-mark {
+    margin-bottom: 12px;
   }
   .login-title {
     font-size: 20px;
@@ -381,8 +372,5 @@ html.dark .login-card {
 }
 html.dark .login-title {
   color: var(--el-text-color-primary);
-}
-html.dark .logo-icon {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05));
 }
 </style>

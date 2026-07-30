@@ -17,7 +17,7 @@
       :class="{ 'sidebar--mobile-open': mobileSidebarVisible }"
     >
       <div class="logo" role="heading" aria-level="1">
-        <span class="logo-text">AgentValue</span>
+        <BrandLogo :size="26" :text-size="17" />
       </div>
       <el-menu
         :default-active="activeMenu"
@@ -341,6 +341,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
 import { useThemeStore } from '@/stores/theme'
 import Watermark from '@/components/Watermark.vue'
+import BrandLogo from '@/components/BrandLogo.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -473,16 +474,12 @@ onUnmounted(() => {
 /* 侧边栏顶部 Logo */
 .logo {
   height: var(--av-header-height);
-  line-height: var(--av-header-height);
-  text-align: center;
-  font-size: 18px;
-  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  white-space: nowrap;
+  color: #ffffff;
   overflow: hidden;
-}
-.logo-accent {
-  color: #60a5fa;
 }
 
 /* 菜单样式 */
