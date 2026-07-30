@@ -1,4 +1,4 @@
-# AgentValue-AI P2 深水区设计 — Provider CRUD / Prompt Playground / 流式响应
+# AgentValue P2 深水区设计 — Provider CRUD / Prompt Playground / 流式响应
 
 > 本文档基于 P0/P1 已落地的版本,继续向 Dify / Coze / Langfuse 完整功能深度对标。
 > 所有设计决策均来自联网调研(2025-2026),引用见第十一节。
@@ -526,7 +526,7 @@ class StreamChunk:
 
 ## 五、Trace Replay(简版)
 
-Langfuse 自身支持 Trace Replay,agentvalue-ai 不重复造轮子,只做:
+Langfuse 自身支持 Trace Replay,agentvalue 不重复造轮子,只做:
 - `GET /api/v1/admin/debug/evaluation/{id}/replay` — 重放某次评估的输入 + prompt 版本,产生新 trace
 - 前端 Debug 页加 "Replay" 按钮,跳转 Playground 自动填充历史输入
 

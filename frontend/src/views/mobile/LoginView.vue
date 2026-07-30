@@ -2,7 +2,7 @@
   <div class="m-login">
     <div class="m-login__hero">
       <div class="m-login__logo">AV</div>
-      <h1 class="m-login__title">AgentValue<span class="accent">-AI</span></h1>
+      <h1 class="m-login__title">AgentValue</h1>
       <p class="m-login__sub">AI 驱动的员工价值量化与成长系统</p>
     </div>
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AgentValue-AI 公平性审计月报
+AgentValue 公平性审计月报
 
 按月（默认 4 周）聚合评估记录，按部门 / 职级 / 性别 / 办公地分组统计，
 输出 JSON 报告与可读 markdown 摘要，供 HRBP 与公平性审计师月度复核。
@@ -295,7 +295,7 @@ def render_markdown(report: dict) -> str:
     将月报渲染为可读 markdown，写得像真实审计师：有数据、有判断、有建议。
     """
     lines: list[str] = []
-    lines.append("# AgentValue-AI 公平性审计月报")
+    lines.append("# AgentValue 公平性审计月报")
     lines.append("")
     lines.append(f"> 生成时间：{report['generated_at']}")
     lines.append(f"> 覆盖周次：{', '.join(report['weeks'])}")
@@ -436,14 +436,14 @@ def render_markdown(report: dict) -> str:
     lines.append("")
     lines.append("---")
     lines.append(
-        "*本报告由 AgentValue-AI 公平性审计月报脚本自动生成，结论供 HRBP 与审计师复核，不直接产生人事决策。*"
+        "*本报告由 AgentValue 公平性审计月报脚本自动生成，结论供 HRBP 与审计师复核，不直接产生人事决策。*"
     )
     return "\n".join(lines)
 
 
 def main(argv: list[str] | None = None) -> int:
     """命令行入口：生成月报并写出 JSON + markdown。"""
-    parser = argparse.ArgumentParser(description="AgentValue-AI 公平性审计月报")
+    parser = argparse.ArgumentParser(description="AgentValue 公平性审计月报")
     parser.add_argument(
         "--output",
         default="data/pilot/",

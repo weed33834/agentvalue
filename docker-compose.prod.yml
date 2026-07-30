@@ -1,4 +1,4 @@
-# AgentValue-AI 生产环境 Compose Override
+# AgentValue 生产环境 Compose Override
 #
 # 用法:
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
@@ -143,7 +143,7 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Grafana 可视化(provisioning 自动加载 Prometheus 数据源 + AgentValue-AI 看板)
+  # Grafana 可视化(provisioning 自动加载 Prometheus 数据源 + AgentValue 看板)
   grafana:
     image: grafana/grafana:latest
     container_name: agentvalue-grafana

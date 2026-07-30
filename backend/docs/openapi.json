@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "AgentValue-AI",
+    "title": "AgentValue",
     "description": "AI 驱动员工价值量化与成长 Agent 系统",
     "version": "0.1.0"
   },

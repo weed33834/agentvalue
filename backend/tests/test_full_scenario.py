@@ -414,4 +414,4 @@ class TestAPIMetadata:
         resp = client.get("/openapi.json")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["info"]["title"] == "AgentValue-AI"
+        assert data["info"]["title"] == "AgentValue"

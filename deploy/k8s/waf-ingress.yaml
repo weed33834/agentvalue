@@ -34,7 +34,7 @@ metadata:
     app.kubernetes.io/name: agentvalue-waf
     app.kubernetes.io/component: security
 data:
-  # ModSecurity 自定义规则 — 针对 AgentValue-AI 业务场景的补充规则
+  # ModSecurity 自定义规则 — 针对 AgentValue 业务场景的补充规则
   # OWASP CRS 已覆盖通用攻击(SQL注入/XSS/路径遍历等),此处补充业务特定规则
 
   # 规则1: 禁止访问敏感路径(.env/.git/.svn/credentials)

@@ -93,10 +93,10 @@ describe('Watermark.vue', () => {
     expect(wrapper.vm.watermarkText).toBe('CUSTOM-USER-123')
   })
 
-  it('未传 text 时回退到 AgentValue-AI 兜底', () => {
+  it('未传 text 时回退到 AgentValue 兜底', () => {
     const wrapper = mount(Watermark, { props: { report: false } })
-    // 无 auth store user,回退到 'AgentValue-AI'
-    expect(wrapper.vm.watermarkText).toBe('AgentValue-AI')
+    // 无 auth store user,回退到 'AgentValue'
+    expect(wrapper.vm.watermarkText).toBe('AgentValue')
   })
 
   it('report=false 时不调用 api.post 上报', async () => {

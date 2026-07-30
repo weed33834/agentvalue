@@ -1,4 +1,4 @@
-# AgentValue-AI Prompt 工程规范 v1.0
+# AgentValue Prompt 工程规范 v1.0
 
 > **版本：** v1.0  
 > **编写日期：** 2026-06-20  

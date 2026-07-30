@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AgentValue-AI GDPR / 个保法合规审计脚本（Phase 9.3）
+AgentValue GDPR / 个保法合规审计脚本（Phase 9.3）
 
 支持数据主体三项权利：
 - 访问权：query_employee_data 查询员工数据摘要
@@ -425,7 +425,7 @@ async def generate_compliance_report(
     top_actions = sorted(action_stats.items(), key=lambda kv: kv[1], reverse=True)[:10]
 
     lines: List[str] = []
-    lines.append("# AgentValue-AI 合规审计报告")
+    lines.append("# AgentValue 合规审计报告")
     lines.append("")
     lines.append(f"> 生成时间：{now.isoformat()}")
     lines.append("> 适用法规：GDPR / 中华人民共和国个人信息保护法")
@@ -511,7 +511,7 @@ async def generate_compliance_report(
         lines.append("✅ 当前数据留存状态符合 GDPR / 个保法留存期要求，无待处理告警。")
     lines.append("")
     lines.append("---")
-    lines.append("*本报告由 AgentValue-AI 合规审计脚本自动生成，供 DPO 与审计师复核。*")
+    lines.append("*本报告由 AgentValue 合规审计脚本自动生成，供 DPO 与审计师复核。*")
 
     content = "\n".join(lines)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -546,7 +546,7 @@ async def _run_cli(args) -> int:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="AgentValue-AI GDPR/个保法合规审计")
+    parser = argparse.ArgumentParser(description="AgentValue GDPR/个保法合规审计")
     parser.add_argument("--export", metavar="EMP_ID", help="导出员工全部数据（JSON）")
     parser.add_argument("--delete", metavar="EMP_ID", help="软删除员工数据（被遗忘权）")
     parser.add_argument("--query", metavar="EMP_ID", help="查询员工数据摘要（访问权）")

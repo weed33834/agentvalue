@@ -1,4 +1,4 @@
-title = "AgentValue-AI gitleaks config"
+title = "AgentValue gitleaks config"
 
 [extend]
 useDefault = true

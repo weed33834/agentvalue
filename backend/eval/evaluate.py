@@ -532,7 +532,7 @@ def build_mock_model_router(tier: str = "L0") -> ModelRouter:
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="AgentValue-AI LLM 回归评估")
+    parser = argparse.ArgumentParser(description="AgentValue LLM 回归评估")
     parser.add_argument(
         "--mock", action="store_true", help="使用 Mock Provider 跑通流程"
     )

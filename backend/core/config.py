@@ -1,5 +1,5 @@
 """
-AgentValue-AI 应用配置
+AgentValue 应用配置
 优先从环境变量读取，本地开发可使用 .env 文件。
 """
 
@@ -20,11 +20,11 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = "AgentValue-AI"
+    app_name: str = "AgentValue"
     debug: bool = False
 
     # 数据库：默认 SQLite（异步），生产可改为 postgresql+asyncpg://...
-    database_url: str = "sqlite+aiosqlite:///./agentvalue_ai.db"
+    database_url: str = "sqlite+aiosqlite:///./agentvalue.db"
     # P0-3: 数据库连接池调优（仅 PostgreSQL 生效，SQLite 使用 NullPool）
     db_pool_size: int = 20
     db_max_overflow: int = 10

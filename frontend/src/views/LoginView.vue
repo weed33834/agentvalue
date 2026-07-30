@@ -13,7 +13,7 @@
           <div class="logo-icon">
             <el-icon :size="32" color="#2563eb"><DataAnalysis /></el-icon>
           </div>
-          <h1 class="login-title">AgentValue<span class="title-accent">-AI</span></h1>
+          <h1 class="login-title">AgentValue</h1>
           <p class="login-subtitle">AI 驱动员工价值量化与成长系统</p>
         </div>
       </template>

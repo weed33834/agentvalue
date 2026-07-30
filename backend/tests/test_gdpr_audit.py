@@ -288,7 +288,7 @@ class TestGenerateComplianceReport:
 
         assert out.exists()
         assert content == out.read_text(encoding="utf-8")
-        assert "AgentValue-AI 合规审计报告" in content
+        assert "AgentValue 合规审计报告" in content
         assert "数据分类清单" in content
         assert "raw_inputs" in content
         assert "evaluations" in content
@@ -334,5 +334,5 @@ class TestGenerateComplianceReport:
         content = await generate_compliance_report(
             session, output_path=out, settings=_settings()
         )
-        assert "AgentValue-AI 合规审计报告" in content
+        assert "AgentValue 合规审计报告" in content
         assert "暂无审计日志记录" in content or "审计日志总量：**0**" in content

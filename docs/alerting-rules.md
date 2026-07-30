@@ -1,6 +1,6 @@
-# AgentValue-AI 告警规则手册
+# AgentValue 告警规则手册
 
-AgentValue-AI 生产环境的三条核心告警,规则文件 [monitoring/alerts.yml](../monitoring/alerts.yml),由 Prometheus 按 group interval(30s) 评估，持续 5m(for) 满足条件才触发(避免瞬时抖动误报)。
+AgentValue 生产环境的三条核心告警,规则文件 [monitoring/alerts.yml](../monitoring/alerts.yml),由 Prometheus 按 group interval(30s) 评估，持续 5m(for) 满足条件才触发(避免瞬时抖动误报)。
 
 告警链路:`backend /metrics` → Prometheus 抓取 + 规则评估 → (Alertmanager 未内置,启用通知时另行部署)→ 通知渠道。
 
@@ -18,7 +18,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 - Prometheus:`http://localhost:9090`(抓 backend `/metrics`,评估 `alerts.yml`)
 - Grafana:`http://localhost:3000`(默认 admin/admin,生产用 `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` 覆盖)
-- Grafana 启动时自动加载:Prometheus 数据源 + AgentValue-AI 看板(`grafana/provisioning` + `grafana/dashboard.json`)
+- Grafana 启动时自动加载:Prometheus 数据源 + AgentValue 看板(`grafana/provisioning` + `grafana/dashboard.json`)
 
 ---
 

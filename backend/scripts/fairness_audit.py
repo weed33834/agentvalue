@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AgentValue-AI 公平性审计脚本
+AgentValue 公平性审计脚本
 
 对一批评估结果按群体维度统计评分偏差，输出公平性报告。
 
@@ -293,7 +293,7 @@ def _load_records(path: str) -> list[dict]:
 
 def main(argv: list[str] | None = None) -> int:
     """命令行入口。"""
-    parser = argparse.ArgumentParser(description="AgentValue-AI 公平性审计")
+    parser = argparse.ArgumentParser(description="AgentValue 公平性审计")
     parser.add_argument("--input", required=True, help="评估记录 JSON 文件路径")
     parser.add_argument("--output", default=None, help="（可选）将报告写入该 JSON 文件")
     parser.add_argument(

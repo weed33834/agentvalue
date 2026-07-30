@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AgentValue-AI 数据库迁移封装脚本。
+AgentValue 数据库迁移封装脚本。
 
 基于 Alembic，默认读取 backend/alembic.ini，数据库连接串从 core.config 获取。
 """
@@ -45,7 +45,7 @@ def history() -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="AgentValue-AI 数据库迁移工具")
+    parser = argparse.ArgumentParser(description="AgentValue 数据库迁移工具")
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("upgrade", help="升级到最新版本（head）")

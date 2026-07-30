@@ -7,8 +7,8 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      # 容器内持久化路径，覆盖默认的 ./agentvalue_ai.db
-      - DATABASE_URL=sqlite+aiosqlite:///./dbdata/agentvalue_ai.db
+      # 容器内持久化路径，覆盖默认的 ./agentvalue.db
+      - DATABASE_URL=sqlite+aiosqlite:///./dbdata/agentvalue.db
       - VECTOR_STORE_DIR=/app/chroma_db
       - ATTACHMENT_DIR=/app/attachments
       # 安全默认值（生产环境请通过 .env 覆盖 JWT_SECRET_KEY 与 AGENTVALUE_ENV）

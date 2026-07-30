@@ -1,8 +1,8 @@
-# AgentValue-AI 企业部署手册
+# AgentValue 企业部署手册
 
 > **版本：** v2.2.0  
 > **适用对象：** 系统管理员、DevOps、安全合规人员  
-> **目标：** 指导企业完成 AgentValue-AI 的内网/云端/混合部署
+> **目标：** 指导企业完成 AgentValue 的内网/云端/混合部署
 
 ---
 
@@ -449,7 +449,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
 
 - **Prometheus** `http://localhost:9090`：抓 backend `/metrics`，评估 `monitoring/alerts.yml` 告警规则
-- **Grafana** `http://localhost:3000`：启动自动加载 Prometheus 数据源 + AgentValue-AI 看板（provisioning 免手动 Import）；prod compose 强制必填 `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD`（无默认值，未设置则容器启动失败）
+- **Grafana** `http://localhost:3000`：启动自动加载 Prometheus 数据源 + AgentValue 看板（provisioning 免手动 Import）；prod compose 强制必填 `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD`（无默认值，未设置则容器启动失败）
 
 三条核心告警（持续 5m 触发，规则见 `monitoring/alerts.yml`，排查步骤见 [告警规则手册](alerting-rules.md)）：
 

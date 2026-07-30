@@ -1,4 +1,4 @@
-# AgentValue-AI Prometheus 告警规则
+# AgentValue Prometheus 告警规则
 # 阈值来源:docs/alerting-rules.md
 # 三条核心告警:评估失败率 / 评估 P99 耗时 / LLM 调用失败率
 # 评估窗口统一 5m,持续 5m 触发,避免瞬时抖动误报。

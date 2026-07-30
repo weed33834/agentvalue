@@ -1,5 +1,5 @@
 """
-AgentValue-AI 性能测试基线（Locust）
+AgentValue 性能测试基线（Locust）
 
 启动方式（确保后端已在 http://localhost:8000 运行）：
     locust -f tests/perf/locustfile.py --host http://localhost:8000

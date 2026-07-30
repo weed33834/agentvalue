@@ -1,4 +1,4 @@
-# AgentValue-AI 开发计划（规划基线）
+# AgentValue 开发计划（规划基线）
 
 > 本文件由 2026-07-12 全仓库调研产出，作为后续开发的规划基线。
 > 调研方法：通读 backend/frontend/docs/CI，对照 architecture-decisions / architecture-notes / ADR / CHANGELOG / security_audit_export 的 KNOWN_TECH_DEBT 交叉验证。

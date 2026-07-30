@@ -41,7 +41,7 @@ GitLab 自托管实例
    │
    ├─ webhook(push / merge_request / note 事件,带 X-Gitlab-Token 校验)
    │     ▼
-   │   AgentValue-AI 仓库适配层
+   │   AgentValue 仓库适配层
    │     │  格式转换 + 服务态鉴权(系统级 JWT / 内部 API Key)
    │     │  构造 CreateInputRequest{type=code_contribution, content=结构化摘要 JSON}
    │     ▼
@@ -49,7 +49,7 @@ GitLab 自托管实例
    │
    └─ 定时拉取(每小时,/api/v4 拉最近 commit,兜底)
          ▼
-       AgentValue-AI 仓库适配层 → 同上
+       AgentValue 仓库适配层 → 同上
                 ▼
             评估流(按 period 聚合)
 ```
@@ -59,7 +59,7 @@ GitLab 自托管实例
 - **webhook 鉴权**。GitLab 回调带 `X-Gitlab-Token`,适配层必须校验,否则任意人都能伪造 commit 事件污染评估。
 - **`/inputs` 的服务态鉴权**。同 ADR-001,适配层调 `/inputs` 需系统级凭证(`/inputs` 有 `require_role`,webhook 无员工身份),不能裸调。
 - **`content` 上限 10000 字符**。一个工程师一周的 commit 摘要可能超限,适配层需按 period 聚合 + 截断/分条,不能整把塞进去。
-- **author 邮箱 → employee_id 映射**。GitLab commit author email 不等于 AgentValue-AI employee_id,需映射表;多账号、企业邮箱与个人邮箱混用要单独合并到同一 employee_id。
+- **author 邮箱 → employee_id 映射**。GitLab commit author email 不等于 AgentValue employee_id,需映射表;多账号、企业邮箱与个人邮箱混用要单独合并到同一 employee_id。
 
 ## 隐私考虑(重要)
 

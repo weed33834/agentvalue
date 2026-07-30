@@ -434,7 +434,7 @@ def create_evaluation_react_agent(
         # 4) 默认系统提示
         if system_prompt is None:
             default_sp = (
-                "你是 AgentValue-AI 评估助手。你可以调用工具获取员工历史、"
+                "你是 AgentValue 评估助手。你可以调用工具获取员工历史、"
                 "查询公司知识库,进行综合分析后给出评估建议。"
                 "回答时引用具体数据与证据,避免臆测。"
             )

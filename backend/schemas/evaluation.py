@@ -1,5 +1,5 @@
 """
-AgentValue-AI 评估输出 Schema
+AgentValue 评估输出 Schema
 使用 Pydantic v2 强制约束 LLM 输出，确保下游处理稳定、可审计。
 """
 

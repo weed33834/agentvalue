@@ -414,7 +414,7 @@ class AlertService:
                         "elements": [
                             {
                                 "tag": "plain_text",
-                                "content": "此告警由 AgentValue-AI 系统自动发送",
+                                "content": "此告警由 AgentValue 系统自动发送",
                             }
                         ],
                     },
@@ -553,7 +553,7 @@ class AlertService:
     <p style="color:#666;font-size:12px;margin:4px 0;"><strong>告警 ID:</strong> {alert.id}</p>
     {metadata_str}
     <hr style="border:none;border-top:1px solid #e0e0e0;margin:24px 0;">
-    <p style="color:#999;font-size:12px;margin:0;">此邮件由 AgentValue-AI 系统自动发送,请勿直接回复。</p>
+    <p style="color:#999;font-size:12px;margin:0;">此邮件由 AgentValue 系统自动发送,请勿直接回复。</p>
   </div>
 </body>
 </html>"""

@@ -18,7 +18,6 @@
     >
       <div class="logo" role="heading" aria-level="1">
         <span class="logo-text">AgentValue</span>
-        <span class="logo-accent">-AI</span>
       </div>
       <el-menu
         :default-active="activeMenu"
@@ -369,7 +368,7 @@ const roleLabel = computed(() => {
   return map[auth.role] || auth.role
 })
 
-const pageTitle = computed(() => route.meta.title || 'AgentValue-AI')
+const pageTitle = computed(() => route.meta.title || 'AgentValue')
 
 function toggleMobileSidebar() {
   mobileSidebarVisible.value = !mobileSidebarVisible.value

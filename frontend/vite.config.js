@@ -27,7 +27,7 @@ export default defineConfig({
       includeAssets: ['favicon.svg', 'robots.txt'],
       injectRegister: false,
       manifest: {
-        name: 'AgentValue-AI',
+        name: 'AgentValue',
         short_name: 'AgentValue',
         description: 'AI 驱动的员工价值量化与成长反馈系统',
         theme_color: '#2563eb',

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AgentValue-AI 多规模公司试点数据生成器
+AgentValue 多规模公司试点数据生成器
 
 按 5 个规模档位生成试点用的员工清单与 4 周日报数据，覆盖从初创小公司
 到阿里/腾讯/谷歌这种超大型企业的真实场景，并埋入若干"复杂场景"用于
@@ -709,7 +709,7 @@ def generate_all(output_dir: Path, seed: int = 42) -> list[dict]:
 # CLI
 # ---------------------------------------------------------------------------
 def main(argv: Optional[list[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="AgentValue-AI 多规模公司试点数据生成器")
+    parser = argparse.ArgumentParser(description="AgentValue 多规模公司试点数据生成器")
     parser.add_argument(
         "--scale",
         required=True,

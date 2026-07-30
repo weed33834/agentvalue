@@ -301,7 +301,7 @@ class LimitRequestBodyMiddleware(BaseHTTPMiddleware):
 
 
 app = FastAPI(
-    title="AgentValue-AI",
+    title="AgentValue",
     description="AI 驱动员工价值量化与成长 Agent 系统",
     version="2.2.0",
     lifespan=lifespan,

@@ -1,11 +1,11 @@
-# Grafana 仪表盘 provisioning：启动时从 grafana/dashboard.json 自动加载 AgentValue-AI 看板。
+# Grafana 仪表盘 provisioning：启动时从 grafana/dashboard.json 自动加载 AgentValue 看板。
 # 配合 datasources/prometheus.yml 使用，无需手动 Import。
 apiVersion: 1
 
 providers:
-  - name: AgentValue-AI
+  - name: AgentValue
     orgId: 1
-    folder: AgentValue-AI
+    folder: AgentValue
     type: file
     disableDeletion: false
     updateIntervalSeconds: 30

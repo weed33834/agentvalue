@@ -1,4 +1,4 @@
-# AgentValue-AI 前端
+# AgentValue 前端
 
 基于 Vue 3 + Vite + Element Plus + ECharts 的员工价值评估系统前端。
 

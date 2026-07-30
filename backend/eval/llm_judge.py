@@ -310,7 +310,7 @@ async def run_dataset_with_judge(
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="AgentValue-AI LLM-as-Judge 评估")
+    parser = argparse.ArgumentParser(description="AgentValue LLM-as-Judge 评估")
     parser.add_argument(
         "--dataset", default=None, help="数据集路径，默认 eval/dataset.json"
     )

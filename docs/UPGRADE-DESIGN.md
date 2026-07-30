@@ -1,4 +1,4 @@
-# AgentValue-AI 综合升级方案设计文档
+# AgentValue 综合升级方案设计文档
 
 > 状态: Draft (已通过真实联网研究 + 完整代码阅读产出)
 > 日期: 2026-07-12
@@ -67,11 +67,11 @@
 - LangGraph ToolNode + bind_tools + ReAct + 幂等工具
 - MCP 开放协议 + MultiServer 客户端 + 三种传输
 
-## 二、完整 Gap 分析(agentvalue-ai 现状 vs 主流方案)
+## 二、完整 Gap 分析(agentvalue 现状 vs 主流方案)
 
 ### 2.1 模型管理 Gap
 
-| # | 主流方案能力 | agentvalue-ai 现状 | Gap 严重度 |
+| # | 主流方案能力 | agentvalue 现状 | Gap 严重度 |
 |---|---|---|---|
 | M1 | 多 Provider 抽象 + 注册表(OpenAI/Anthropic/Gemini/Ollama/Bedrock) | 仅 `OpenAICompatibleProvider` 单实现 | **高** |
 | M2 | 状态机熔断(CLOSED/OPEN/HALF-OPEN,5 次失败熔断,60s 探活) | 仅 deque 滑动窗口记录成功率,无熔断 | **P0** |
@@ -88,7 +88,7 @@
 
 ### 2.2 Prompt 管理 Gap
 
-| # | 主流方案能力 | agentvalue-ai 现状 | Gap 严重度 |
+| # | 主流方案能力 | agentvalue 现状 | Gap 严重度 |
 |---|---|---|---|
 | P1 | DB 存储 + 管理后台 | 仅文件 `prompts/{name}.md` | **P0** |
 | P2 | Version(不可变历史) + Label(指针)双层模型 | 仅文件版本快照 `versions/{name}_v{X.Y}.md` | **高** |
@@ -105,7 +105,7 @@
 
 ### 2.3 工具管理 Gap
 
-| # | 主流方案能力 | agentvalue-ai 现状 | Gap 严重度 |
+| # | 主流方案能力 | agentvalue 现状 | Gap 严重度 |
 |---|---|---|---|
 | T1 | `@tool` 装饰器 + 自动 schema | 仅 2 个 ABC(MemoryStore/CompanyKB) + Dummy | **P0** |
 | T2 | `bind_tools()` 透传给模型 | 完全无 | **P0** |
@@ -120,7 +120,7 @@
 
 ### 2.4 调试与可观测性 Gap
 
-| # | 主流方案能力 | agentvalue-ai 现状 | Gap 严重度 |
+| # | 主流方案能力 | agentvalue 现状 | Gap 严重度 |
 |---|---|---|---|
 | G1 | trace_id 通过 Filter 注入日志 record | contextvar 已 set 但 logging.Formatter 不读 | **P0** |
 | G2 | /metrics 端点鉴权 | 直接挂载无鉴权,内网可抓 | **P0** |
@@ -137,7 +137,7 @@
 
 ### 2.5 评估框架 Gap
 
-| # | 主流方案能力 | agentvalue-ai 现状 | Gap 严重度 |
+| # | 主流方案能力 | agentvalue 现状 | Gap 严重度 |
 |---|---|---|---|
 | E1 | 评估数据集管理 | 无 | **中** |
 | E2 | 自定义 Evaluator(规则/LLM-as-judge) | 无 | **中** |

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AgentValue-AI 试点就绪检查脚本
+AgentValue 试点就绪检查脚本
 
 按 docs/pilot-runbook.md 的 Go/No-Go 清单自动化检查试点启动前的就绪状态，
 输出 Go/No-Go 判定 + 详细清单。
@@ -328,7 +328,7 @@ def check_readiness(
 def print_report(result: dict) -> None:
     """打印可读的就绪检查报告。"""
     print("=" * 64)
-    print("AgentValue-AI 试点就绪检查（Go/No-Go）")
+    print("AgentValue 试点就绪检查（Go/No-Go）")
     print("=" * 64)
     for check in result["checks"]:
         status = check["status"]
@@ -348,7 +348,7 @@ def print_report(result: dict) -> None:
 
 
 def main(argv: Optional[list[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="AgentValue-AI 试点就绪检查")
+    parser = argparse.ArgumentParser(description="AgentValue 试点就绪检查")
     parser.add_argument(
         "--with-tests",
         action="store_true",

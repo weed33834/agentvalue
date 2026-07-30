@@ -15,7 +15,7 @@ def loader():
 
 def test_load_returns_prompt_text(loader):
     text = loader.load("daily_evaluation")
-    assert "AgentValue-AI" in text or "员工" in text
+    assert "AgentValue" in text or "员工" in text
 
 
 def test_load_missing_raises(loader):

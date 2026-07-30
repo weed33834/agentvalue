@@ -7,7 +7,7 @@
 
 ## 上下文
 
-AgentValue-AI 的评估输入目前主要靠员工在前端手填日报,外加 mock 数据跑通链路。要走向真实试点,日报的**自动采集**是绕不开的一环——靠人手填,首周活跃率就会塌。企业 IM 是日报最自然的承载体:员工本来就在群里发日报,让机器人接一下就能进系统,几乎零额外操作。
+AgentValue 的评估输入目前主要靠员工在前端手填日报,外加 mock 数据跑通链路。要走向真实试点,日报的**自动采集**是绕不开的一环——靠人手填,首周活跃率就会塌。企业 IM 是日报最自然的承载体:员工本来就在群里发日报,让机器人接一下就能进系统,几乎零额外操作。
 
 候选三家:飞书、钉钉、企业微信。选型要权衡四件事:
 
@@ -16,7 +16,7 @@ AgentValue-AI 的评估输入目前主要靠员工在前端手填日报,外加 m
 3. **开发成本**:能否复用现有 `/api/v1/inputs` 端点,而不是新开一套入库链路。
 4. **数据合规**:企业版是否提供完整审计日志,满足评估系统"可追溯可解释"的硬要求。
 
-约束:AgentValue-AI 已有 `POST /api/v1/inputs` 端点(`backend/api/routes.py:219`),接受 `employee_id/period/type/content/attachments`,输入护栏与审计日志都已接入,且 `type` 是自由字符串(默认 `daily_report`)。集成方案应当**复用这个端点**,而不是另起炉灶——否则护栏、审计、状态机都要重做一遍。
+约束:AgentValue 已有 `POST /api/v1/inputs` 端点(`backend/api/routes.py:219`),接受 `employee_id/period/type/content/attachments`,输入护栏与审计日志都已接入,且 `type` 是自由字符串(默认 `daily_report`)。集成方案应当**复用这个端点**,而不是另起炉灶——否则护栏、审计、状态机都要重做一遍。
 
 ## 决策
 
@@ -31,7 +31,7 @@ AgentValue-AI 的评估输入目前主要靠员工在前端手填日报,外加 m
 
 ## 集成方式
 
-不新增端点,复用 `/api/v1/inputs`。新增一个轻量适配层(部署为独立小服务或 AgentValue-AI 内的 adapter 模块;Phase 7.2 只定契约,不写代码):
+不新增端点,复用 `/api/v1/inputs`。新增一个轻量适配层(部署为独立小服务或 AgentValue 内的 adapter 模块;Phase 7.2 只定契约,不写代码):
 
 ```
 飞书群(员工发日报)
@@ -40,7 +40,7 @@ AgentValue-AI 的评估输入目前主要靠员工在前端手填日报,外加 m
 飞书自建应用机器人(事件订阅回调)
    │  POST 回调地址(带 X-Lark-Signature 签名校验)
    ▼
-AgentValue-AI IM 适配层
+AgentValue IM 适配层
    │  格式转换 + 服务态鉴权(系统级 JWT / 内部 API Key)
    │  构造 CreateInputRequest{type=daily_report, content=消息正文}
    ▼
@@ -53,8 +53,8 @@ POST /api/v1/inputs
 几个工程上必须说清楚的点:
 
 - **接收消息不是"自定义机器人 webhook"**。飞书自定义机器人本质是**单向推送**(往群里发消息),接收消息必须用自建应用的机器人能力 + 事件订阅。这一点容易踩坑,先记下,落地时按自建应用走。
-- **回调鉴权双向**。飞书侧用 `X-Lark-Signature` 校验回调来源;AgentValue-AI 侧,适配层调 `/inputs` 时需带服务态凭证——`/inputs` 有 `require_role` 鉴权,机器人没有员工身份,必须用系统级 JWT 或内部 API Key,不能直接裸调。
-- **员工身份映射**。飞书 `open_id` → AgentValue-AI `employee_id` 需要一张映射表,在适配层维护,不污染主链路。
+- **回调鉴权双向**。飞书侧用 `X-Lark-Signature` 校验回调来源;AgentValue 侧,适配层调 `/inputs` 时需带服务态凭证——`/inputs` 有 `require_role` 鉴权,机器人没有员工身份,必须用系统级 JWT 或内部 API Key,不能直接裸调。
+- **员工身份映射**。飞书 `open_id` → AgentValue `employee_id` 需要一张映射表,在适配层维护,不污染主链路。
 
 ## 后果
 

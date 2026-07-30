@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AgentValue-AI 数据留存策略自动化（Phase 9.3）
+AgentValue 数据留存策略自动化（Phase 9.3）
 
 按 GDPR / 个保法要求自动归档与清理过期数据：
 - 原始输入（RawInput）保留 2 年（730 天）
@@ -253,7 +253,7 @@ async def _run(dry_run: bool) -> int:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="AgentValue-AI 数据留存策略")
+    parser = argparse.ArgumentParser(description="AgentValue 数据留存策略")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--dry-run", action="store_true", help="仅扫描，不执行")
     group.add_argument("--execute", action="store_true", help="执行归档与清理")

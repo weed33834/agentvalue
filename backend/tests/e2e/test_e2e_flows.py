@@ -1,5 +1,5 @@
 """
-AgentValue-AI E2E 测试（基于 FastAPI TestClient）
+AgentValue E2E 测试（基于 FastAPI TestClient）
 
 前置条件：无，测试会自行启动内存版后端服务。
 

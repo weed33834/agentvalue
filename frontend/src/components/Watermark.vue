@@ -65,7 +65,7 @@ const DENSITY_GAP = { sparse: 280, normal: 200, dense: 140 }
 const effectiveGap = computed(() => DENSITY_GAP[props.density] ?? props.gap)
 
 // 水印文字：优先使用传入 text，否则回退到当前用户 ID / 姓名
-const watermarkText = computed(() => props.text || auth.userId || auth.name || 'AgentValue-AI')
+const watermarkText = computed(() => props.text || auth.userId || auth.name || 'AgentValue')
 
 const watermarkUrl = ref('')
 // 背景位置随机抖动偏移，每次刷新重新生成，防固定位置裁剪

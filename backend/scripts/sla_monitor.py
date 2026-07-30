@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AgentValue-AI 申诉处理 SLA 监控
+AgentValue 申诉处理 SLA 监控
 
 监控申诉从提交到响应/解决的时效，对照 72 小时响应 SLA，
 输出达成率、超时清单与按部门 / 角色分组统计。
@@ -281,7 +281,7 @@ def render_markdown(report: dict) -> str:
     """渲染 SLA 月报 markdown，含达成率、超时清单、分组统计与建议。"""
     lines: list[str] = []
     s = report["summary"]
-    lines.append("# AgentValue-AI 申诉处理 SLA 月报")
+    lines.append("# AgentValue 申诉处理 SLA 月报")
     lines.append("")
     lines.append(f"> 生成时间：{report['generated_at']}")
     lines.append(f"> 覆盖周次：{', '.join(report['weeks'])}")
@@ -389,14 +389,14 @@ def render_markdown(report: dict) -> str:
     lines.append("")
     lines.append("---")
     lines.append(
-        "*本报告由 AgentValue-AI SLA 监控脚本自动生成，达成率供 SRE 与 HRBP 复核。*"
+        "*本报告由 AgentValue SLA 监控脚本自动生成，达成率供 SRE 与 HRBP 复核。*"
     )
     return "\n".join(lines)
 
 
 def main(argv: list[str] | None = None) -> int:
     """命令行入口：生成 SLA 报告并写出 JSON + markdown。"""
-    parser = argparse.ArgumentParser(description="AgentValue-AI 申诉处理 SLA 监控")
+    parser = argparse.ArgumentParser(description="AgentValue 申诉处理 SLA 监控")
     parser.add_argument("--weeks", type=int, default=4, help="聚合周数，默认 4")
     parser.add_argument(
         "--output", default="data/pilot/", help="JSON 报告输出目录，默认 data/pilot/"

@@ -45,7 +45,7 @@ _NOTIFICATION_TEMPLATE = """\
     {link_html}
     <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 24px 0;">
     <p style="color: #999; font-size: 12px; margin: 0;">
-      此邮件由 AgentValue-AI 系统自动发送,请勿直接回复。
+      此邮件由 AgentValue 系统自动发送,请勿直接回复。
     </p>
   </div>
 </body>

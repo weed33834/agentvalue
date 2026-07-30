@@ -1,4 +1,4 @@
-# AgentValue-AI pre-commit 配置
+# AgentValue pre-commit 配置
 # 渐进式接入:hooks 仅作用于暂存(staged)文件,不会对历史代码全量报错
 repos:
   # ---------- Python (backend) ----------

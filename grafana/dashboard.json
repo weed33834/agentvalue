@@ -12,7 +12,7 @@
       }
     ]
   },
-  "description": "AgentValue-AI 核心业务指标看板：评估吞吐/耗时、审批流转、反馈计数。指标来源 backend/core/metrics.py,由 /metrics 暴露。",
+  "description": "AgentValue 核心业务指标看板：评估吞吐/耗时、审批流转、反馈计数。指标来源 backend/core/metrics.py,由 /metrics 暴露。",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -258,7 +258,7 @@
   "time": { "from": "now-6h", "to": "now" },
   "timepicker": {},
   "timezone": "",
-  "title": "AgentValue-AI 业务监控",
+  "title": "AgentValue 业务监控",
   "uid": "agentvalue-overview",
   "version": 1,
   "weekStart": ""

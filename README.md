@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/assets/logo.jpg" width="180" alt="AgentValue-AI Logo" />
+  <img src="docs/assets/logo.jpg" width="180" alt="AgentValue Logo" />
 </p>
 
-<h1 align="center">AgentValue-AI</h1>
+<h1 align="center">AgentValue</h1>
 
 <p align="center">
   一个能对话、能操作电脑、能评估员工价值的 AI 智能体平台<br/>
@@ -27,7 +27,7 @@
 
 ## 这是什么
 
-AgentValue-AI 把三件事拼到了一个平台里:
+AgentValue 把三件事拼到了一个平台里:
 
 **对话** — 完整的 AI 聊天界面,支持流式输出、工具调用展示、思考过程折叠、数学公式渲染、Markdown 导出。你在 ChatGPT 或 Claude.ai 上常用的操作,这里都有。
 
@@ -498,4 +498,4 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
 ## 许可证
 
-本项目基于 [Custom Non-Commercial License (CNCL) v1.0](LICENSE) 开源。© 2026 AgentValue-AI Contributors.
+本项目基于 [Custom Non-Commercial License (CNCL) v1.0](LICENSE) 开源。© 2026 AgentValue Contributors.

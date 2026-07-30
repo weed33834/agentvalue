@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AgentValue-AI 生产就绪检查脚本
+AgentValue 生产就绪检查脚本
 
 检查生产部署前的安全清单，打印 PASS/FAIL/WARN 报告，
 退出码 0 表示全部通过（允许 WARN），1 表示存在 FAIL 项。
@@ -429,7 +429,7 @@ def check_readiness(settings: Optional[Settings] = None) -> dict:
 def print_report(result: dict) -> None:
     """打印生产就绪报告。"""
     print("=" * 60)
-    print("AgentValue-AI 生产就绪检查")
+    print("AgentValue 生产就绪检查")
     print("=" * 60)
     for check in result["checks"]:
         status = check["status"]
