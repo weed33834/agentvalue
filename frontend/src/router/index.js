@@ -418,40 +418,35 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, from) => {
   const auth = useAuthStore()
   // 设备感知重定向：移动端访问桌面路由（含 /login）→ 跳 /m 对应页；
   // 已处于 /m 或显式 ?desktop=1 时跳过，保证可手动回桌面端。
   if (isMobile() && !to.path.startsWith('/m') && to.query.desktop !== '1') {
     const target = desktopToMobilePath(to.path)
     if (target !== to.path) {
-      next(target)
-      return
+      return target
     }
   }
   // 登录页（桌面 / 移动）均为公开页：未登录也放行，否则移动端会在
   // /login ↔ /m/login 之间死循环（设备感知把 /login 跳 /m/login，而未登录又把它弹回 /login）
   if (to.path === '/login' || to.path === '/m/login') {
-    next()
-    return
+    return true
   }
   if (!auth.isLoggedIn) {
     authFlowState.authChecked = false
-    next('/login')
-    return
+    return '/login'
   }
   // JWT 过期时主动清理并跳转登录
   if (auth.useJwt && auth.token && isTokenExpired(auth.token)) {
     await auth.logout()
-    next('/login')
-    return
+    return '/login'
   }
   if (!authFlowState.authChecked) {
     authFlowState.authChecked = true
     const ok = await auth.checkAuth()
     if (!ok) {
-      next('/login')
-      return
+      return '/login'
     }
   }
   const requiredRole = to.meta.role || to.matched.find((r) => r.meta.role)?.meta.role
@@ -459,11 +454,10 @@ router.beforeEach(async (to, from, next) => {
     const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole]
     if (!roles.includes(auth.role)) {
       // 已登录但角色不符:跳自家首页而非登录页,避免已登录用户看到登录页困惑
-      next(roleHome(auth.role))
-      return
+      return roleHome(auth.role)
     }
   }
-  next()
+  return true
 })
 
 export default router
