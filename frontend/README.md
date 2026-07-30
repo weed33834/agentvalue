@@ -1,63 +1,141 @@
-# AgentValue 前端
+# AgentValue Frontend
 
-基于 Vue 3 + Vite + Element Plus + ECharts 的员工价值评估系统前端。
+Vue 3 + Vite + Element Plus frontend for the AgentValue employee value evaluation and AI conversational platform.
 
-## 页面说明
+## Tech Stack
 
-| 路由 | 角色 | 功能 |
+| Technology | Purpose |
+|---|---|
+| Vue 3 (Composition API, JavaScript) | Component framework |
+| Vite 8 | Build tool and dev server |
+| Element Plus | UI component library |
+| Pinia | State management |
+| Vue Router 5 | Client-side routing with role-based guards |
+| ECharts | Data visualization (radar charts, trend lines, 9-box grids) |
+| Vue Flow | Workflow/agent graph visualization |
+| KaTeX | Math formula rendering (`$...$` / `$$...$$`) |
+| Mermaid | Diagram rendering (flowcharts, sequence diagrams) |
+| SSE (custom) | Streaming response client for AI chat |
+| Vitest 4 | Unit testing |
+| Playwright | E2E testing and runtime smoke tests |
+
+## Project Structure
+
+```
+frontend/
+├── public/                          # Static assets
+│   ├── favicon.svg                  # Brand logo (blue-violet gradient + geometric "A")
+│   ├── pwa-192x192.png              # PWA icon (192px)
+│   ├── pwa-512x512.png              # PWA icon (512px)
+│   └── robots.txt
+├── src/
+│   ├── components/                  # Reusable Vue components
+│   │   ├── BrandLogo.vue            # Unified brand logo (mark + wordmark)
+│   │   ├── Watermark.vue            # Security watermark for management views
+│   │   └── chat/                    # AI Chat components
+│   │       ├── ChatInput.vue        # Multi-line input + file upload
+│   │       ├── ChatView.vue         # Chat main view (sessions, messages, model switch)
+│   │       ├── MessageBubble.vue    # Message: Markdown, code, tools, feedback
+│   │       ├── MessageList.vue      # Message list container with auto-scroll
+│   │       └── ToolCallCard.vue     # Tool call I/O display (collapsible)
+│   ├── layouts/
+│   │   └── MainLayout.vue           # Main layout (sidebar, header, router-view)
+│   ├── views/
+│   │   ├── LoginView.vue            # Desktop login (JWT auth + Demo mode)
+│   │   ├── employee/                # Employee portal (dashboard, input, history, etc.)
+│   │   ├── manager/                 # Manager portal (team, ROI, risk, approval)
+│   │   ├── hr/                      # HR portal (review queue, audit detail)
+│   │   ├── admin/                   # Admin console (40+ management pages)
+│   │   └── mobile/                  # Mobile-optimized pages (/m/* routes, 4 roles)
+│   ├── stores/                      # Pinia state stores (auth, chat, notification, theme)
+│   ├── router/index.js              # Vue Router with role-based navigation guards
+│   ├── utils/                       # Utilities (markdown renderer, SSE client, etc.)
+│   └── styles/global.css            # Global CSS variables and theme
+└── index.html                       # Entry point
+```
+
+## Route Map
+
+| Route | Role(s) | Page |
 |---|---|---|
-| `/login` | 全部 | 账号登录 / 演示模式角色选择，可初始化演示账号 |
-| `/employee` | 员工 | 个人成长看板 + 能力雷达图 |
-| `/employee/input` | 员工 | 录入日报/任务进度 + 附件上传（图片/PDF/音频），触发 AI 评估 |
-| `/employee/history` | 员工 | 历史评估列表与详情 |
-| `/employee/feedback` | 员工 | 反馈与申诉记录及处理进度 |
-| `/employee/growth-path` | 员工 | 成长路径推荐（能力对比、成长趋势、建议行动） |
-| `/manager` | 主管/HR/管理员 | 团队价值排行榜、风险分布、待审批队列 |
-| `/manager/approval/:id` | 主管/HR/管理员 | 评估审批详情页（批准/驳回/转 HR） |
-| `/manager/team` | 主管/HR/管理员 | 团队分析（成员价值趋势、维度对比） |
-| `/manager/roi` | 主管/HR/管理员 | 团队 ROI 九宫格与周度趋势 |
-| `/manager/attrition-risk` | 主管/HR/管理员 | 离职风险预测（风险分布与员工明细） |
-| `/hr` | HR/管理员 | HR 复核队列（高风险评估汇总） |
-| `/hr/audit/:id` | HR/管理员 | HR 复核详情页（评估全量、审批历史、申诉记录） |
-| `/admin` | 管理员 | 模型档位管理（运行档位/推荐档位/硬件信息/切换） |
-| `/admin/llm-config` | 管理员 | LLM 配置中心（聊天/兜底/本地/Embedding/Vision/ASR/推理参数） |
-| `/admin/audit-logs` | 管理员 | 审计日志查询（按操作人/动作筛选） |
-| `/admin/metrics` | 管理员 | 系统指标（解析 /metrics，评估/审批/反馈/LLM 调用计数卡片） |
-| `/admin/chat` | 全部 | AI 对话界面（v1.5.0）：会话管理 + SSE 流式 + 工具调用展示 + 模型切换 |
+| `/login` | All | Desktop login (JWT auth + demo mode) |
+| `/employee` | employee | Growth dashboard, radar chart |
+| `/employee/input` | employee | Daily report, task progress, file upload |
+| `/employee/history` | employee | Past evaluation history |
+| `/employee/feedback` | employee | Feedback and grievance tracking |
+| `/employee/growth-path` | employee | Growth path recommendation |
+| `/employee/assistant` | employee | AI assistant |
+| `/manager` | manager, admin | Team value ranking, risk distribution |
+| `/manager/team` | manager, admin | Team analysis, dimension comparison |
+| `/manager/roi` | manager, admin | ROI 9-box grid, weekly trends |
+| `/manager/attrition-risk` | manager, admin | Attrition risk prediction |
+| `/manager/reviews-360` | manager, admin | 360° peer reviews |
+| `/manager/calibration` | manager, admin | Calibration meeting |
+| `/manager/assistant` | manager, admin | AI assistant |
+| `/hr` | hr, admin | HR review queue |
+| `/hr/assistant` | hr, admin | AI assistant |
+| `/admin` | admin | Model management dashboard |
+| `/admin/llm-config` | admin | LLM configuration center |
+| `/admin/chat` | All | AI Chat interface (full-featured) |
+| `/admin/audit-logs` | admin | Audit log viewer |
+| `/admin/metrics` | admin | System metrics |
+| + 35+ admin routes | admin | Various management pages (feature flags, billing, etc.) |
+| `/m/*` | All | Mobile-optimized versions of all routes |
 
-## 本地开发
+## Development
 
 ```bash
-cd frontend
-npm install
+# Install dependencies
+cd frontend && npm install
+
+# Start dev server (http://localhost:5173)
+# Vite auto-proxies /api/* to http://localhost:8000 (backend)
 npm run dev
+
+# Run unit tests
+npx vitest run
+
+# Run lint
+npm run lint
+
+# Build for production
+npm run build         # Output: dist/
 ```
 
-前端默认监听 `http://localhost:5173`，并通过 Vite proxy 将 `/api` 转发到 `http://localhost:8000`。
+## Environment Variables
 
-## AI 对话组件（v1.5.0）
-
-| 组件 | 路径 | 功能 |
+| Variable | Default | Description |
 |---|---|---|
-| `ChatView.vue` | `views/admin/ChatView.vue` | 对话主视图：会话列表 + 消息流 + 模型切换 + 搜索导出 |
-| `MessageList.vue` | `components/chat/MessageList.vue` | 消息列表容器：自动滚动 + 事件分发 |
-| `MessageBubble.vue` | `components/chat/MessageBubble.vue` | 单条消息：Markdown 渲染 + 代码复制 + 编辑 + 点赞/点踩 + reasoning 折叠 |
-| `ToolCallCard.vue` | `components/chat/ToolCallCard.vue` | 工具调用卡片：可折叠输入/输出 + JSON 美化 + 状态图标 |
-| `ChatInput.vue` | `components/chat/ChatInput.vue` | 输入框：多行文本 + 文件上传 + 附件预览 + 发送/停止 |
-| `chat.js` | `stores/chat.js` | 对话状态管理：SSE 事件分发 + 流式渲染 + 工具调用 + 会话 CRUD |
-| `markdown.js` | `utils/markdown.js` | Markdown 渲染：KaTeX 数学公式 + Mermaid 图表 + 代码高亮 |
-| `sse.js` | `utils/sse.js` | 通用 SSE 流式客户端：JWT 鉴权 + AbortController + 心跳过滤 |
+| `VITE_API_BASE_URL` | `/api/v1` | Backend API base path (proxied by Vite in dev mode) |
 
-## 生产构建
+## AI Chat Components (v1.5.0+)
+
+Full-featured conversational AI with SSE streaming, tool calls, session management:
+
+| Component | File | Purpose |
+|---|---|---|
+| `ChatView.vue` | `views/admin/ChatView.vue` | Main view — session list + message stream + model switch + export |
+| `MessageList.vue` | `components/chat/MessageList.vue` | Message container with auto-scroll and event dispatch |
+| `MessageBubble.vue` | `components/chat/MessageBubble.vue` | Markdown rendering + code copy + inline edit + like/dislike + reasoning fold |
+| `ToolCallCard.vue` | `components/chat/ToolCallCard.vue` | Tool call: collapsible I/O, JSON beautify, status icons |
+| `ChatInput.vue` | `components/chat/ChatInput.vue` | Multi-line text + file upload + attach preview + send/stop |
+| `chat.js` | `stores/chat.js` | SSE event dispatch, streaming render, tool calls, session CRUD |
+| `markdown.js` | `utils/markdown.js` | KaTeX math + Mermaid diagrams + code highlighting |
+| `sse.js` | `utils/sse.js` | SSE client: JWT auth, AbortController, heartbeat filter |
+
+## Mobile Adaptation
+
+The `/m/*` route namespace provides a fully separate mobile experience for all four roles. Mobile pages are auto-detected via `navigator.userAgent` and redirected from desktop routes (unless `?desktop=1` is specified). See `src/views/mobile/` for implementation.
+
+## Testing
 
 ```bash
-npm run build
+# Unit tests
+npx vitest run
+
+# E2E smoke tests (requires dev server running)
+npx playwright test
+
+# Lint
+npm run lint
 ```
-
-构建产物位于 `frontend/dist/`。
-
-## 环境变量
-
-| 变量 | 说明 | 默认值 |
-|---|---|---|
-| `VITE_API_BASE_URL` | 后端 API 基础路径 | `/api/v1` |
