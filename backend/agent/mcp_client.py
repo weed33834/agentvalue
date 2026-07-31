@@ -77,7 +77,10 @@ class MCPClientManager:
             try:
                 self._servers_config = json.loads(mcp_servers_json)
                 if not isinstance(self._servers_config, dict):
-                    logger.warning("mcp_servers JSON 必须为对象,实际为 %s", type(self._servers_config).__name__)
+                    logger.warning(
+                        "mcp_servers JSON 必须为对象,实际为 %s",
+                        type(self._servers_config).__name__,
+                    )
                     self._servers_config = {}
             except json.JSONDecodeError as e:
                 logger.warning("mcp_servers JSON 解析失败: %s", e)

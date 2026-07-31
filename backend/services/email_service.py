@@ -78,27 +78,19 @@ class EmailService:
         self.use_tls = use_tls
 
         # 判断是否已配置:host + user + from_email 均非空才视为可用
-        self._configured = bool(
-            self.smtp_host and self.smtp_user and self.from_email
-        )
+        self._configured = bool(self.smtp_host and self.smtp_user and self.from_email)
 
         if not AIOSMTP_AVAILABLE:
-            logger.warning(
-                "aiosmtplib 未安装,邮件发送将降级为仅日志模式"
-            )
+            logger.warning("aiosmtplib 未安装,邮件发送将降级为仅日志模式")
         if not self._configured:
-            logger.info(
-                "SMTP 未配置(host/user/from_email),邮件发送将降级为仅日志模式"
-            )
+            logger.info("SMTP 未配置(host/user/from_email),邮件发送将降级为仅日志模式")
 
     @property
     def is_available(self) -> bool:
         """邮件服务是否可用(已配置且 aiosmtplib 已安装)"""
         return self._configured and AIOSMTP_AVAILABLE
 
-    async def send_email(
-        self, to_email: str, subject: str, html_body: str
-    ) -> bool:
+    async def send_email(self, to_email: str, subject: str, html_body: str) -> bool:
         """发送 HTML 邮件
 
         Args:
@@ -110,9 +102,7 @@ class EmailService:
             True 表示发送成功,False 表示发送失败或降级(仅日志)。
         """
         if not self.is_available:
-            logger.info(
-                "邮件发送降级(仅日志) to=%s subject=%s", to_email, subject
-            )
+            logger.info("邮件发送降级(仅日志) to=%s subject=%s", to_email, subject)
             logger.debug("邮件正文: %s", html_body[:500])
             return False
 
@@ -132,14 +122,10 @@ class EmailService:
                 password=self.smtp_password,
                 start_tls=self.use_tls,
             )
-            logger.info(
-                "邮件发送成功 to=%s subject=%s", to_email, subject
-            )
+            logger.info("邮件发送成功 to=%s subject=%s", to_email, subject)
             return True
         except Exception:
-            logger.exception(
-                "邮件发送失败 to=%s subject=%s", to_email, subject
-            )
+            logger.exception("邮件发送失败 to=%s subject=%s", to_email, subject)
             return False
 
     async def send_notification_email(
@@ -164,9 +150,9 @@ class EmailService:
         if link:
             link_html = (
                 f'<a href="{link}" style="display: inline-block; '
-                f'margin-top: 16px; padding: 10px 24px; '
-                f'background-color: #2563eb; color: #ffffff; '
-                f'text-decoration: none; border-radius: 6px; '
+                f"margin-top: 16px; padding: 10px 24px; "
+                f"background-color: #2563eb; color: #ffffff; "
+                f"text-decoration: none; border-radius: 6px; "
                 f'font-size: 14px;">查看详情</a>'
             )
 

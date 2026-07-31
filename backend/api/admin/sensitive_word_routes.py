@@ -106,7 +106,9 @@ async def list_words(
         )
     tenant_id = get_current_tenant()
     service = SensitiveWordService(session)
-    return await service.list_words(category=category, page=page, size=size, tenant_id=tenant_id)
+    return await service.list_words(
+        category=category, page=page, size=size, tenant_id=tenant_id
+    )
 
 
 @router.post(
@@ -135,9 +137,7 @@ async def add_word(
             tenant_id=tenant_id,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     await audit_service.log(
         actor_id=current_user_id,
@@ -253,12 +253,13 @@ async def import_words(
     service = SensitiveWordService(session)
     try:
         result = await service.import_words(
-            payload.file_content, payload.format, created_by=current_user_id, tenant_id=tenant_id
+            payload.file_content,
+            payload.format,
+            created_by=current_user_id,
+            tenant_id=tenant_id,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -295,11 +296,11 @@ async def export_words(
     tenant_id = get_current_tenant()
     service = SensitiveWordService(session)
     try:
-        content = await service.export_words(category=category, format=format, tenant_id=tenant_id)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        content = await service.export_words(
+            category=category, format=format, tenant_id=tenant_id
         )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     media_type = "text/csv" if format.lower() == "csv" else "application/json"
     filename = f"sensitive_words.{format.lower()}"

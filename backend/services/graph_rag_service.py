@@ -197,8 +197,10 @@ class GraphRAGService:
 
         offset = (page - 1) * size
         rows = (
-            await self.session.execute(base.offset(offset).limit(size))
-        ).scalars().all()
+            (await self.session.execute(base.offset(offset).limit(size)))
+            .scalars()
+            .all()
+        )
 
         return {
             "items": [self._task_to_dict(t) for t in rows],
@@ -207,9 +209,7 @@ class GraphRAGService:
             "size": size,
         }
 
-    async def delete_task(
-        self, task_id: int, *, tenant_id: str = "default"
-    ) -> bool:
+    async def delete_task(self, task_id: int, *, tenant_id: str = "default") -> bool:
         """删除抽取任务 (仅删除任务记录, 不删除已抽取的实体/关系)"""
         task = await self.get_task(task_id, tenant_id=tenant_id)
         if task is None:
@@ -336,9 +336,7 @@ class GraphRAGService:
                         text, model_router=model_router
                     )
                 except Exception as e:
-                    logger.warning(
-                        "文档 %s 实体抽取失败: %s", doc_id, e, exc_info=True
-                    )
+                    logger.warning("文档 %s 实体抽取失败: %s", doc_id, e, exc_info=True)
                     continue
                 # 标注来源文档
                 for ent in entities:
@@ -349,9 +347,7 @@ class GraphRAGService:
                 all_relations.extend(relations)
 
             # 3. 实体去重合并并持久化 (返回 name -> entity_id 映射)
-            name_to_id = await self._persist_entities(
-                all_entities, tenant_id=tenant_id
-            )
+            name_to_id = await self._persist_entities(all_entities, tenant_id=tenant_id)
 
             # 4. 关系解析并持久化
             relation_count = await self._persist_relations(
@@ -410,9 +406,7 @@ class GraphRAGService:
         # 若指定 collection_name 与 store 默认 collection 不一致, 取对应 collection
         if client is not None:
             try:
-                current_name = (
-                    collection.name if collection is not None else None
-                )
+                current_name = collection.name if collection is not None else None
                 if current_name != collection_name:
                     embedding = getattr(store, "embedding", None)
                     kwargs: Dict[str, Any] = {
@@ -470,9 +464,7 @@ class GraphRAGService:
         try:
             from memory.vector_store import ChromaCompanyKB
 
-            return ChromaCompanyKB(
-                collection_name=collection_name, tenant_id=tenant_id
-            )
+            return ChromaCompanyKB(collection_name=collection_name, tenant_id=tenant_id)
         except Exception as e:
             logger.warning("创建 ChromaCompanyKB 失败: %s", e)
             return None
@@ -627,9 +619,7 @@ class GraphRAGService:
             if ent_type not in SUPPORTED_ENTITY_TYPES:
                 ent_type = "concept"
             description = str(item.get("description", "")).strip()
-            output.append(
-                {"name": name, "type": ent_type, "description": description}
-            )
+            output.append({"name": name, "type": ent_type, "description": description})
         return output
 
     @staticmethod
@@ -665,7 +655,7 @@ class GraphRAGService:
 
     @staticmethod
     def _regex_fallback_extract(
-        content: str
+        content: str,
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """正则回退提取实体和关系 (JSON 解析全部失败时)
 
@@ -733,13 +723,17 @@ class GraphRAGService:
         existing_map: Dict[str, KnowledgeGraphEntity] = {}
         if names:
             existing_rows = (
-                await self.session.execute(
-                    select(KnowledgeGraphEntity).where(
-                        KnowledgeGraphEntity.tenant_id == tenant_id,
-                        KnowledgeGraphEntity.name.in_(names),
+                (
+                    await self.session.execute(
+                        select(KnowledgeGraphEntity).where(
+                            KnowledgeGraphEntity.tenant_id == tenant_id,
+                            KnowledgeGraphEntity.name.in_(names),
+                        )
                     )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             existing_map = {r.name: r for r in existing_rows}
 
         for ent in entities:
@@ -811,13 +805,17 @@ class GraphRAGService:
         entity_ids = set(name_to_id.values())
         if entity_ids:
             existing_rels = (
-                await self.session.execute(
-                    select(KnowledgeGraphRelation).where(
-                        KnowledgeGraphRelation.tenant_id == tenant_id,
-                        KnowledgeGraphRelation.source_entity_id.in_(entity_ids),
+                (
+                    await self.session.execute(
+                        select(KnowledgeGraphRelation).where(
+                            KnowledgeGraphRelation.tenant_id == tenant_id,
+                            KnowledgeGraphRelation.source_entity_id.in_(entity_ids),
+                        )
                     )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             for r in existing_rels:
                 key = (r.source_entity_id, r.target_entity_id, r.relation_type)
                 existing_rel_keys.add(key)
@@ -849,9 +847,7 @@ class GraphRAGService:
                 row = existing_rel_map[key]
                 row.weight = max(row.weight, weight)
                 docs = (
-                    list(row.source_docs)
-                    if isinstance(row.source_docs, list)
-                    else []
+                    list(row.source_docs) if isinstance(row.source_docs, list) else []
                 )
                 if source_doc and source_doc not in docs:
                     docs.append(source_doc)
@@ -956,24 +952,32 @@ class GraphRAGService:
         relations: List[Dict[str, Any]] = []
         if all_entity_ids:
             entity_rows = (
-                await self.session.execute(
-                    select(KnowledgeGraphEntity).where(
-                        KnowledgeGraphEntity.tenant_id == tenant_id,
-                        KnowledgeGraphEntity.id.in_(all_entity_ids),
+                (
+                    await self.session.execute(
+                        select(KnowledgeGraphEntity).where(
+                            KnowledgeGraphEntity.tenant_id == tenant_id,
+                            KnowledgeGraphEntity.id.in_(all_entity_ids),
+                        )
                     )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             entities = [self._entity_to_dict(e) for e in entity_rows]
 
             relation_rows = (
-                await self.session.execute(
-                    select(KnowledgeGraphRelation).where(
-                        KnowledgeGraphRelation.tenant_id == tenant_id,
-                        KnowledgeGraphRelation.source_entity_id.in_(all_entity_ids),
-                        KnowledgeGraphRelation.target_entity_id.in_(all_entity_ids),
+                (
+                    await self.session.execute(
+                        select(KnowledgeGraphRelation).where(
+                            KnowledgeGraphRelation.tenant_id == tenant_id,
+                            KnowledgeGraphRelation.source_entity_id.in_(all_entity_ids),
+                            KnowledgeGraphRelation.target_entity_id.in_(all_entity_ids),
+                        )
                     )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             relations = [self._relation_to_dict(r) for r in relation_rows]
 
         # 5. 构建图上下文
@@ -1013,22 +1017,30 @@ class GraphRAGService:
             current_ids = list(frontier)
             # 正向邻居 (当前实体作为 source)
             fwd_rows = (
-                await self.session.execute(
-                    select(KnowledgeGraphRelation.target_entity_id).where(
-                        KnowledgeGraphRelation.tenant_id == tenant_id,
-                        KnowledgeGraphRelation.source_entity_id.in_(current_ids),
+                (
+                    await self.session.execute(
+                        select(KnowledgeGraphRelation.target_entity_id).where(
+                            KnowledgeGraphRelation.tenant_id == tenant_id,
+                            KnowledgeGraphRelation.source_entity_id.in_(current_ids),
+                        )
                     )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             # 反向邻居 (当前实体作为 target)
             bwd_rows = (
-                await self.session.execute(
-                    select(KnowledgeGraphRelation.source_entity_id).where(
-                        KnowledgeGraphRelation.tenant_id == tenant_id,
-                        KnowledgeGraphRelation.target_entity_id.in_(current_ids),
+                (
+                    await self.session.execute(
+                        select(KnowledgeGraphRelation.source_entity_id).where(
+                            KnowledgeGraphRelation.tenant_id == tenant_id,
+                            KnowledgeGraphRelation.target_entity_id.in_(current_ids),
+                        )
                     )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
 
             neighbors = list(fwd_rows) + list(bwd_rows)
             # 限制单跳邻居数, 防止超大规模图谱爆炸
@@ -1118,8 +1130,10 @@ class GraphRAGService:
 
         offset = (page - 1) * size
         rows = (
-            await self.session.execute(base.offset(offset).limit(size))
-        ).scalars().all()
+            (await self.session.execute(base.offset(offset).limit(size)))
+            .scalars()
+            .all()
+        )
 
         return {
             "items": [self._entity_to_dict(e) for e in rows],
@@ -1154,8 +1168,10 @@ class GraphRAGService:
 
         offset = (page - 1) * size
         rows = (
-            await self.session.execute(base.offset(offset).limit(size))
-        ).scalars().all()
+            (await self.session.execute(base.offset(offset).limit(size)))
+            .scalars()
+            .all()
+        )
 
         # 加载实体名称用于展示
         entity_ids = set()
@@ -1174,9 +1190,7 @@ class GraphRAGService:
             id_to_name = {eid: ename for eid, ename in ent_rows}
 
         return {
-            "items": [
-                self._relation_to_dict(r, id_to_name=id_to_name) for r in rows
-            ],
+            "items": [self._relation_to_dict(r, id_to_name=id_to_name) for r in rows],
             "total": total,
             "page": page,
             "size": size,
@@ -1199,18 +1213,20 @@ class GraphRAGService:
 
         # 加载关联关系 (作为 source 或 target)
         rel_rows = (
-            await self.session.execute(
-                select(KnowledgeGraphRelation)
-                .where(
-                    KnowledgeGraphRelation.tenant_id == tenant_id,
-                    (
-                        KnowledgeGraphRelation.source_entity_id == entity_id
+            (
+                await self.session.execute(
+                    select(KnowledgeGraphRelation)
+                    .where(
+                        KnowledgeGraphRelation.tenant_id == tenant_id,
+                        (KnowledgeGraphRelation.source_entity_id == entity_id)
+                        | (KnowledgeGraphRelation.target_entity_id == entity_id),
                     )
-                    | (KnowledgeGraphRelation.target_entity_id == entity_id),
+                    .order_by(KnowledgeGraphRelation.weight.desc())
                 )
-                .order_by(KnowledgeGraphRelation.weight.desc())
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         # 加载关联实体名称
         entity_ids = set()
@@ -1254,18 +1270,20 @@ class GraphRAGService:
             return []
 
         rel_rows = (
-            await self.session.execute(
-                select(KnowledgeGraphRelation)
-                .where(
-                    KnowledgeGraphRelation.tenant_id == tenant_id,
-                    (
-                        KnowledgeGraphRelation.source_entity_id == entity_id
+            (
+                await self.session.execute(
+                    select(KnowledgeGraphRelation)
+                    .where(
+                        KnowledgeGraphRelation.tenant_id == tenant_id,
+                        (KnowledgeGraphRelation.source_entity_id == entity_id)
+                        | (KnowledgeGraphRelation.target_entity_id == entity_id),
                     )
-                    | (KnowledgeGraphRelation.target_entity_id == entity_id),
+                    .order_by(KnowledgeGraphRelation.weight.desc())
                 )
-                .order_by(KnowledgeGraphRelation.weight.desc())
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         # 加载关联实体名称
         entity_ids = set()
@@ -1285,9 +1303,7 @@ class GraphRAGService:
             for eid, ename in ent_rows:
                 id_to_name[eid] = ename
 
-        return [
-            self._relation_to_dict(r, id_to_name=id_to_name) for r in rel_rows
-        ]
+        return [self._relation_to_dict(r, id_to_name=id_to_name) for r in rel_rows]
 
     # ===================== 图谱可视化 =====================
 
@@ -1318,7 +1334,12 @@ class GraphRAGService:
             )
         ).scalar_one_or_none()
         if center is None:
-            return {"center_entity_id": entity_id, "depth": depth, "nodes": [], "edges": []}
+            return {
+                "center_entity_id": entity_id,
+                "depth": depth,
+                "nodes": [],
+                "edges": [],
+            }
 
         # BFS 收集节点 ID
         seed_ids: Set[int] = {entity_id}
@@ -1329,25 +1350,33 @@ class GraphRAGService:
 
         # 加载节点
         entity_rows = (
-            await self.session.execute(
-                select(KnowledgeGraphEntity).where(
-                    KnowledgeGraphEntity.tenant_id == tenant_id,
-                    KnowledgeGraphEntity.id.in_(all_ids),
+            (
+                await self.session.execute(
+                    select(KnowledgeGraphEntity).where(
+                        KnowledgeGraphEntity.tenant_id == tenant_id,
+                        KnowledgeGraphEntity.id.in_(all_ids),
+                    )
                 )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         nodes = [self._entity_to_dict(e) for e in entity_rows]
 
         # 加载边 (两端都在节点集合内)
         relation_rows = (
-            await self.session.execute(
-                select(KnowledgeGraphRelation).where(
-                    KnowledgeGraphRelation.tenant_id == tenant_id,
-                    KnowledgeGraphRelation.source_entity_id.in_(all_ids),
-                    KnowledgeGraphRelation.target_entity_id.in_(all_ids),
+            (
+                await self.session.execute(
+                    select(KnowledgeGraphRelation).where(
+                        KnowledgeGraphRelation.tenant_id == tenant_id,
+                        KnowledgeGraphRelation.source_entity_id.in_(all_ids),
+                        KnowledgeGraphRelation.target_entity_id.in_(all_ids),
+                    )
                 )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         id_to_name = {e["id"]: e["name"] for e in nodes}
         edges = [
             self._relation_to_dict(r, id_to_name=id_to_name) for r in relation_rows
@@ -1386,9 +1415,7 @@ class GraphRAGService:
         await self.session.execute(
             KnowledgeGraphRelation.__table__.delete().where(
                 KnowledgeGraphRelation.tenant_id == tenant_id,
-                (
-                    KnowledgeGraphRelation.source_entity_id == entity_id
-                )
+                (KnowledgeGraphRelation.source_entity_id == entity_id)
                 | (KnowledgeGraphRelation.target_entity_id == entity_id),
             )
         )

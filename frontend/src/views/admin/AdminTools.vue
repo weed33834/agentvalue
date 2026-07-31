@@ -1,11 +1,6 @@
 <template>
   <div class="admin-tools">
-    <el-alert
-      type="info"
-      :closable="false"
-      show-icon
-      class="mb-16"
-    >
+    <el-alert type="info" :closable="false" show-icon class="mb-16">
       <template #title>
         工具管理中心 —— 对标 Dify 工具市场 / Coze 插件管理。支持内置工具（calculator/datetime）、
         Toolkit 工具（employee_history/company_kb）、MCP 外部服务器工具、ReAct Agent 复杂推理调试。
@@ -110,7 +105,12 @@
                     </el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column prop="description" label="描述" min-width="240" show-overflow-tooltip />
+                <el-table-column
+                  prop="description"
+                  label="描述"
+                  min-width="240"
+                  show-overflow-tooltip
+                />
                 <el-table-column label="启用" width="80">
                   <template #default="{ row }">
                     <el-tag :type="row.enabled ? 'success' : 'info'" size="small">
@@ -132,7 +132,12 @@
                     <el-link type="primary" @click="selectToolForTest(row)">{{ row.name }}</el-link>
                   </template>
                 </el-table-column>
-                <el-table-column prop="description" label="描述" min-width="280" show-overflow-tooltip />
+                <el-table-column
+                  prop="description"
+                  label="描述"
+                  min-width="280"
+                  show-overflow-tooltip
+                />
                 <el-table-column label="操作" width="100">
                   <template #default="{ row }">
                     <el-button size="small" link @click="selectToolForTest(row)">测试</el-button>
@@ -158,8 +163,18 @@
                     <el-link type="primary" @click="openCustomDetail(row)">{{ row.name }}</el-link>
                   </template>
                 </el-table-column>
-                <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-                <el-table-column prop="base_url" label="Base URL" min-width="200" show-overflow-tooltip />
+                <el-table-column
+                  prop="description"
+                  label="描述"
+                  min-width="200"
+                  show-overflow-tooltip
+                />
+                <el-table-column
+                  prop="base_url"
+                  label="Base URL"
+                  min-width="200"
+                  show-overflow-tooltip
+                />
                 <el-table-column prop="auth_type" label="鉴权" width="100">
                   <template #default="{ row }">
                     <el-tag size="small" :type="row.auth_type === 'none' ? 'info' : 'warning'">
@@ -180,11 +195,16 @@
                     <el-button size="small" link @click="toggleCustomTool(row)">
                       {{ row.enabled ? '禁用' : '启用' }}
                     </el-button>
-                    <el-button size="small" link type="danger" @click="deleteCustomTool(row)">删除</el-button>
+                    <el-button size="small" link type="danger" @click="deleteCustomTool(row)"
+                      >删除</el-button
+                    >
                   </template>
                 </el-table-column>
               </el-table>
-              <el-empty v-if="!customTools.length" description="未导入自定义工具,点击「导入 OpenAPI」开始" />
+              <el-empty
+                v-if="!customTools.length"
+                description="未导入自定义工具,点击「导入 OpenAPI」开始"
+              />
             </el-tab-pane>
           </el-tabs>
         </el-card>
@@ -201,14 +221,18 @@
           </template>
           <el-form label-position="top">
             <el-form-item label="工具名">
-              <el-input v-model="testForm.tool_name" placeholder="选择左侧工具或手动输入" clearable />
+              <el-input
+                v-model="testForm.tool_name"
+                placeholder="选择左侧工具或手动输入"
+                clearable
+              />
             </el-form-item>
             <el-form-item label="参数 JSON">
               <el-input
                 v-model="testArgsText"
                 type="textarea"
                 :rows="6"
-                placeholder="{&quot;employee_id&quot;: &quot;u001&quot;, &quot;period&quot;: &quot;2025-W01&quot;}"
+                placeholder='{"employee_id": "u001", "period": "2025-W01"}'
               />
               <span class="field-hint">
                 参考 schema 提供参数。calculator 用 {"expression": "1+2*3"}
@@ -298,12 +322,7 @@
             >
               测试连接
             </el-button>
-            <el-button
-              size="small"
-              link
-              type="danger"
-              @click="deleteMcpServer(row)"
-            >
+            <el-button size="small" link type="danger" @click="deleteMcpServer(row)">
               删除
             </el-button>
           </template>
@@ -379,16 +398,14 @@
             迭代 {{ reactResult.iterations }} 次
           </el-tag>
         </div>
-        <pre class="result-pre">{{ reactResult.answer || reactResult.result || JSON.stringify(reactResult, null, 2) }}</pre>
+        <pre class="result-pre">{{
+          reactResult.answer || reactResult.result || JSON.stringify(reactResult, null, 2)
+        }}</pre>
       </div>
     </el-card>
 
     <!-- MCP 配置更新对话框 -->
-    <el-dialog
-      v-model="mcpConfigDialogVisible"
-      title="更新 MCP 配置 (热更新)"
-      width="720px"
-    >
+    <el-dialog v-model="mcpConfigDialogVisible" title="更新 MCP 配置 (热更新)" width="720px">
       <el-alert type="warning" :closable="false" show-icon class="mb-16">
         更新后立即生效,无需重启服务。配置格式为 JSON 对象,键为服务器名。
       </el-alert>
@@ -398,7 +415,7 @@
             v-model="mcpConfigForm.mcp_servers"
             type="textarea"
             :rows="10"
-            placeholder="{&quot;filesystem&quot;: {&quot;transport&quot;: &quot;stdio&quot;, &quot;command&quot;: &quot;npx&quot;, &quot;args&quot;: [&quot;-y&quot;, &quot;@modelcontextprotocol/server-filesystem&quot;, &quot;/tmp&quot;]}, &quot;remote&quot;: {&quot;transport&quot;: &quot;streamable_http&quot;, &quot;url&quot;: &quot;http://localhost:8080/mcp&quot;}}"
+            placeholder='{"filesystem": {"transport": "stdio", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]}, "remote": {"transport": "streamable_http", "url": "http://localhost:8080/mcp"}}'
           />
         </el-form-item>
         <el-form-item label="启用工具列表 (CSV)">
@@ -422,10 +439,15 @@
       :close-on-click-modal="false"
     >
       <el-alert type="info" :closable="false" show-icon class="mb-16">
-        填写服务器配置后,将合并到现有 MCP 配置并热更新生效。
-        stdio 适合本地进程 (如 npx 启动),streamable_http / sse 适合远程服务。
+        填写服务器配置后,将合并到现有 MCP 配置并热更新生效。 stdio 适合本地进程 (如 npx
+        启动),streamable_http / sse 适合远程服务。
       </el-alert>
-      <el-form ref="addServerFormRef" :model="addServerForm" :rules="addServerRules" label-position="top">
+      <el-form
+        ref="addServerFormRef"
+        :model="addServerForm"
+        :rules="addServerRules"
+        label-position="top"
+      >
         <el-form-item label="服务器名称 (唯一标识)" prop="server_name">
           <el-input
             v-model="addServerForm.server_name"
@@ -444,10 +466,7 @@
         <!-- stdio 模式: command + args -->
         <template v-if="addServerForm.transport === 'stdio'">
           <el-form-item label="命令 (command)" prop="command">
-            <el-input
-              v-model="addServerForm.command"
-              placeholder="如 npx / node / python"
-            />
+            <el-input v-model="addServerForm.command" placeholder="如 npx / node / python" />
           </el-form-item>
           <el-form-item label="参数 (args, 每行一个)">
             <el-input
@@ -488,7 +507,9 @@
       </el-form>
       <template #footer>
         <el-button @click="addServerDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="addingServer" @click="saveNewServer">添加并热更新</el-button>
+        <el-button type="primary" :loading="addingServer" @click="saveNewServer"
+          >添加并热更新</el-button
+        >
       </template>
     </el-dialog>
 
@@ -604,7 +625,9 @@
             {{ customTestResult.success ? '成功' : '失败' }}
           </el-tag>
         </div>
-        <pre class="result-pre">{{ customTestResult.result || customTestResult.error || '(空)' }}</pre>
+        <pre class="result-pre">{{
+          customTestResult.result || customTestResult.error || '(空)'
+        }}</pre>
       </div>
     </el-dialog>
   </div>
@@ -1096,11 +1119,9 @@ async function toggleCustomTool(row) {
 
 async function deleteCustomTool(row) {
   try {
-    await ElMessageBox.confirm(
-      `确认删除自定义工具 ${row.name}?此操作不可恢复`,
-      '删除确认',
-      { type: 'warning' },
-    )
+    await ElMessageBox.confirm(`确认删除自定义工具 ${row.name}?此操作不可恢复`, '删除确认', {
+      type: 'warning',
+    })
   } catch {
     return
   }
@@ -1117,11 +1138,9 @@ async function openCustomDetail(row) {
   try {
     const data = await customToolAdminApi.get(row.id)
     // 把详情塞回列表对应行 (或仅弹出展示)
-    await ElMessageBox.alert(
-      JSON.stringify(data, null, 2),
-      `自定义工具详情 - ${row.name}`,
-      { confirmButtonText: '关闭' },
-    )
+    await ElMessageBox.alert(JSON.stringify(data, null, 2), `自定义工具详情 - ${row.name}`, {
+      confirmButtonText: '关闭',
+    })
   } catch (err) {
     ElMessage.error('获取详情失败: ' + err.message)
   }

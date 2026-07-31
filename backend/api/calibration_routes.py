@@ -93,9 +93,7 @@ class AdjustItemPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     calibrated_score: float = Field(ge=0, le=100)
-    adjustment_reason: Optional[str] = Field(
-        default=None, max_length=_MAX_TEXT_LENGTH
-    )
+    adjustment_reason: Optional[str] = Field(default=None, max_length=_MAX_TEXT_LENGTH)
 
 
 class BatchAdjustItem(BaseModel):
@@ -105,9 +103,7 @@ class BatchAdjustItem(BaseModel):
 
     item_id: str = Field(min_length=1, max_length=128)
     calibrated_score: float = Field(ge=0, le=100)
-    adjustment_reason: Optional[str] = Field(
-        default=None, max_length=_MAX_TEXT_LENGTH
-    )
+    adjustment_reason: Optional[str] = Field(default=None, max_length=_MAX_TEXT_LENGTH)
 
 
 class BatchAdjustPayload(BaseModel):
@@ -115,16 +111,16 @@ class BatchAdjustPayload(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    items: List[BatchAdjustItem] = Field(
-        min_length=1, max_length=_MAX_ADJUST_PER_BATCH
-    )
+    items: List[BatchAdjustItem] = Field(min_length=1, max_length=_MAX_ADJUST_PER_BATCH)
 
 
 # ---------------- Helpers ----------------
 
 
 def _serialize_session(
-    session: CalibrationSession, include_items: bool = False, items: Optional[List] = None
+    session: CalibrationSession,
+    include_items: bool = False,
+    items: Optional[List] = None,
 ) -> Dict[str, Any]:
     """序列化 CalibrationSession"""
     data: Dict[str, Any] = {
@@ -137,9 +133,9 @@ def _serialize_session(
         "notes": session.notes or "",
         "created_at": session.created_at.isoformat() if session.created_at else None,
         "updated_at": session.updated_at.isoformat() if session.updated_at else None,
-        "completed_at": session.completed_at.isoformat()
-        if session.completed_at
-        else None,
+        "completed_at": (
+            session.completed_at.isoformat() if session.completed_at else None
+        ),
     }
     if include_items:
         data["items"] = [_serialize_item(it) for it in (items or [])]
@@ -333,9 +329,7 @@ async def add_calibration_item(
     # 校验评估存在
     evaluation = await eval_service.get_evaluation(payload.evaluation_id)
     if not evaluation:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="评估不存在"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="评估不存在")
 
     item = CalibrationItem(
         item_id=f"CALITEM-{uuid.uuid4().hex[:12]}",
@@ -417,9 +411,7 @@ async def batch_add_calibration_items(
 
         evaluation = await eval_service.get_evaluation(evaluation_id)
         if not evaluation:
-            skipped.append(
-                {"evaluation_id": evaluation_id, "reason": "评估不存在"}
-            )
+            skipped.append({"evaluation_id": evaluation_id, "reason": "评估不存在"})
             continue
 
         # 幂等: 已存在则跳过
@@ -428,9 +420,7 @@ async def batch_add_calibration_items(
             CalibrationItem.evaluation_id == evaluation_id,
             CalibrationItem.tenant_id == tenant_id,
         )
-        existing = (
-            await session.execute(existing_stmt)
-        ).scalar_one_or_none()
+        existing = (await session.execute(existing_stmt)).scalar_one_or_none()
         if existing:
             skipped.append(
                 {
@@ -676,9 +666,7 @@ async def complete_calibration(
                 "original_score": item.original_score,
                 "calibrated_score": item.calibrated_score,
                 "previous_score": old_score,
-                "delta": round(
-                    float(item.calibrated_score) - item.original_score, 2
-                ),
+                "delta": round(float(item.calibrated_score) - item.original_score, 2),
             }
         )
 

@@ -48,15 +48,11 @@ router = APIRouter(
 class AlertCreate(BaseModel):
     """创建告警请求"""
 
-    severity: str = Field(
-        ..., description="告警级别: critical / warning / info"
-    )
+    severity: str = Field(..., description="告警级别: critical / warning / info")
     title: str = Field(..., description="告警标题")
     message: str = Field(..., description="告警消息内容")
     source: str = Field(default="manual", description="告警来源")
-    metadata: Optional[dict] = Field(
-        default=None, description="附加元数据"
-    )
+    metadata: Optional[dict] = Field(default=None, description="附加元数据")
     # 是否立即发送通知
     notify: bool = Field(default=True, description="是否立即发送通知")
 
@@ -140,9 +136,7 @@ async def create_alert(
             tenant_id=tenant_id,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     # 发送通知
     notify_results = None
@@ -178,11 +172,11 @@ async def acknowledge_alert(
     tenant_id = get_current_tenant()
     service = AlertService(session)
     try:
-        alert = await service.acknowledge_alert(alert_id, current_user_id, tenant_id=tenant_id)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        alert = await service.acknowledge_alert(
+            alert_id, current_user_id, tenant_id=tenant_id
         )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     await audit_service.log(
         actor_id=current_user_id,
@@ -206,11 +200,11 @@ async def resolve_alert(
     tenant_id = get_current_tenant()
     service = AlertService(session)
     try:
-        alert = await service.resolve_alert(alert_id, current_user_id, tenant_id=tenant_id)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        alert = await service.resolve_alert(
+            alert_id, current_user_id, tenant_id=tenant_id
         )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     await audit_service.log(
         actor_id=current_user_id,

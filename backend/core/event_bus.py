@@ -53,9 +53,7 @@ class EventBus:
             try:
                 await handler(payload)
             except Exception:
-                logger.exception(
-                    "event bus handler 异常 channel=%s", channel
-                )
+                logger.exception("event bus handler 异常 channel=%s", channel)
 
     def subscriber_count(self, channel: str) -> int:
         return len(self._subscribers.get(channel, []))

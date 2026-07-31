@@ -94,12 +94,8 @@ def upgrade() -> None:
         op.create_table(
             _WORKFLOW_RUNS,
             sa.Column("id", sa.String(length=64), primary_key=True),
-            sa.Column(
-                "workflow_id", sa.String(length=64), nullable=False, index=True
-            ),
-            sa.Column(
-                "thread_id", sa.String(length=64), nullable=False, index=True
-            ),
+            sa.Column("workflow_id", sa.String(length=64), nullable=False, index=True),
+            sa.Column("thread_id", sa.String(length=64), nullable=False, index=True),
             sa.Column(
                 "status",
                 sa.String(length=32),
@@ -137,9 +133,7 @@ def downgrade() -> None:
 
     if _has_table(inspector, _WORKFLOW_RUNS):
         op.drop_index("ix_workflow_run_status", table_name=_WORKFLOW_RUNS)
-        op.drop_index(
-            "ix_workflow_run_workflow_created", table_name=_WORKFLOW_RUNS
-        )
+        op.drop_index("ix_workflow_run_workflow_created", table_name=_WORKFLOW_RUNS)
         op.drop_table(_WORKFLOW_RUNS)
 
     if _has_table(inspector, _WORKFLOWS):

@@ -65,8 +65,12 @@ class DimensionScore(BaseModel):
         filtered = [item for item in v if len(item.strip()) >= min_len]
         if len(filtered) < len(v):
             short_count = len(v) - len(filtered)
-            logger.warning("过滤 %d 条过短证据（min_len=%d）: %s", short_count, min_len,
-                         [item for item in v if len(item.strip()) < min_len])
+            logger.warning(
+                "过滤 %d 条过短证据（min_len=%d）: %s",
+                short_count,
+                min_len,
+                [item for item in v if len(item.strip()) < min_len],
+            )
         if not filtered:
             filtered = ["员工在本周期内有相关表现记录"]
         return filtered

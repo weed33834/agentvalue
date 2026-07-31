@@ -29,6 +29,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["E402", "E501"]
 "eval/*" = ["E402"]
+"main.py" = ["E402"]
 
 [tool.mypy]
 # 解决 backend/__init__.py 存在时 mypy 把模块同时识别为 core.x 和 backend.core.x

@@ -45,7 +45,10 @@ class TaskCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=128, description="任务名称")
     description: Optional[str] = Field(default=None, description="任务描述")
     cron_expression: str = Field(
-        ..., min_length=1, max_length=128, description="cron 表达式（5 段: 分 时 日 月 周）"
+        ...,
+        min_length=1,
+        max_length=128,
+        description="cron 表达式（5 段: 分 时 日 月 周）",
     )
     task_type: str = Field(
         default="custom",

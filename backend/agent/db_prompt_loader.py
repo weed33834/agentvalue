@@ -187,9 +187,9 @@ class DbPromptLoader:
                         "content_preview": (v.content or "")[:200],
                         "config": v.config,
                         "created_by": v.created_by,
-                        "created_at": v.created_at.isoformat()
-                        if v.created_at
-                        else None,
+                        "created_at": (
+                            v.created_at.isoformat() if v.created_at else None
+                        ),
                     }
                     for v in result.scalars().all()
                 ]
@@ -430,7 +430,9 @@ class DbPromptLoader:
                 ab_versions[label] = row
         if len(ab_versions) == 2:
             # 同一员工稳定走同一版本(避免体验跳变)
-            chosen = "prod-a" if self._hash_pct(employee_id, template.id) < 50 else "prod-b"
+            chosen = (
+                "prod-a" if self._hash_pct(employee_id, template.id) < 50 else "prod-b"
+            )
             return await self._get_version_by_id(
                 session, ab_versions[chosen].version_id
             )

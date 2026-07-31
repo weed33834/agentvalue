@@ -3,8 +3,8 @@
     <!-- 顶部说明 -->
     <el-alert type="info" :closable="false" show-icon class="mb-16">
       <template #title>
-        应用内 Trace 可视化 —— 对标 Langfuse Trace UI。左侧选择评估,右侧展示
-        节点级 spans 树与时间线 Gantt 图,支持按 employee_id / period / status 过滤。
+        应用内 Trace 可视化 —— 对标 Langfuse Trace UI。左侧选择评估,右侧展示 节点级 spans 树与时间线
+        Gantt 图,支持按 employee_id / period / status 过滤。
       </template>
     </el-alert>
 
@@ -18,11 +18,7 @@
                 <el-icon><Collection /></el-icon>
                 评估列表
               </span>
-              <el-button
-                size="small"
-                :loading="listLoading"
-                @click="loadList(1)"
-              >
+              <el-button size="small" :loading="listLoading" @click="loadList(1)">
                 <el-icon><RefreshLeft /></el-icon>
               </el-button>
             </div>
@@ -63,12 +59,7 @@
                 :value="s.value"
               />
             </el-select>
-            <el-button
-              size="small"
-              type="primary"
-              :loading="listLoading"
-              @click="loadList(1)"
-            >
+            <el-button size="small" type="primary" :loading="listLoading" @click="loadList(1)">
               <el-icon><Search /></el-icon>
             </el-button>
           </div>
@@ -101,9 +92,7 @@
                 </span>
               </div>
               <div class="eval-row meta">
-                <span class="meta-text">
-                  总分 {{ formatScore(item.overall_score) }}
-                </span>
+                <span class="meta-text"> 总分 {{ formatScore(item.overall_score) }} </span>
                 <span class="meta-text muted">
                   {{ formatTime(item.created_at) }}
                 </span>
@@ -163,7 +152,10 @@
                 <el-col :span="4">
                   <div class="stat-card">
                     <div class="stat-label">失败 span</div>
-                    <div class="stat-value" :class="{ 'text-danger': traceData.timeline?.failed_count > 0 }">
+                    <div
+                      class="stat-value"
+                      :class="{ 'text-danger': traceData.timeline?.failed_count > 0 }"
+                    >
                       {{ traceData.timeline?.failed_count ?? 0 }}
                     </div>
                   </div>
@@ -230,11 +222,7 @@
                       >
                         {{ nodeData.status }}
                       </el-tag>
-                      <el-collapse
-                        v-if="nodeData.attributes"
-                        class="attr-collapse"
-                        @click.stop
-                      >
+                      <el-collapse v-if="nodeData.attributes" class="attr-collapse" @click.stop>
                         <el-collapse-item title="attributes">
                           <pre class="attr-pre">{{ formatJson(nodeData.attributes) }}</pre>
                         </el-collapse-item>
@@ -394,7 +382,7 @@ const ganttOption = computed(() => {
   const categories = reversed.map((s) => s.name)
   // 堆叠条形图:base 系列(start_ms,透明) + duration 系列(duration_ms,按 status 着色)
   const baseData = reversed.map((s) => s.start_ms || 0)
-  const durationData = reversed.map((s, idx) => ({
+  const durationData = reversed.map((s, _idx) => ({
     value: s.duration_ms || 0,
     itemStyle: { color: statusColorMap[s.status] || '#909399' },
   }))
@@ -578,7 +566,9 @@ onMounted(() => {
   border-radius: 4px;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
   margin-bottom: 6px;
 }
 .eval-item:hover {

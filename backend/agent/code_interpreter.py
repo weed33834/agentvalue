@@ -79,7 +79,7 @@ FORBIDDEN_NAMES: List[str] = [
 #   4. exec 用户代码, 捕获 stdout/stderr/result。
 # 关键: 先捕获 exec 引用, 否则删除 builtins.exec 后引导脚本无法调用。
 # 注意: 此字符串中不含任何 { } 或 % 格式化占位符, 直接作为 Python 源码拼接。
-_RUNNER_BODY = '''import sys
+_RUNNER_BODY = """import sys
 import json as _json
 import io as _io
 import traceback as _tb
@@ -174,7 +174,7 @@ _out = {
 sys.stdout.write("__SANDBOX_RESULT_START__")
 sys.stdout.write(_json.dumps(_out, ensure_ascii=False, default=str))
 sys.stdout.write("__SANDBOX_RESULT_END__")
-'''
+"""
 
 
 class CodeInterpreter:
@@ -305,8 +305,7 @@ class CodeInterpreter:
             raw_json = stdout[s_idx:e_idx]
             # 清理 stdout: 移除 marker 区块, 保留用户实际 print 的内容
             stdout = (
-                stdout[: stdout.index(marker_start)]
-                + stdout[e_idx + len(marker_end):]
+                stdout[: stdout.index(marker_start)] + stdout[e_idx + len(marker_end) :]
             )
             try:
                 import json as _json

@@ -138,7 +138,9 @@ def test_s3_download():
 def test_s3_delete():
     storage, client = _mock_minio()
     storage.delete("dir/file.txt")
-    client.remove_object.assert_called_once_with("agentvalue-attachments", "dir/file.txt")
+    client.remove_object.assert_called_once_with(
+        "agentvalue-attachments", "dir/file.txt"
+    )
 
 
 def test_s3_delete_swallows_error():

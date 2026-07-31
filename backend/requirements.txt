@@ -28,7 +28,7 @@ pyjwt>=2.13.0
 bcrypt>=4.0.0
 prometheus_client>=0.25.0
 redis>=5.0
-fakeredis>=2.36.2
+fakeredis>=2.37.0
 # Lua 脚本支持: fakeredis 跑 RedisJobQueue.update 的 Lua 原子脚本需要 lupa 解释器
 # 生产环境用真实 Redis(原生支持 Lua),lupa 仅测试环境需要
 lupa>=2.0
@@ -38,6 +38,9 @@ arq>=0.26.0
 # LangGraph Postgres checkpointer(P3 规模化就绪):interrupt 状态持久化,解除单实例约束
 # 未启用 DATABASE_URL=postgresql://... 时,自动降级到 MemorySaver
 langgraph-checkpoint-postgres>=2.0.0
+# 定时任务调度(core/scheduler.py: AsyncIOScheduler + CronTrigger)
+# 锁定 3.x: APScheduler 4.0 为破坏性重构,移除了 apscheduler.schedulers.asyncio 模块路径
+APScheduler>=3.10.0,<4.0
 # 字段级加密（manager_view/audit 字段 AES-GCM 加密）
 cryptography>=42.0.0
 # 多模态抽取（Phase 7.1）：pypdf 纯 Python 无系统依赖；pytesseract 需系统安装 tesseract-ocr

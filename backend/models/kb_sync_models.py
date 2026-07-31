@@ -43,9 +43,7 @@ class KbDataSource(Base):
     # 数据源类型: local_dir | s3 | url | database | git
     source_type: Mapped[str] = mapped_column(String(32), nullable=False)
     # 数据源配置（JSON，按 source_type 不同结构不同）
-    config: Mapped[Dict[str, Any]] = mapped_column(
-        JSON, nullable=False, default=dict
-    )
+    config: Mapped[Dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     # 关联的向量库 collection 名称
     collection_name: Mapped[str] = mapped_column(String(256), nullable=False)
     # 同步间隔（分钟），0 表示仅手动同步
@@ -110,9 +108,7 @@ class KbSyncLog(Base):
     # 错误信息（同步失败时）
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # 每个文件的处理结果详情
-    details: Mapped[Optional[List[Dict[str, Any]]]] = mapped_column(
-        JSON, nullable=True
-    )
+    details: Mapped[Optional[List[Dict[str, Any]]]] = mapped_column(JSON, nullable=True)
 
     __table_args__ = (
         # 按租户 + 数据源检索，查询某数据源的同步历史

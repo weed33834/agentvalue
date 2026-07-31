@@ -3,6 +3,7 @@
 未配置外部集成时返回 Dummy,业务层调用不报错。
 所有 send_* 返回 "dummy-msg-id",所有 list_* 返回 [],所有 verify_* 返回 True。
 """
+
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -25,7 +26,9 @@ class DummyIMAdapter(IMAdapter):
     async def parse_webhook(self, payload: Dict[str, Any]) -> Optional[IMMessage]:
         return None
 
-    async def verify_webhook_signature(self, payload: Dict[str, Any], signature: str) -> bool:
+    async def verify_webhook_signature(
+        self, payload: Dict[str, Any], signature: str
+    ) -> bool:
         return True
 
 
@@ -35,7 +38,9 @@ class DummyCodeRepoAdapter(CodeRepoAdapter):
     ) -> List[CodeRepoEvent]:
         return []
 
-    async def list_merge_requests(self, repo: str, state: str = "opened") -> List[CodeRepoEvent]:
+    async def list_merge_requests(
+        self, repo: str, state: str = "opened"
+    ) -> List[CodeRepoEvent]:
         return []
 
     async def parse_webhook(
@@ -43,5 +48,7 @@ class DummyCodeRepoAdapter(CodeRepoAdapter):
     ) -> Optional[CodeRepoEvent]:
         return None
 
-    async def verify_webhook_signature(self, payload: Dict[str, Any], signature: str) -> bool:
+    async def verify_webhook_signature(
+        self, payload: Dict[str, Any], signature: str
+    ) -> bool:
         return True

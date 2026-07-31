@@ -156,17 +156,31 @@ class AWSKMSProvider(KMSProvider):
         if ClientError is not None and isinstance(e, ClientError):
             code = e.response.get("Error", {}).get("Code", "")
             if code in ("AccessDeniedException", "UnauthorizedOperation"):
-                raise KMSAuthenticationError(msg + f" (code={code})", provider=provider, cause=e) from e
+                raise KMSAuthenticationError(
+                    msg + f" (code={code})", provider=provider, cause=e
+                ) from e
             if code in ("InvalidCiphertextException", "ValidationException"):
-                raise KMSCiphertextInvalidError(msg + f" (code={code})", provider=provider, cause=e) from e
+                raise KMSCiphertextInvalidError(
+                    msg + f" (code={code})", provider=provider, cause=e
+                ) from e
             if code in ("KMSInvalidStateException", "NotFoundException"):
-                raise KMSCiphertextInvalidError(msg + f" (code={code})", provider=provider, cause=e) from e
-            if code in ("ThrottlingException", "ServiceUnavailableException", "RequestLimitExceeded"):
-                raise KMSUnavailableError(msg + f" (code={code})", provider=provider, cause=e) from e
+                raise KMSCiphertextInvalidError(
+                    msg + f" (code={code})", provider=provider, cause=e
+                ) from e
+            if code in (
+                "ThrottlingException",
+                "ServiceUnavailableException",
+                "RequestLimitExceeded",
+            ):
+                raise KMSUnavailableError(
+                    msg + f" (code={code})", provider=provider, cause=e
+                ) from e
 
         # 网络异常
         if isinstance(e, (ConnectionError, TimeoutError, OSError)):
-            raise KMSUnavailableError(msg + " (网络故障)", provider=provider, cause=e) from e
+            raise KMSUnavailableError(
+                msg + " (网络故障)", provider=provider, cause=e
+            ) from e
 
         # 兜底
         raise KMSProviderError(msg, provider=provider, cause=e) from e

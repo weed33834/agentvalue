@@ -44,6 +44,7 @@ def create_kms_provider(settings=None) -> Optional[KMSProvider]:
 
     if settings is None:
         from core.config import get_settings
+
         settings = get_settings()
 
     backend = (settings.field_encryption_backend or "env").lower()
@@ -71,6 +72,7 @@ def create_kms_provider(settings=None) -> Optional[KMSProvider]:
                 provider="vault",
             )
         from core.kms.providers.vault import VaultKMSProvider
+
         _kms_provider_cache = VaultKMSProvider(
             addr=settings.vault_addr,
             auth_method=settings.vault_auth_method,
@@ -85,7 +87,11 @@ def create_kms_provider(settings=None) -> Optional[KMSProvider]:
             jwt_key_path=settings.vault_jwt_key_path,
             verify_tls=settings.vault_verify_tls,
         )
-        logger.info("KMS provider: vault (addr=%s, auth=%s)", settings.vault_addr, settings.vault_auth_method)
+        logger.info(
+            "KMS provider: vault (addr=%s, auth=%s)",
+            settings.vault_addr,
+            settings.vault_auth_method,
+        )
         return _kms_provider_cache
 
     if backend == "aws":
@@ -95,11 +101,16 @@ def create_kms_provider(settings=None) -> Optional[KMSProvider]:
                 provider="aws",
             )
         from core.kms.providers.aws import AWSKMSProvider
+
         _kms_provider_cache = AWSKMSProvider(
             key_id=settings.aws_kms_key_id,
             region=settings.aws_kms_region,
         )
-        logger.info("KMS provider: aws (key_id=%s, region=%s)", settings.aws_kms_key_id, settings.aws_kms_region or "default")
+        logger.info(
+            "KMS provider: aws (key_id=%s, region=%s)",
+            settings.aws_kms_key_id,
+            settings.aws_kms_region or "default",
+        )
         return _kms_provider_cache
 
     if backend == "aliyun":
@@ -109,11 +120,16 @@ def create_kms_provider(settings=None) -> Optional[KMSProvider]:
                 provider="aliyun",
             )
         from core.kms.providers.aliyun import AliyunKMSProvider
+
         _kms_provider_cache = AliyunKMSProvider(
             key_id=settings.aliyun_kms_key_id,
             endpoint=settings.aliyun_kms_endpoint,
         )
-        logger.info("KMS provider: aliyun (key_id=%s, endpoint=%s)", settings.aliyun_kms_key_id, settings.aliyun_kms_endpoint)
+        logger.info(
+            "KMS provider: aliyun (key_id=%s, endpoint=%s)",
+            settings.aliyun_kms_key_id,
+            settings.aliyun_kms_endpoint,
+        )
         return _kms_provider_cache
 
     # 未知 backend

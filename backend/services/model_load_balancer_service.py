@@ -207,9 +207,7 @@ class ModelLoadBalancerService:
     # 健康检查
     # ============================================================
 
-    async def health_check(
-        self, instance_id: int, tenant_id: str
-    ) -> Dict[str, Any]:
+    async def health_check(self, instance_id: int, tenant_id: str) -> Dict[str, Any]:
         """检查单个实例健康状态
 
         发送简单请求到 /models 端点，记录延迟与状态，
@@ -296,13 +294,17 @@ class ModelLoadBalancerService:
         session = await self._get_session()
         try:
             instances = (
-                await session.execute(
-                    select(ModelInstance).where(
-                        ModelInstance.tenant_id == tenant_id,
-                        ModelInstance.enabled.is_(True),
+                (
+                    await session.execute(
+                        select(ModelInstance).where(
+                            ModelInstance.tenant_id == tenant_id,
+                            ModelInstance.enabled.is_(True),
+                        )
                     )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
         finally:
             if self._owns_session:
                 await self._close_if_owned()
@@ -381,16 +383,23 @@ class ModelLoadBalancerService:
                     return None
 
                 instances = (
-                    await session.execute(
-                        select(ModelInstance).where(
-                            ModelInstance.tenant_id == tenant_id,
-                            ModelInstance.id.in_(instance_ids),
-                            ModelInstance.enabled.is_(True),
-                            ModelInstance.health_status.in_(["healthy", "degraded"]),
-                            ModelInstance.current_load < ModelInstance.max_concurrent,
+                    (
+                        await session.execute(
+                            select(ModelInstance).where(
+                                ModelInstance.tenant_id == tenant_id,
+                                ModelInstance.id.in_(instance_ids),
+                                ModelInstance.enabled.is_(True),
+                                ModelInstance.health_status.in_(
+                                    ["healthy", "degraded"]
+                                ),
+                                ModelInstance.current_load
+                                < ModelInstance.max_concurrent,
+                            )
                         )
                     )
-                ).scalars().all()
+                    .scalars()
+                    .all()
+                )
 
                 if not instances:
                     logger.warning(
@@ -459,7 +468,9 @@ class ModelLoadBalancerService:
         async with self._lock:
             session = await self._get_session()
             try:
-                instance = await self._get_instance_owned(session, instance_id, tenant_id)
+                instance = await self._get_instance_owned(
+                    session, instance_id, tenant_id
+                )
                 if instance is None:
                     return False
                 if instance.current_load >= instance.max_concurrent:
@@ -486,7 +497,9 @@ class ModelLoadBalancerService:
         async with self._lock:
             session = await self._get_session()
             try:
-                instance = await self._get_instance_owned(session, instance_id, tenant_id)
+                instance = await self._get_instance_owned(
+                    session, instance_id, tenant_id
+                )
                 if instance is None:
                     return False
                 if instance.current_load > 0:
@@ -671,17 +684,19 @@ class ModelLoadBalancerService:
             "max_concurrent": instance.max_concurrent,
             "current_load": instance.current_load,
             "health_status": instance.health_status,
-            "last_health_check": instance.last_health_check.isoformat()
-            if instance.last_health_check
-            else None,
+            "last_health_check": (
+                instance.last_health_check.isoformat()
+                if instance.last_health_check
+                else None
+            ),
             "avg_latency_ms": instance.avg_latency_ms,
             "enabled": instance.enabled,
-            "created_at": instance.created_at.isoformat()
-            if instance.created_at
-            else None,
-            "updated_at": instance.updated_at.isoformat()
-            if instance.updated_at
-            else None,
+            "created_at": (
+                instance.created_at.isoformat() if instance.created_at else None
+            ),
+            "updated_at": (
+                instance.updated_at.isoformat() if instance.updated_at else None
+            ),
         }
 
     @staticmethod
@@ -693,10 +708,6 @@ class ModelLoadBalancerService:
             "strategy": config.strategy,
             "instances": config.instances,
             "enabled": config.enabled,
-            "created_at": config.created_at.isoformat()
-            if config.created_at
-            else None,
-            "updated_at": config.updated_at.isoformat()
-            if config.updated_at
-            else None,
+            "created_at": config.created_at.isoformat() if config.created_at else None,
+            "updated_at": config.updated_at.isoformat() if config.updated_at else None,
         }

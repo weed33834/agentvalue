@@ -343,9 +343,16 @@ async def stream_chunks_to_events(
             or state.last_usage.get("output_tokens"),
             total_tokens=state.last_usage.get("total_tokens"),
             provider_metadata={
-                k: v for k, v in state.last_usage.items()
-                if k not in ("prompt_tokens", "completion_tokens", "total_tokens",
-                             "input_tokens", "output_tokens")
+                k: v
+                for k, v in state.last_usage.items()
+                if k
+                not in (
+                    "prompt_tokens",
+                    "completion_tokens",
+                    "total_tokens",
+                    "input_tokens",
+                    "output_tokens",
+                )
             },
         )
     yield StepFinish(
@@ -362,5 +369,7 @@ def event_to_sse_dict(event: Any) -> Dict[str, str]:
     """
     return {
         "event": event.type,
-        "data": json.dumps(event.model_dump(exclude_none=True), ensure_ascii=False, default=str),
+        "data": json.dumps(
+            event.model_dump(exclude_none=True), ensure_ascii=False, default=str
+        ),
     }

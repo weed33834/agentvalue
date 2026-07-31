@@ -204,7 +204,9 @@ class GrayReleaseService:
         if release is None:
             raise ValueError(f"灰度发布 {release_id} 不存在")
         if release.status in TERMINAL_STATUSES:
-            raise ValueError(f"灰度发布 {release_id} 处于终态 ({release.status}), 不可更新")
+            raise ValueError(
+                f"灰度发布 {release_id} 处于终态 ({release.status}), 不可更新"
+            )
 
         if traffic_percentage is not None:
             if not 0 <= traffic_percentage <= 100:
@@ -281,7 +283,9 @@ class GrayReleaseService:
         if release is None:
             raise ValueError(f"灰度发布 {release_id} 不存在")
         if release.status in TERMINAL_STATUSES:
-            raise ValueError(f"灰度发布 {release_id} 处于终态 ({release.status}), 不可启动")
+            raise ValueError(
+                f"灰度发布 {release_id} 处于终态 ({release.status}), 不可启动"
+            )
         if release.status == STATUS_ACTIVE:
             raise ValueError(f"灰度发布 {release_id} 已处于 active 状态")
 

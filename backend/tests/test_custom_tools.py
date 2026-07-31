@@ -142,9 +142,14 @@ def temp_db(monkeypatch):
     monkeypatch.setattr(get_settings(), "field_encryption_key", key)
     # 重置 FieldCipher 缓存,使新密钥生效
     from core import field_crypto as fc
+
     fc.reset_field_cipher_cache()
 
-    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+    from sqlalchemy.ext.asyncio import (
+        AsyncSession,
+        async_sessionmaker,
+        create_async_engine,
+    )
     from core import database as db_module
 
     engine = create_async_engine(
@@ -170,6 +175,7 @@ def temp_db(monkeypatch):
 @pytest.fixture
 async def initialized_db(temp_db):
     from core.database import close_db, init_db
+
     await init_db()
     yield
     await close_db()
@@ -491,9 +497,7 @@ class TestCustomToolCRUD:
         tool_id = created["id"]
 
         # 2. 列表
-        list_resp = client.get(
-            "/api/v1/admin/custom-tools", headers=_admin_headers()
-        )
+        list_resp = client.get("/api/v1/admin/custom-tools", headers=_admin_headers())
         assert list_resp.status_code == 200
         data = list_resp.json()
         assert data["total"] >= 1
@@ -597,6 +601,7 @@ class TestCustomToolCRUD:
                 assert entity.auth_credentials != "secret-bearer-token"
                 # 解密后等于明文
                 from core.field_crypto import get_field_cipher
+
                 cipher = get_field_cipher()
                 decrypted = cipher.decrypt(entity.auth_credentials)
                 assert decrypted == "secret-bearer-token"

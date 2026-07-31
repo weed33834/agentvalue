@@ -53,9 +53,13 @@ class Environment(Base):
     # 环境描述
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # 环境级配置覆盖 (JSON, 如 database_url / redis_url / model_tier 等)
-    config: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict, server_default="{}")
+    config: Mapped[dict] = mapped_column(
+        JSON, nullable=False, default=dict, server_default="{}"
+    )
     # 环境变量覆盖 (JSON, 如 DEBUG / LOG_LEVEL 等)
-    variables: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict, server_default="{}")
+    variables: Mapped[dict] = mapped_column(
+        JSON, nullable=False, default=dict, server_default="{}"
+    )
     # 是否默认环境 (默认环境不允许删除)
     is_default: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default=func.text("0")
@@ -96,15 +100,24 @@ class EnvironmentDeployment(Base):
     )
     # 关联的环境 ID
     environment_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("environments.id", ondelete="CASCADE"), index=True, nullable=False
+        Integer,
+        ForeignKey("environments.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
     )
     # 关联的 Agent 预设 ID (软关联 AgentPreset.id)
     agent_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("agent_presets.id", ondelete="CASCADE"), index=True, nullable=False
+        Integer,
+        ForeignKey("agent_presets.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
     )
     # 关联的版本 ID (软关联 AgentVersion.id)
     version_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("agent_versions.id", ondelete="CASCADE"), index=True, nullable=False
+        Integer,
+        ForeignKey("agent_versions.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
     )
     # 部署状态: deployed / undeployed / failed
     status: Mapped[str] = mapped_column(

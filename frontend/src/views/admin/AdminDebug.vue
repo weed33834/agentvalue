@@ -1,11 +1,6 @@
 <template>
   <div class="admin-debug">
-    <el-alert
-      type="info"
-      :closable="false"
-      show-icon
-      class="mb-16"
-    >
+    <el-alert type="info" :closable="false" show-icon class="mb-16">
       <template #title>
         调试与可观测性中心 —— 对标 Langfuse Trace Dashboard。支持追溯某次评估用了哪个 Prompt 版本、
         哪个模型档位、触发了哪些护栏规则、系统熔断器/MCP/工具的整体健康状态。
@@ -51,7 +46,9 @@
                   <el-table-column prop="state" label="状态" width="140">
                     <template #default="{ row }">
                       <el-tag :type="circuitTagType(row.state)" size="small">
-                        <el-icon class="tag-icon"><component :is="circuitIcon(row.state)" /></el-icon>
+                        <el-icon class="tag-icon"
+                          ><component :is="circuitIcon(row.state)"
+                        /></el-icon>
                         {{ row.state }}
                       </el-tag>
                     </template>
@@ -81,20 +78,11 @@
                   MCP 服务器状态
                 </span>
               </template>
-              <el-alert
-                v-if="!health.mcp?.available"
-                type="warning"
-                :closable="false"
-                show-icon
-              >
+              <el-alert v-if="!health.mcp?.available" type="warning" :closable="false" show-icon>
                 MCP 适配器未安装,如需 MCP 工具请安装 langchain-mcp-adapters
               </el-alert>
               <template v-else>
-                <el-table
-                  :data="health.mcp?.servers || []"
-                  size="small"
-                  stripe
-                >
+                <el-table :data="health.mcp?.servers || []" size="small" stripe>
                   <el-table-column prop="name" label="服务器名" min-width="140" />
                   <el-table-column prop="transport" label="协议" width="120">
                     <template #default="{ row }">
@@ -110,10 +98,7 @@
                   </el-table-column>
                   <el-table-column prop="tools_count" label="工具数" width="90" align="center" />
                 </el-table>
-                <el-empty
-                  v-if="!(health.mcp?.servers?.length)"
-                  description="未配置 MCP 服务器"
-                />
+                <el-empty v-if="!health.mcp?.servers?.length" description="未配置 MCP 服务器" />
               </template>
             </el-card>
           </el-col>
@@ -152,9 +137,7 @@
             <el-col :span="8">
               <div class="status-block">
                 <div class="status-label">可用工具数</div>
-                <div class="status-value">
-                  {{ health.tools?.available_tools?.length || 0 }} 个
-                </div>
+                <div class="status-value">{{ health.tools?.available_tools?.length || 0 }} 个</div>
               </div>
             </el-col>
           </el-row>
@@ -181,13 +164,12 @@
             </span>
           </template>
           <el-alert type="info" :closable="false" show-icon class="mb-16">
-            从评估的 audit (AES-GCM 加密) 字段解密出 Prompt 版本信息,
-            对标 Langfuse trace 详情页的 prompt_version metadata 字段。
+            从评估的 audit (AES-GCM 加密) 字段解密出 Prompt 版本信息, 对标 Langfuse trace 详情页的
+            prompt_version metadata 字段。
             <br />
             prompt_source 取值:
-            <strong>db</strong> (DB 加载,含 A/B / 灰度) ·
-            <strong>file</strong> (文件 PromptLoader) ·
-            <strong>file_fallback</strong> (DB 无此 prompt 回退文件) ·
+            <strong>db</strong> (DB 加载,含 A/B / 灰度) · <strong>file</strong> (文件 PromptLoader)
+            · <strong>file_fallback</strong> (DB 无此 prompt 回退文件) ·
             <strong>file_error</strong> (DB 异常回退文件)
           </el-alert>
           <el-form :inline="true" class="query-form">
@@ -209,12 +191,7 @@
           </el-form>
 
           <div v-if="promptVerResult" class="result-block">
-            <el-alert
-              v-if="promptVerResult.error"
-              type="error"
-              :closable="false"
-              show-icon
-            >
+            <el-alert v-if="promptVerResult.error" type="error" :closable="false" show-icon>
               {{ promptVerResult.error }}
               <span v-if="promptVerResult.raw_audit_type">
                 (audit 类型: {{ promptVerResult.raw_audit_type }})
@@ -257,12 +234,18 @@
                 {{ promptVerResult.model_name || '—' }}
               </el-descriptions-item>
               <el-descriptions-item label="处理耗时">
-                {{ promptVerResult.processing_time_ms != null
-                  ? promptVerResult.processing_time_ms + ' ms' : '—' }}
+                {{
+                  promptVerResult.processing_time_ms != null
+                    ? promptVerResult.processing_time_ms + ' ms'
+                    : '—'
+                }}
               </el-descriptions-item>
               <el-descriptions-item label="置信度">
-                {{ promptVerResult.confidence_score != null
-                  ? promptVerResult.confidence_score.toFixed(2) : '—' }}
+                {{
+                  promptVerResult.confidence_score != null
+                    ? promptVerResult.confidence_score.toFixed(2)
+                    : '—'
+                }}
               </el-descriptions-item>
               <el-descriptions-item label="触发护栏规则" :span="2">
                 <el-tag
@@ -295,8 +278,8 @@
             </span>
           </template>
           <el-alert type="info" :closable="false" show-icon class="mb-16">
-            汇总 audit + manager_view 的执行元数据,对标 Langfuse trace 详情:
-            模型选型、Prompt 版本、护栏触发、风险标记、处理耗时。
+            汇总 audit + manager_view 的执行元数据,对标 Langfuse trace 详情: 模型选型、Prompt
+            版本、护栏触发、风险标记、处理耗时。
           </el-alert>
           <el-form :inline="true" class="query-form">
             <el-form-item label="评估 ID">
@@ -385,10 +368,7 @@
                       <span v-else class="muted">—</span>
                     </el-descriptions-item>
                     <el-descriptions-item label="来源">
-                      <el-tag
-                        :type="sourceTagType(traceResult.trace?.prompt?.source)"
-                        size="small"
-                      >
+                      <el-tag :type="sourceTagType(traceResult.trace?.prompt?.source)" size="small">
                         {{ traceResult.trace?.prompt?.source || 'file' }}
                       </el-tag>
                     </el-descriptions-item>
@@ -411,14 +391,18 @@
                   </template>
                   <el-descriptions :column="1" size="small" border>
                     <el-descriptions-item label="处理耗时">
-                      {{ traceResult.trace?.performance?.processing_time_ms != null
-                        ? traceResult.trace.performance.processing_time_ms + ' ms'
-                        : '—' }}
+                      {{
+                        traceResult.trace?.performance?.processing_time_ms != null
+                          ? traceResult.trace.performance.processing_time_ms + ' ms'
+                          : '—'
+                      }}
                     </el-descriptions-item>
                     <el-descriptions-item label="置信度">
-                      {{ traceResult.trace?.performance?.confidence_score != null
-                        ? traceResult.trace.performance.confidence_score.toFixed(2)
-                        : '—' }}
+                      {{
+                        traceResult.trace?.performance?.confidence_score != null
+                          ? traceResult.trace.performance.confidence_score.toFixed(2)
+                          : '—'
+                      }}
                     </el-descriptions-item>
                   </el-descriptions>
                 </el-card>
@@ -443,7 +427,10 @@
                       >
                         {{ r }}
                       </el-tag>
-                      <span v-if="!traceResult.trace?.guards?.triggered_rules?.length" class="muted">
+                      <span
+                        v-if="!traceResult.trace?.guards?.triggered_rules?.length"
+                        class="muted"
+                      >
                         无
                       </span>
                     </div>

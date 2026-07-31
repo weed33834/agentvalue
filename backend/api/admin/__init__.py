@@ -33,44 +33,62 @@ from api.admin.search_routes import router as search_router
 from api.admin.quota_routes import router as quota_router
 from api.admin.budget_routes import router as budget_router
 from api.admin.billing_routes import router as billing_router
+
 # Agent 版本管理 + 多渠道发布 + 工具配置 + 敏感词 + 告警
 from api.admin.agent_version_routes import router as agent_version_router
 from api.admin.publish_routes import router as publish_router
 from api.admin.tool_config_routes import router as tool_config_router
 from api.admin.sensitive_word_routes import router as sensitive_word_router
 from api.admin.alert_routes import router as alert_router
+
 # 模型 Fallback 策略 (对标阿里百炼 AI 网关秒级容灾)
 from api.admin.model_fallback_routes import router as model_fallback_router
+
 # 会话分析看板 (对标 Langfuse Token 分析 / Dashboard)
 from api.admin.analytics_v2_routes import router as analytics_v2_router
+
 # API 健康监控 (对标 Langfuse 延迟监控 / 告警系统)
 from api.admin.api_health_routes import router as api_health_router
+
 # 数据集管理 (对标 Langfuse 数据集管理 + 阿里百炼训练集/评测集)
 from api.admin.dataset_routes import router as dataset_router
+
 # LLM-as-a-Judge 自动评测 (对标 Langfuse LLM-as-a-Judge + Dify 日志回放)
 from api.admin.llm_judge_routes import router as llm_judge_router
+
 # RAG 质量评测 (对标 RagFlow 检索测试 + 压力测试)
 from api.admin.rag_eval_routes import router as rag_eval_router
+
 # 人工标注工具 (对标 Langfuse Human-in-the-loop)
 from api.admin.annotation_routes import router as annotation_router
+
 # SSO 单点登录 (对标 Dify SSO / Bisheng SSO, OAuth2/SAML/LDAP)
 from api.admin.sso_routes import router as sso_router
+
 # Agent 模板市场 (对标 Coze 插件市场 / LobeChat 助手市场)
 from api.admin.agent_template_routes import router as agent_template_router
+
 # NL2SQL 自然语言转 SQL (对标 RagFlow NL2SQL)
 from api.admin.nl2sql_routes import router as nl2sql_router
+
 # 深度文档解析 (对标 RagFlow DeepDoc, 表格提取 + 版面分析)
 from api.admin.doc_parsing_routes import router as doc_parsing_router
+
 # GraphRAG 知识图谱 (对标 RagFlow GraphRAG + RAPTOR, 实体关系抽取 + 图增强检索)
 from api.admin.graph_rag_routes import router as graph_rag_router
+
 # 灰度发布 / 蓝绿部署 (对标 Bisheng/Langfuse Canary 发布)
 from api.admin.gray_release_routes import router as gray_release_router
+
 # 多环境管理 (对标 Bisheng/Langfuse 环境隔离, dev/staging/prod 配置隔离)
 from api.admin.environment_routes import router as environment_router
+
 # 知识库自动同步 (对标 RagFlow 自动同步 / 阿里百炼数据源管理)
 from api.admin.kb_sync_routes import router as kb_sync_router
+
 # Prompt 优化建议 (对标 Langfuse LLM Playground 交互测试)
 from api.admin.prompt_optimization_routes import router as prompt_optimization_router
+
 # 模型负载均衡 (对标阿里百炼 AI 网关 GPU 感知负载均衡)
 from api.admin.model_load_balancer_routes import router as model_lb_router
 

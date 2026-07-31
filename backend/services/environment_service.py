@@ -55,11 +55,7 @@ def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any
     """
     result = dict(base)
     for key, value in override.items():
-        if (
-            key in result
-            and isinstance(result[key], dict)
-            and isinstance(value, dict)
-        ):
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
             result[key] = _deep_merge(result[key], value)
         else:
             result[key] = value
@@ -125,9 +121,7 @@ class EnvironmentService:
         self.session.add(environment)
         await self.session.flush()
         await self.session.refresh(environment)
-        logger.info(
-            "创建环境 id=%s name=%s tenant=%s", environment.id, name, tenant_id
-        )
+        logger.info("创建环境 id=%s name=%s tenant=%s", environment.id, name, tenant_id)
         return environment
 
     async def get_environment(
@@ -246,7 +240,9 @@ class EnvironmentService:
         if environment is None:
             raise ValueError(f"环境 {env_id} 不存在")
         if environment.is_default:
-            raise ValueError(f"环境 {env_id} ({environment.name}) 为默认环境, 不允许删除")
+            raise ValueError(
+                f"环境 {env_id} ({environment.name}) 为默认环境, 不允许删除"
+            )
         await self.session.delete(environment)
         await self.session.flush()
         logger.info("删除环境 id=%s tenant=%s", env_id, tenant_id)
@@ -399,13 +395,9 @@ class EnvironmentService:
             env_id, agent_id, tenant_id=tenant_id
         )
         if deployment is None:
-            raise ValueError(
-                f"Agent {agent_id} 在环境 {env_id} 无部署记录"
-            )
+            raise ValueError(f"Agent {agent_id} 在环境 {env_id} 无部署记录")
         if deployment.status == DEPLOY_STATUS_UNDEPLOYED:
-            raise ValueError(
-                f"Agent {agent_id} 在环境 {env_id} 已处于取消部署状态"
-            )
+            raise ValueError(f"Agent {agent_id} 在环境 {env_id} 已处于取消部署状态")
         deployment.status = DEPLOY_STATUS_UNDEPLOYED
         deployment.undeployed_at = datetime.now(timezone.utc)
         await self.session.flush()

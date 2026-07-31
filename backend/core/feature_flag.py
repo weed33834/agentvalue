@@ -228,9 +228,7 @@ class FeatureFlagService:
         self._cache_set(key, flag)
         return flag
 
-    async def list_flags(
-        self, category: Optional[str] = None
-    ) -> List[FeatureFlag]:
+    async def list_flags(self, category: Optional[str] = None) -> List[FeatureFlag]:
         """列出所有 flag (支持 category 过滤)
 
         列表查询不走缓存 (避免缓存膨胀), 直接查 DB。
@@ -300,9 +298,7 @@ class FeatureFlagService:
         self.invalidate(key)
         return flag
 
-    async def update_flag(
-        self, key: str, **fields: Any
-    ) -> Optional[FeatureFlag]:
+    async def update_flag(self, key: str, **fields: Any) -> Optional[FeatureFlag]:
         """更新 flag (任意字段)
 
         Args:

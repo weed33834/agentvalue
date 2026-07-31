@@ -20,7 +20,7 @@ watch(
       container.value.scrollTop = container.value.scrollHeight
     }
   },
-  { flush: 'post' }
+  { flush: 'post' },
 )
 
 // 深度监听：流式内容更新时也滚动
@@ -31,7 +31,7 @@ watch(
     if (container.value) {
       container.value.scrollTop = container.value.scrollHeight
     }
-  }
+  },
 )
 </script>
 

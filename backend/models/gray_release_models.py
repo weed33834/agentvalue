@@ -52,14 +52,22 @@ class GrayRelease(Base):
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     # 关联的 Agent 预设 ID (软关联 AgentPreset.id)
     agent_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("agent_presets.id", ondelete="CASCADE"), index=True, nullable=False
+        Integer,
+        ForeignKey("agent_presets.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
     )
     # 新版本 ID (关联 AgentVersion.id, 灰度目标版本)
     version_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("agent_versions.id", ondelete="CASCADE"), index=True, nullable=False
+        Integer,
+        ForeignKey("agent_versions.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
     )
     # 发布类型: canary / blue_green / rolling
-    release_type: Mapped[str] = mapped_column(String(16), nullable=False, default="canary")
+    release_type: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="canary"
+    )
     # 灰度流量百分比 (0-100)
     traffic_percentage: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default="0"
@@ -69,7 +77,9 @@ class GrayRelease(Base):
         String(16), nullable=False, default="draft", server_default="draft"
     )
     # 灰度配置 (JSON, 随发布类型不同而结构不同)
-    config: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict, server_default="{}")
+    config: Mapped[dict] = mapped_column(
+        JSON, nullable=False, default=dict, server_default="{}"
+    )
     # 备注 / 描述
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # 启动时间 (status → active 时写入)

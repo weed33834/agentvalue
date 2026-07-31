@@ -1,15 +1,10 @@
 <template>
   <div class="admin-prompts">
-    <el-alert
-      type="info"
-      :closable="false"
-      show-icon
-      class="mb-16"
-    >
+    <el-alert type="info" :closable="false" show-icon class="mb-16">
       <template #title>
-        Prompt 管理中心 —— 对标 Langfuse Prompt Management，支持版本不可变历史、
-        Label 指针（production/staging/prod-a/prod-b/canary-Npct）、Diff 对比、一键回滚、
-        A/B 测试与灰度发布。所有变更记入审计日志。
+        Prompt 管理中心 —— 对标 Langfuse Prompt Management，支持版本不可变历史、 Label
+        指针（production/staging/prod-a/prod-b/canary-Npct）、Diff 对比、一键回滚、 A/B
+        测试与灰度发布。所有变更记入审计日志。
       </template>
     </el-alert>
 
@@ -23,7 +18,9 @@
         @keyup.enter="loadTemplates(1)"
         @clear="loadTemplates(1)"
       >
-        <template #prefix><el-icon><Search /></el-icon></template>
+        <template #prefix
+          ><el-icon><Search /></el-icon
+        ></template>
       </el-input>
       <el-button type="primary" @click="openCreateDialog">
         <el-icon><Plus /></el-icon>
@@ -125,7 +122,7 @@
             v-model="configText"
             type="textarea"
             :rows="4"
-            placeholder="{&quot;model&quot;: &quot;gpt-4o-mini&quot;, &quot;temperature&quot;: 0.1, &quot;max_tokens&quot;: 4096}"
+            placeholder='{"model": "gpt-4o-mini", "temperature": 0.1, "max_tokens": 4096}'
           />
         </el-form-item>
         <el-form-item label="初始 Label (逗号分隔)">
@@ -160,14 +157,13 @@
             v-model="versionForm.configText"
             type="textarea"
             :rows="4"
-            placeholder="{&quot;model&quot;: &quot;gpt-4o-mini&quot;, &quot;temperature&quot;: 0.1}"
+            placeholder='{"model": "gpt-4o-mini", "temperature": 0.1}'
           />
         </el-form-item>
         <el-form-item label="分配 Label (逗号分隔)">
           <el-input v-model="versionForm.labelsText" placeholder="staging,latest" />
           <span class="field-hint">
-            覆盖同名旧 label。如需上线,用 production。
-            A/B 用 prod-a/prod-b,灰度用 canary-Npct。
+            覆盖同名旧 label。如需上线,用 production。 A/B 用 prod-a/prod-b,灰度用 canary-Npct。
           </span>
         </el-form-item>
       </el-form>
@@ -194,8 +190,12 @@
           <el-descriptions-item label="描述" :span="2">
             {{ detail.template.description || '—' }}
           </el-descriptions-item>
-          <el-descriptions-item label="版本数">{{ detail.template.version_count }}</el-descriptions-item>
-          <el-descriptions-item label="Label 数">{{ detail.template.label_count }}</el-descriptions-item>
+          <el-descriptions-item label="版本数">{{
+            detail.template.version_count
+          }}</el-descriptions-item>
+          <el-descriptions-item label="Label 数">{{
+            detail.template.label_count
+          }}</el-descriptions-item>
           <el-descriptions-item label="创建时间">
             {{ formatTime(detail.template.created_at) }}
           </el-descriptions-item>
@@ -228,7 +228,12 @@
             <el-table-column prop="version" label="指向版本" width="100">
               <template #default="{ row }">v{{ row.version }}</template>
             </el-table-column>
-            <el-table-column prop="updated_by" label="更新人" min-width="120" show-overflow-tooltip />
+            <el-table-column
+              prop="updated_by"
+              label="更新人"
+              min-width="120"
+              show-overflow-tooltip
+            />
             <el-table-column prop="updated_at" label="更新时间" width="160">
               <template #default="{ row }">{{ formatTime(row.updated_at) }}</template>
             </el-table-column>
@@ -284,20 +289,22 @@
                 <span v-if="!row.labels?.length" class="muted">—</span>
               </template>
             </el-table-column>
-            <el-table-column prop="content_preview" label="内容预览" min-width="280" show-overflow-tooltip />
+            <el-table-column
+              prop="content_preview"
+              label="内容预览"
+              min-width="280"
+              show-overflow-tooltip
+            />
             <el-table-column prop="created_at" label="创建时间" width="160">
               <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
             </el-table-column>
             <el-table-column label="操作" width="200" fixed="right">
               <template #default="{ row }">
                 <el-button size="small" link @click="viewVersionContent(row)">查看</el-button>
-                <el-button size="small" link @click="openPreviewDialog(row.version)">预览</el-button>
-                <el-button
-                  size="small"
-                  link
-                  type="primary"
-                  @click="assignProduction(row.version)"
+                <el-button size="small" link @click="openPreviewDialog(row.version)"
+                  >预览</el-button
                 >
+                <el-button size="small" link type="primary" @click="assignProduction(row.version)">
                   上线
                 </el-button>
               </template>
@@ -320,11 +327,7 @@
     </el-dialog>
 
     <!-- Diff 对比对话框 -->
-    <el-dialog
-      v-model="diffDialogVisible"
-      title="版本 Diff 对比"
-      width="800px"
-    >
+    <el-dialog v-model="diffDialogVisible" title="版本 Diff 对比" width="800px">
       <el-form :inline="true" class="diff-form">
         <el-form-item label="起始版本">
           <el-select v-model="diffFrom" placeholder="v1" style="width: 120px">
@@ -376,14 +379,9 @@
     </el-dialog>
 
     <!-- 回滚对话框 -->
-    <el-dialog
-      v-model="rollbackDialogVisible"
-      title="一键回滚 production"
-      width="480px"
-    >
+    <el-dialog v-model="rollbackDialogVisible" title="一键回滚 production" width="480px">
       <el-alert type="warning" :closable="false" show-icon class="mb-16">
-        回滚会把 production label 指向选定版本,线上请求立即生效。
-        版本本身不会被删除,可随时再切回。
+        回滚会把 production label 指向选定版本,线上请求立即生效。 版本本身不会被删除,可随时再切回。
       </el-alert>
       <el-form label-position="top">
         <el-form-item label="回滚到版本">
@@ -406,14 +404,10 @@
     </el-dialog>
 
     <!-- A/B 测试对话框 -->
-    <el-dialog
-      v-model="abTestDialogVisible"
-      title="配置 A/B 测试"
-      width="520px"
-    >
+    <el-dialog v-model="abTestDialogVisible" title="配置 A/B 测试" width="520px">
       <el-alert type="info" :closable="false" show-icon class="mb-16">
-        DbPromptLoader 按 hash(employee_id) % 100 分流,同一员工稳定走同一版本。
-        prod-a / prod-b label 分别指向两个版本。
+        DbPromptLoader 按 hash(employee_id) % 100 分流,同一员工稳定走同一版本。 prod-a / prod-b
+        label 分别指向两个版本。
       </el-alert>
       <el-form label-position="top">
         <el-form-item label="prod-a 指向版本">
@@ -447,15 +441,10 @@
     </el-dialog>
 
     <!-- 灰度发布对话框 -->
-    <el-dialog
-      v-model="canaryDialogVisible"
-      title="配置灰度发布"
-      width="520px"
-    >
+    <el-dialog v-model="canaryDialogVisible" title="配置灰度发布" width="520px">
       <el-alert type="info" :closable="false" show-icon class="mb-16">
-        创建 canary-Npct label 指向新版本。
-        hash(employee_id) % 100 &lt; N 走灰度版本,否则走 production。
-        逐步扩大:5pct → 25pct → 50pct → 全量(把 production 指向新版本)。
+        创建 canary-Npct label 指向新版本。 hash(employee_id) % 100 &lt; N 走灰度版本,否则走
+        production。 逐步扩大:5pct → 25pct → 50pct → 全量(把 production 指向新版本)。
       </el-alert>
       <el-form label-position="top">
         <el-form-item label="灰度版本">
@@ -469,7 +458,13 @@
           </el-select>
         </el-form-item>
         <el-form-item label="灰度百分比">
-          <el-slider v-model="canaryForm.percentage" :min="1" :max="100" :marks="canaryMarks" show-input />
+          <el-slider
+            v-model="canaryForm.percentage"
+            :min="1"
+            :max="100"
+            :marks="canaryMarks"
+            show-input
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -479,11 +474,7 @@
     </el-dialog>
 
     <!-- 分配 Label 对话框 -->
-    <el-dialog
-      v-model="assignLabelDialogVisible"
-      title="分配 Label 指针"
-      width="480px"
-    >
+    <el-dialog v-model="assignLabelDialogVisible" title="分配 Label 指针" width="480px">
       <el-form label-position="top">
         <el-form-item label="目标版本">
           <el-select v-model="assignLabelForm.version" style="width: 100%">
@@ -516,18 +507,14 @@
     </el-dialog>
 
     <!-- 渲染预览对话框 -->
-    <el-dialog
-      v-model="previewDialogVisible"
-      :title="`渲染预览 v${previewVersion}`"
-      width="800px"
-    >
+    <el-dialog v-model="previewDialogVisible" :title="`渲染预览 v${previewVersion}`" width="800px">
       <el-form label-position="top">
         <el-form-item label="变量 JSON (可选)">
           <el-input
             v-model="previewVariablesText"
             type="textarea"
             :rows="4"
-            placeholder="{&quot;employee_id&quot;: &quot;u001&quot;, &quot;period&quot;: &quot;2025-W01&quot;, &quot;raw_inputs&quot;: []}"
+            placeholder='{"employee_id": "u001", "period": "2025-W01", "raw_inputs": []}'
           />
         </el-form-item>
         <el-form-item>
@@ -537,7 +524,9 @@
       <div v-if="previewResult" class="preview-result">
         <div class="diff-section-title">渲染结果</div>
         <pre class="content-pre">{{ previewResult.rendered }}</pre>
-        <div class="field-hint">使用变量: {{ previewResult.variables_used?.join(', ') || '无' }}</div>
+        <div class="field-hint">
+          使用变量: {{ previewResult.variables_used?.join(', ') || '无' }}
+        </div>
       </div>
       <template #footer>
         <el-button @click="previewDialogVisible = false">关闭</el-button>
@@ -647,11 +636,11 @@ async function submitCreate() {
 // ====== 删除模板 ======
 async function confirmDelete(name) {
   try {
-    await ElMessageBox.confirm(
-      `确认删除模板 ${name}?此操作不可恢复。`,
-      '删除确认',
-      { confirmButtonText: '确认删除', cancelButtonText: '取消', type: 'warning' },
-    )
+    await ElMessageBox.confirm(`确认删除模板 ${name}?此操作不可恢复。`, '删除确认', {
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
   } catch {
     return
   }

@@ -179,6 +179,4 @@ async def get_talent_matrix(
         else:
             member_id_list = sorted(report_ids)
 
-    return await analytics.get_talent_matrix(
-        period=period, member_ids=member_id_list
-    )
+    return await analytics.get_talent_matrix(period=period, member_ids=member_id_list)

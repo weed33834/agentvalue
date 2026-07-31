@@ -151,7 +151,9 @@ class ProviderCredentialService:
         is_valid: Optional[bool] = None,
     ) -> TenantProvider:
         """创建或更新 tenant provider 绑定"""
-        existing = await self.get_tenant_provider(tenant_id, provider_name, provider_type)
+        existing = await self.get_tenant_provider(
+            tenant_id, provider_name, provider_type
+        )
         if existing is not None:
             if is_valid is not None:
                 existing.is_valid = is_valid
@@ -231,9 +233,7 @@ class ProviderCredentialService:
         await self.session.flush()
 
         # 同时 upsert tenant_provider 绑定,设为激活凭证
-        tp = await self.upsert_tenant_provider(
-            tenant_id, provider_name, is_valid=True
-        )
+        tp = await self.upsert_tenant_provider(tenant_id, provider_name, is_valid=True)
         # 仅当无激活凭证时,才把新建的设为激活
         if not tp.active_credential_id:
             tp.active_credential_id = row.id
@@ -294,7 +294,9 @@ class ProviderCredentialService:
         row = await self.get_credential(tenant_id, provider_name, credential_id)
         if row is None:
             return False
-        tp = await self.upsert_tenant_provider(tenant_id, provider_name, is_valid=row.is_valid)
+        tp = await self.upsert_tenant_provider(
+            tenant_id, provider_name, is_valid=row.is_valid
+        )
         tp.active_credential_id = credential_id
         await self.session.flush()
         return True
@@ -461,7 +463,9 @@ class ProviderCredentialService:
     # ============================================================
 
     async def list_default_models(self, tenant_id: str) -> List[TenantDefaultModel]:
-        stmt = select(TenantDefaultModel).where(TenantDefaultModel.tenant_id == tenant_id)
+        stmt = select(TenantDefaultModel).where(
+            TenantDefaultModel.tenant_id == tenant_id
+        )
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 

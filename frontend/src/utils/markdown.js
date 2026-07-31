@@ -97,7 +97,7 @@ function preprocessMath(text) {
         output: 'html',
       })
       mathCache.push(rendered)
-    } catch (e) {
+    } catch {
       mathCache.push(`<span class="math-error">${escapeHtml(match)}</span>`)
     }
     return `${MATH_PLACEHOLDER_PREFIX}${idx}\u0000`
@@ -115,7 +115,7 @@ function preprocessMath(text) {
         output: 'html',
       })
       mathCache.push(rendered)
-    } catch (e) {
+    } catch {
       mathCache.push(`<span class="math-error">${escapeHtml(match)}</span>`)
     }
     return `${MATH_PLACEHOLDER_PREFIX}${idx}\u0000`
@@ -164,10 +164,7 @@ renderer.code = function (code, lang) {
 marked.use({ renderer })
 
 function escapeHtml(text) {
-  return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
+  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 // ============================================================
@@ -238,17 +235,103 @@ export function renderMarkdown(text) {
   // 4. DOMPurify 消毒
   return DOMPurify.sanitize(withMath, {
     ALLOWED_TAGS: [
-      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'p', 'br', 'hr',
-      'strong', 'em', 'del', 's', 'u',
-      'ul', 'ol', 'li',
-      'blockquote', 'code', 'pre',
-      'a', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
-      'span', 'div', 'sup', 'sub',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'p',
+      'br',
+      'hr',
+      'strong',
+      'em',
+      'del',
+      's',
+      'u',
+      'ul',
+      'ol',
+      'li',
+      'blockquote',
+      'code',
+      'pre',
+      'a',
+      'img',
+      'table',
+      'thead',
+      'tbody',
+      'tr',
+      'th',
+      'td',
+      'span',
+      'div',
+      'sup',
+      'sub',
       // KaTeX 输出需要的标签
-      'math', 'semantics', 'annotation', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'msqrt', 'mroot', 'mtext', 'mspace', 'mtable', 'mtr', 'mtd', 'mover', 'munder', 'munderover',
+      'math',
+      'semantics',
+      'annotation',
+      'mrow',
+      'mi',
+      'mo',
+      'mn',
+      'msup',
+      'msub',
+      'mfrac',
+      'msqrt',
+      'mroot',
+      'mtext',
+      'mspace',
+      'mtable',
+      'mtr',
+      'mtd',
+      'mover',
+      'munder',
+      'munderover',
     ],
-    ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'target', 'rel', 'style', 'encoding', 'xmlns', 'mathvariant', 'fontstyle', 'fontweight', 'lspace', 'rspace', 'stretchy', 'symmetric', 'maxsize', 'minsize', 'fence', 'separator', 'accent', 'accentunder', 'columnalign', 'rowalign', 'columnspacing', 'rowspacing', 'columnlines', 'rowlines', 'frame', 'framespacing', 'equalrows', 'side', 'stackalign', 'denomalign', 'numalign', 'bevelled', 'linethickness', 'notation', 'subscriptshift', 'supershift'],
+    ALLOWED_ATTR: [
+      'href',
+      'src',
+      'alt',
+      'title',
+      'class',
+      'target',
+      'rel',
+      'style',
+      'encoding',
+      'xmlns',
+      'mathvariant',
+      'fontstyle',
+      'fontweight',
+      'lspace',
+      'rspace',
+      'stretchy',
+      'symmetric',
+      'maxsize',
+      'minsize',
+      'fence',
+      'separator',
+      'accent',
+      'accentunder',
+      'columnalign',
+      'rowalign',
+      'columnspacing',
+      'rowspacing',
+      'columnlines',
+      'rowlines',
+      'frame',
+      'framespacing',
+      'equalrows',
+      'side',
+      'stackalign',
+      'denomalign',
+      'numalign',
+      'bevelled',
+      'linethickness',
+      'notation',
+      'subscriptshift',
+      'supershift',
+    ],
   })
 }
 

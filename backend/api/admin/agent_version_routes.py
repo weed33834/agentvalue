@@ -116,9 +116,7 @@ async def create_version(
             created_by=current_user_id,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
     await audit_service.log(
         actor_id=current_user_id,
@@ -158,9 +156,7 @@ async def get_version(
     return version
 
 
-@router.post(
-    "/{agent_id}/versions/{version_id}/publish", response_model=Dict[str, Any]
-)
+@router.post("/{agent_id}/versions/{version_id}/publish", response_model=Dict[str, Any])
 async def publish_version(
     agent_id: int,
     version_id: int,
@@ -178,11 +174,11 @@ async def publish_version(
     service = AgentVersionService(session)
     # 先通过版本服务创建发布目标记录
     try:
-        result = await service.publish_version(version_id, payload.targets, tenant_id=tenant_id)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        result = await service.publish_version(
+            version_id, payload.targets, tenant_id=tenant_id
         )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     # 委托 PublishService 执行实际渠道发布
     publish_results: List[Dict[str, Any]] = []
@@ -191,7 +187,9 @@ async def publish_version(
 
         publish_service = PublishService(session)
         for channel in payload.targets:
-            target = await service.get_publish_target(agent_id, channel, tenant_id=tenant_id)
+            target = await service.get_publish_target(
+                agent_id, channel, tenant_id=tenant_id
+            )
             if target is not None:
                 pub_result = await publish_service.publish(
                     agent_id=agent_id,
@@ -222,9 +220,7 @@ async def publish_version(
     }
 
 
-@router.post(
-    "/{agent_id}/versions/{version_id}/archive", response_model=Dict[str, Any]
-)
+@router.post("/{agent_id}/versions/{version_id}/archive", response_model=Dict[str, Any])
 async def archive_version(
     agent_id: int,
     version_id: int,
@@ -239,9 +235,7 @@ async def archive_version(
     try:
         version = await service.archive_version(version_id, tenant_id=tenant_id)
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     await audit_service.log(
         actor_id=current_user_id,
@@ -253,9 +247,7 @@ async def archive_version(
     return AgentVersionService._version_to_dict(version)
 
 
-@router.post(
-    "/{agent_id}/rollback/{target_version}", response_model=Dict[str, Any]
-)
+@router.post("/{agent_id}/rollback/{target_version}", response_model=Dict[str, Any])
 async def rollback(
     agent_id: int,
     target_version: int,
@@ -272,9 +264,7 @@ async def rollback(
             agent_id, target_version, tenant_id=tenant_id, created_by=current_user_id
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
     await audit_service.log(
         actor_id=current_user_id,
@@ -307,7 +297,5 @@ async def compare_versions(
     try:
         result = await service.compare_versions(v1_id, v2_id, tenant_id=tenant_id)
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     return result

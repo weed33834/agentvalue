@@ -128,9 +128,7 @@ async def generate_sql(
             tenant_id=tenant_id,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     # 记录创建人
     if query.created_by is None:
         query.created_by = user_id
@@ -158,9 +156,7 @@ async def execute_sql(
             tenant_id=tenant_id,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     await session.commit()
     return result
 
@@ -187,9 +183,7 @@ async def generate_and_execute_sql(
             tenant_id=tenant_id,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if query.created_by is None:
         query.created_by = user_id
         await session.flush()
@@ -214,7 +208,13 @@ async def generate_and_execute_sql(
         await session.commit()
         return {
             "query": NL2SQLService._query_to_dict(query),
-            "execution": {"success": False, "error": str(e), "rows": [], "columns": [], "row_count": 0},
+            "execution": {
+                "success": False,
+                "error": str(e),
+                "rows": [],
+                "columns": [],
+                "row_count": 0,
+            },
         }
     await session.commit()
     return {
@@ -288,7 +288,9 @@ async def delete_query(
 # ============================================================
 
 
-@router.post("/schemas", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/schemas", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED
+)
 async def create_schema(
     payload: SchemaCreate,
     session: AsyncSession = Depends(get_db),
@@ -306,9 +308,7 @@ async def create_schema(
             tenant_id=tenant_id,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     await session.commit()
     return NL2SQLService._schema_to_dict(schema)
 
@@ -346,9 +346,7 @@ async def update_schema(
             tenant_id=tenant_id,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     await session.commit()
     return NL2SQLService._schema_to_dict(schema)
 

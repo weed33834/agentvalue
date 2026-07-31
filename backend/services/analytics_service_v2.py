@@ -188,14 +188,16 @@ class AnalyticsServiceV2:
                 tt = int(r.total_tokens or 0)
                 rc = int(r.request_count or 0)
                 cc = float(r.cost or 0.0)
-                series.append({
-                    "key": key,
-                    "input_tokens": it,
-                    "output_tokens": ot,
-                    "total_tokens": tt,
-                    "cost": round(cc, 6),
-                    "request_count": rc,
-                })
+                series.append(
+                    {
+                        "key": key,
+                        "input_tokens": it,
+                        "output_tokens": ot,
+                        "total_tokens": tt,
+                        "cost": round(cc, 6),
+                        "request_count": rc,
+                    }
+                )
                 tot_input += it
                 tot_output += ot
                 tot_total += tt
@@ -237,14 +239,11 @@ class AnalyticsServiceV2:
         tid = tenant_id or get_current_tenant()
         session = await self._get_session()
         try:
-            stmt = (
-                select(ConversationMetrics.latency_ms)
-                .where(
-                    ConversationMetrics.tenant_id == tid,
-                    ConversationMetrics.timestamp >= start_date,
-                    ConversationMetrics.timestamp <= end_date,
-                    ConversationMetrics.latency_ms.is_not(None),
-                )
+            stmt = select(ConversationMetrics.latency_ms).where(
+                ConversationMetrics.tenant_id == tid,
+                ConversationMetrics.timestamp >= start_date,
+                ConversationMetrics.timestamp <= end_date,
+                ConversationMetrics.latency_ms.is_not(None),
             )
             result = await session.execute(stmt)
             latencies = [float(r[0]) for r in result.all() if r[0] is not None]
@@ -295,9 +294,7 @@ class AnalyticsServiceV2:
                 {"status": r.status, "count": int(r.count or 0)}
                 for r in status_result.all()
             ]
-            errors = sum(
-                s["count"] for s in by_status if s["status"] != "success"
-            )
+            errors = sum(s["count"] for s in by_status if s["status"] != "success")
             error_rate = (errors / total) if total else 0.0
             return {
                 "total": total,
@@ -349,12 +346,14 @@ class AnalyticsServiceV2:
                 key = self._format_key(r.key, group_by)
                 cc = float(r.cost or 0.0)
                 tt = int(r.tokens or 0)
-                items.append({
-                    "key": key,
-                    "cost": round(cc, 6),
-                    "tokens": tt,
-                    "count": int(r.count or 0),
-                })
+                items.append(
+                    {
+                        "key": key,
+                        "cost": round(cc, 6),
+                        "tokens": tt,
+                        "count": int(r.count or 0),
+                    }
+                )
                 tot_cost += cc
                 tot_tokens += tt
             return {
@@ -367,9 +366,7 @@ class AnalyticsServiceV2:
             if self._owns_session:
                 await self._close_if_owned()
 
-    async def detect_anomalies(
-        self, tenant_id: Optional[str] = None
-    ) -> Dict[str, Any]:
+    async def detect_anomalies(self, tenant_id: Optional[str] = None) -> Dict[str, Any]:
         """异常用量检测（简单 Z-score）。
 
         对最近 _ANOMALY_LOOKBACK_DAYS 天内按天聚合的 total_tokens 做 Z-score 检测，
@@ -422,11 +419,13 @@ class AnalyticsServiceV2:
                 else:
                     z = 0.0
                 if abs(z) > _ANOMALY_ZSCORE_THRESHOLD:
-                    anomalies.append({
-                        "date": r.day,
-                        "tokens": int(v),
-                        "z_score": round(z, 4),
-                    })
+                    anomalies.append(
+                        {
+                            "date": r.day,
+                            "tokens": int(v),
+                            "z_score": round(z, 4),
+                        }
+                    )
 
             return {
                 "lookback_days": _ANOMALY_LOOKBACK_DAYS,

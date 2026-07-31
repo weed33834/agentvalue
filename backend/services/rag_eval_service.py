@@ -146,8 +146,10 @@ class RagEvalService:
 
         offset = (page - 1) * size
         rows = (
-            await self.session.execute(base.offset(offset).limit(size))
-        ).scalars().all()
+            (await self.session.execute(base.offset(offset).limit(size)))
+            .scalars()
+            .all()
+        )
 
         return {
             "items": [self._task_to_dict(t) for t in rows],
@@ -156,22 +158,24 @@ class RagEvalService:
             "size": size,
         }
 
-    async def delete_task(
-        self, task_id: int, *, tenant_id: str = "default"
-    ) -> bool:
+    async def delete_task(self, task_id: int, *, tenant_id: str = "default") -> bool:
         """删除评测任务 (同时删除所有结果)"""
         task = await self.get_task(task_id, tenant_id=tenant_id)
         if task is None:
             return False
 
         results = (
-            await self.session.execute(
-                select(RagEvalResult).where(
-                    RagEvalResult.task_id == task_id,
-                    RagEvalResult.tenant_id == tenant_id,
+            (
+                await self.session.execute(
+                    select(RagEvalResult).where(
+                        RagEvalResult.task_id == task_id,
+                        RagEvalResult.tenant_id == tenant_id,
+                    )
                 )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         for r in results:
             await self.session.delete(r)
 
@@ -445,9 +449,7 @@ class RagEvalService:
         return relevant_in_top_k / len(relevant_set)
 
     @staticmethod
-    def _calculate_mrr(
-        retrieved: List[str], relevant: List[str]
-    ) -> float:
+    def _calculate_mrr(retrieved: List[str], relevant: List[str]) -> float:
         """计算 MRR (Mean Reciprocal Rank)
 
         第一个相关文档在检索结果中位置的倒数。
@@ -536,8 +538,10 @@ class RagEvalService:
 
         offset = (page - 1) * size
         rows = (
-            await self.session.execute(base.offset(offset).limit(size))
-        ).scalars().all()
+            (await self.session.execute(base.offset(offset).limit(size)))
+            .scalars()
+            .all()
+        )
 
         return {
             "items": [self._result_to_dict(r) for r in rows],
@@ -557,9 +561,7 @@ class RagEvalService:
         if task.results_summary:
             return task.results_summary
 
-        return await self._compute_summary(
-            self.session, task_id, tenant_id=tenant_id
-        )
+        return await self._compute_summary(self.session, task_id, tenant_id=tenant_id)
 
     async def _compute_summary(
         self,
@@ -570,13 +572,17 @@ class RagEvalService:
     ) -> Dict[str, Any]:
         """计算评测汇总统计"""
         results = (
-            await session.execute(
-                select(RagEvalResult).where(
-                    RagEvalResult.task_id == task_id,
-                    RagEvalResult.tenant_id == tenant_id,
+            (
+                await session.execute(
+                    select(RagEvalResult).where(
+                        RagEvalResult.task_id == task_id,
+                        RagEvalResult.tenant_id == tenant_id,
+                    )
                 )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         if not results:
             return {

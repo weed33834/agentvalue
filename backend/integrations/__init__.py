@@ -10,6 +10,7 @@
     adapter = create_im_adapter()  # 未配置时返回 DummyIMAdapter
     await adapter.send_text(IMRecipient(chat_id="..."), "hello")
 """
+
 from .base import (
     CodeRepoAdapter,
     CodeRepoEvent,

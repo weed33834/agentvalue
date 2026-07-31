@@ -242,7 +242,9 @@ class ApiHealthService:
                     func.count(ApiHealthMetric.id).label("count"),
                     func.avg(ApiHealthMetric.response_time_ms).label("avg"),
                     func.max(ApiHealthMetric.response_time_ms).label("max"),
-                    func.sum(ApiHealthMetric.status_code >= _SUCCESS_STATUS_THRESHOLD).label("errors"),
+                    func.sum(
+                        ApiHealthMetric.status_code >= _SUCCESS_STATUS_THRESHOLD
+                    ).label("errors"),
                 )
                 .where(
                     ApiHealthMetric.tenant_id == tid,
@@ -256,15 +258,17 @@ class ApiHealthService:
             for r in result.all():
                 count = int(r.count or 0)
                 errors = int(r.errors or 0)
-                endpoints.append({
-                    "endpoint": r.endpoint,
-                    "request_count": count,
-                    "avg_latency_ms": round(float(r.avg or 0.0), 4),
-                    "max_latency_ms": round(float(r.max or 0.0), 4),
-                    "error_count": errors,
-                    "error_rate": round((errors / count) if count else 0.0, 6),
-                    "window_minutes": window_minutes,
-                })
+                endpoints.append(
+                    {
+                        "endpoint": r.endpoint,
+                        "request_count": count,
+                        "avg_latency_ms": round(float(r.avg or 0.0), 4),
+                        "max_latency_ms": round(float(r.max or 0.0), 4),
+                        "error_count": errors,
+                        "error_rate": round((errors / count) if count else 0.0, 6),
+                        "window_minutes": window_minutes,
+                    }
+                )
             return endpoints
         finally:
             if self._owns_session:
@@ -313,8 +317,12 @@ class ApiHealthService:
     ) -> Optional[Dict[str, Any]]:
         """更新 SLO 定义（仅本租户）。"""
         allowed = {
-            "name", "endpoint", "target_latency_ms",
-            "target_success_rate", "window_minutes", "enabled",
+            "name",
+            "endpoint",
+            "target_latency_ms",
+            "target_success_rate",
+            "window_minutes",
+            "enabled",
         }
         session = await self._get_session()
         try:
@@ -360,9 +368,11 @@ class ApiHealthService:
         """列出当前租户的 SLO 定义。"""
         session = await self._get_session()
         try:
-            stmt = select(SloDefinition).where(
-                SloDefinition.tenant_id == tenant_id
-            ).order_by(SloDefinition.id.asc())
+            stmt = (
+                select(SloDefinition)
+                .where(SloDefinition.tenant_id == tenant_id)
+                .order_by(SloDefinition.id.asc())
+            )
             if enabled_only:
                 stmt = stmt.where(SloDefinition.enabled.is_(True))
             result = await session.execute(stmt)
@@ -453,7 +463,9 @@ class ApiHealthService:
         agg_result = await session.execute(
             select(
                 func.count(ApiHealthMetric.id).label("count"),
-                func.sum(ApiHealthMetric.status_code >= _SUCCESS_STATUS_THRESHOLD).label("errors"),
+                func.sum(
+                    ApiHealthMetric.status_code >= _SUCCESS_STATUS_THRESHOLD
+                ).label("errors"),
             ).where(*base_filter)
         )
         agg = agg_result.one()

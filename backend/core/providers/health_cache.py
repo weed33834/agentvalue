@@ -66,9 +66,7 @@ class HealthCheckCache:
             return None
         return entry
 
-    def set(
-        self, key: str, healthy: bool, response_time: float
-    ) -> None:
+    def set(self, key: str, healthy: bool, response_time: float) -> None:
         """写缓存,TTL 按成功/失败区分"""
         ttl = self.success_ttl if healthy else self.failure_ttl
         self._cache[key] = _CacheEntry(

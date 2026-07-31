@@ -224,7 +224,7 @@ async function confirmAction(title, promptText) {
       inputValue: comment.value,
     })
     return value
-  } catch (err) {
+  } catch {
     // 用户取消,静默返回
     return null
   }

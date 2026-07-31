@@ -97,7 +97,9 @@ class BatchCreateFromEvalRequest(BaseModel):
 # ============================================================
 
 
-@router.post("/tasks", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/tasks", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED
+)
 async def create_task(
     payload: AnnotationTaskCreate,
     request: Request,
@@ -127,7 +129,9 @@ async def create_task(
 async def list_tasks(
     request: Request,
     session: AsyncSession = Depends(get_db),
-    task_status: Optional[str] = Query(default=None, alias="status", description="按状态过滤"),
+    task_status: Optional[str] = Query(
+        default=None, alias="status", description="按状态过滤"
+    ),
     assigned_to: Optional[str] = Query(default=None, description="按分配人过滤"),
     page: int = Query(default=1, ge=1, description="页码"),
     size: int = Query(default=20, ge=1, le=100, description="每页条数"),

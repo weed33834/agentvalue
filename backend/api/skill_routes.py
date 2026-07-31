@@ -53,7 +53,9 @@ class CreateSkillPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str = Field(min_length=1, max_length=_MAX_NAME_LENGTH)
-    display_name: Optional[str] = Field(default=None, max_length=_MAX_DISPLAY_NAME_LENGTH)
+    display_name: Optional[str] = Field(
+        default=None, max_length=_MAX_DISPLAY_NAME_LENGTH
+    )
     description: Optional[str] = Field(default=None, max_length=_MAX_TEXT_LENGTH)
     category: str = Field(default="general", max_length=_MAX_CATEGORY_LENGTH)
     version: str = Field(default="1.0.0", max_length=_MAX_VERSION_LENGTH)
@@ -75,7 +77,9 @@ class UpdateSkillPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: Optional[str] = Field(default=None, max_length=_MAX_NAME_LENGTH)
-    display_name: Optional[str] = Field(default=None, max_length=_MAX_DISPLAY_NAME_LENGTH)
+    display_name: Optional[str] = Field(
+        default=None, max_length=_MAX_DISPLAY_NAME_LENGTH
+    )
     description: Optional[str] = Field(default=None, max_length=_MAX_TEXT_LENGTH)
     category: Optional[str] = Field(default=None, max_length=_MAX_CATEGORY_LENGTH)
     version: Optional[str] = Field(default=None, max_length=_MAX_VERSION_LENGTH)
@@ -239,11 +243,7 @@ async def list_builtin_skills(
     """列出内置技能"""
     await _ensure_seed()
 
-    stmt = (
-        select(Skill)
-        .where(Skill.is_builtin.is_(True))
-        .order_by(Skill.id.asc())
-    )
+    stmt = select(Skill).where(Skill.is_builtin.is_(True)).order_by(Skill.id.asc())
     rows = (await session.execute(stmt)).scalars().all()
     return {
         "total": len(rows),
@@ -263,9 +263,7 @@ async def get_skill(
         await session.execute(select(Skill).where(Skill.id == skill_id))
     ).scalar_one_or_none()
     if skill is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="技能不存在"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="技能不存在")
     return _serialize_skill(skill, include_prompt=True)
 
 
@@ -315,9 +313,7 @@ async def update_skill(
         await session.execute(select(Skill).where(Skill.id == skill_id))
     ).scalar_one_or_none()
     if skill is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="技能不存在"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="技能不存在")
 
     if skill.is_builtin:
         raise HTTPException(
@@ -362,9 +358,7 @@ async def delete_skill(
         await session.execute(select(Skill).where(Skill.id == skill_id))
     ).scalar_one_or_none()
     if skill is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="技能不存在"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="技能不存在")
 
     if skill.is_builtin:
         raise HTTPException(
@@ -395,9 +389,7 @@ async def execute_skill(
         await session.execute(select(Skill).where(Skill.id == skill_id))
     ).scalar_one_or_none()
     if skill is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="技能不存在"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="技能不存在")
     if not skill.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -446,9 +438,7 @@ async def use_skill(
         await session.execute(select(Skill).where(Skill.id == skill_id))
     ).scalar_one_or_none()
     if skill is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="技能不存在"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="技能不存在")
 
     skill.use_count = (skill.use_count or 0) + 1
     await session.commit()

@@ -80,7 +80,9 @@
           <template #header>
             <div class="card-header">
               <span>评估状态分布</span>
-              <span class="card-sub">ai_drafted / approved / rejected / manager_review / hr_audit</span>
+              <span class="card-sub"
+                >ai_drafted / approved / rejected / manager_review / hr_audit</span
+              >
             </div>
           </template>
           <div v-loading="loading.eval" class="chart-wrap">
@@ -163,9 +165,7 @@ const loading = reactive({
   provider: false,
   eval: false,
 })
-const loadingAny = computed(() =>
-  Object.values(loading).some(Boolean)
-)
+const loadingAny = computed(() => Object.values(loading).some(Boolean))
 
 const tokenData = ref({ timeline: [], series: { prompt: [], completion: [], total: [] } })
 const costData = ref({ by_model: [], by_tenant: [], total_cost_usd: 0 })
@@ -173,13 +173,11 @@ const providerData = ref({ providers: [] })
 const evalData = ref({ total_evaluations: 0, by_status: {}, by_period: [] })
 
 const hasTokenData = computed(
-  () => tokenData.value.timeline.length > 0 && tokenData.value.series.total.some((v) => v > 0)
+  () => tokenData.value.timeline.length > 0 && tokenData.value.series.total.some((v) => v > 0),
 )
 const hasCostData = computed(() => costData.value.by_model.length > 0)
 const hasProviderData = computed(() => providerData.value.providers.length > 0)
-const hasEvalData = computed(() =>
-  Object.values(evalData.value.by_status || {}).some((v) => v > 0)
-)
+const hasEvalData = computed(() => Object.values(evalData.value.by_status || {}).some((v) => v > 0))
 
 // ====== 统计卡片(顶部 4 张) ======
 const totalTokens = computed(() => {

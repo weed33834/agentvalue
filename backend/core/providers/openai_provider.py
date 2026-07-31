@@ -176,7 +176,9 @@ class OpenAICompatibleProvider(BaseProvider):
         payload: Dict[str, Any] = {
             "model": self.config.model_name,
             "messages": [{"role": m.role, "content": m.content} for m in messages],
-            "temperature": temperature if temperature is not None else self.config.temperature,
+            "temperature": (
+                temperature if temperature is not None else self.config.temperature
+            ),
             "max_tokens": max_tokens or self.config.max_tokens,
             "timeout": self._timeout,
             "stream": True,
@@ -208,9 +210,15 @@ class OpenAICompatibleProvider(BaseProvider):
                         tool_calls = [
                             ToolCallDelta(
                                 index=tc.index,
-                                name=tc.function.name if tc.function and tc.function.name else None,
+                                name=(
+                                    tc.function.name
+                                    if tc.function and tc.function.name
+                                    else None
+                                ),
                                 id=tc.id,
-                                arguments=tc.function.arguments if tc.function else None,
+                                arguments=(
+                                    tc.function.arguments if tc.function else None
+                                ),
                             )
                             for tc in delta.tool_calls
                         ]
@@ -226,9 +234,14 @@ class OpenAICompatibleProvider(BaseProvider):
                 err_str = str(e)
                 is_rate_limit = "429" in err_str or "rate" in err_str.lower()
                 if is_rate_limit and attempt < max_retries:
-                    wait = 2 ** attempt  # 1s, 2s, 4s
-                    logger.warning("LLM 请求被限流(429), %ds 后重试 (attempt %d/%d): %s",
-                                   wait, attempt + 1, max_retries, err_str[:100])
+                    wait = 2**attempt  # 1s, 2s, 4s
+                    logger.warning(
+                        "LLM 请求被限流(429), %ds 后重试 (attempt %d/%d): %s",
+                        wait,
+                        attempt + 1,
+                        max_retries,
+                        err_str[:100],
+                    )
                     await asyncio.sleep(wait)
                     continue
                 self._safe_metric(record_llm_request, self._tier, "error")
@@ -346,9 +359,11 @@ class OpenAICompatibleProvider(BaseProvider):
                 tool_calls_list.append(
                     {
                         "id": getattr(tc, "id", ""),
-                        "type": getattr(tc.type, "type", "function")
-                        if hasattr(tc, "type")
-                        else "function",
+                        "type": (
+                            getattr(tc.type, "type", "function")
+                            if hasattr(tc, "type")
+                            else "function"
+                        ),
                         "function": {
                             "name": tc.function.name,
                             "arguments": tc.function.arguments,

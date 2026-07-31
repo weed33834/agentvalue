@@ -4,7 +4,8 @@
     <el-alert type="info" :closable="false" show-icon class="mb-16">
       <template #title>
         工作流可视化编排 —— 对标 Dify Workflow / Coze Bot 编排。拖拽节点 + 连线构建 DAG,
-        后端解释执行引擎按拓扑排序顺序执行,支持 LLM / HTTP / 条件分支 / 代码 / 知识库 / 输出 7 种节点类型。
+        后端解释执行引擎按拓扑排序顺序执行,支持 LLM / HTTP / 条件分支 / 代码 / 知识库 / 输出 7
+        种节点类型。
       </template>
     </el-alert>
 
@@ -80,9 +81,7 @@
               <component :is="meta.icon" />
             </el-icon>
             <span>{{ meta.label }}</span>
-            <span class="palette-meta">
-              in{{ meta.inputs }}/out{{ meta.outputs }}
-            </span>
+            <span class="palette-meta"> in{{ meta.inputs }}/out{{ meta.outputs }} </span>
           </div>
         </div>
         <el-divider />
@@ -131,7 +130,9 @@
       <el-card class="property-panel">
         <template #header>
           <span class="panel-title">
-            {{ selectedNode ? `属性 - ${selectedNode.data?.label || selectedNode.id}` : '属性面板' }}
+            {{
+              selectedNode ? `属性 - ${selectedNode.data?.label || selectedNode.id}` : '属性面板'
+            }}
           </span>
         </template>
         <div v-if="!selectedNode" class="empty-property">
@@ -145,10 +146,7 @@
             <el-input :value="NODE_TYPES[selectedNode.type]?.label" disabled />
           </el-form-item>
           <el-form-item label="显示名称">
-            <el-input
-              v-model="selectedNode.data.label"
-              placeholder="节点显示名称"
-            />
+            <el-input v-model="selectedNode.data.label" placeholder="节点显示名称" />
           </el-form-item>
 
           <!-- 根据 type 显示不同 config 表单 -->
@@ -177,11 +175,7 @@
               />
             </el-form-item>
             <el-form-item label="Max Tokens">
-              <el-input-number
-                v-model="selectedNode.data.config.max_tokens"
-                :min="1"
-                :max="8192"
-              />
+              <el-input-number v-model="selectedNode.data.config.max_tokens" :min="1" :max="8192" />
             </el-form-item>
           </template>
 
@@ -205,7 +199,7 @@
                 v-model="headersInput"
                 type="textarea"
                 :rows="3"
-                placeholder="{&quot;X-User&quot;: &quot;{{inputs.user}}&quot;}"
+                placeholder='{"X-User": "{{inputs.user}}"}'
               />
             </el-form-item>
             <el-form-item label="Body 模板">
@@ -213,15 +207,11 @@
                 v-model="selectedNode.data.config.body_template"
                 type="textarea"
                 :rows="4"
-                placeholder="{&quot;name&quot;: &quot;{{inputs.user}}&quot;}"
+                placeholder='{"name": "{{inputs.user}}"}'
               />
             </el-form-item>
             <el-form-item label="超时 (秒)">
-              <el-input-number
-                v-model="selectedNode.data.config.timeout"
-                :min="1"
-                :max="300"
-              />
+              <el-input-number v-model="selectedNode.data.config.timeout" :min="1" :max="300" />
             </el-form-item>
           </template>
 
@@ -235,9 +225,7 @@
               />
             </el-form-item>
             <el-alert type="info" :closable="false" show-icon class="mt-8">
-              <template #title>
-                条件节点有 true/false 两个输出端口, 从对应 handle 连线
-              </template>
+              <template #title> 条件节点有 true/false 两个输出端口, 从对应 handle 连线 </template>
             </el-alert>
           </template>
 
@@ -267,11 +255,7 @@
               />
             </el-form-item>
             <el-form-item label="Top K">
-              <el-input-number
-                v-model="selectedNode.data.config.top_k"
-                :min="1"
-                :max="50"
-              />
+              <el-input-number v-model="selectedNode.data.config.top_k" :min="1" :max="50" />
             </el-form-item>
           </template>
 
@@ -313,32 +297,25 @@
             v-model="inputSchemaInput"
             type="textarea"
             :rows="5"
-            placeholder="{&quot;variables&quot;: [{&quot;name&quot;: &quot;x&quot;, &quot;type&quot;: &quot;int&quot;, &quot;default&quot;: 0}]}"
+            placeholder='{"variables": [{"name": "x", "type": "int", "default": 0}]}'
           />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="createDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="creating" @click="handleCreate">
-          创建
-        </el-button>
+        <el-button type="primary" :loading="creating" @click="handleCreate"> 创建 </el-button>
       </template>
     </el-dialog>
 
     <!-- 运行 Dialog -->
-    <el-dialog
-      v-model="runDialogVisible"
-      title="运行工作流"
-      width="640px"
-      @closed="resetRunForm"
-    >
+    <el-dialog v-model="runDialogVisible" title="运行工作流" width="640px" @closed="resetRunForm">
       <el-form label-position="top">
         <el-form-item label="输入变量 (JSON)">
           <el-input
             v-model="runInputsInput"
             type="textarea"
             :rows="6"
-            placeholder="{&quot;x&quot;: 21, &quot;user&quot;: &quot;alice&quot;}"
+            placeholder='{"x": 21, "user": "alice"}'
           />
         </el-form-item>
       </el-form>
@@ -364,11 +341,7 @@
                 </template>
               </el-table-column>
               <el-table-column prop="started_at" label="开始" min-width="160" />
-              <el-table-column
-                prop="completed_at"
-                label="完成"
-                min-width="160"
-              />
+              <el-table-column prop="completed_at" label="完成" min-width="160" />
               <el-table-column label="输出" min-width="200">
                 <template #default="{ row }">
                   <pre class="output-pre">{{ formatJson(row.output || row.error) }}</pre>
@@ -383,18 +356,12 @@
       </div>
       <template #footer>
         <el-button @click="runDialogVisible = false">关闭</el-button>
-        <el-button type="primary" :loading="running" @click="handleRun">
-          执行
-        </el-button>
+        <el-button type="primary" :loading="running" @click="handleRun"> 执行 </el-button>
       </template>
     </el-dialog>
 
     <!-- 运行历史 Dialog -->
-    <el-dialog
-      v-model="runHistoryDialogVisible"
-      title="运行历史"
-      width="800px"
-    >
+    <el-dialog v-model="runHistoryDialogVisible" title="运行历史" width="800px">
       <el-table :data="runHistory" v-loading="historyLoading" max-height="500">
         <el-table-column prop="id" label="Run ID" min-width="180" />
         <el-table-column label="状态" width="100">
@@ -785,9 +752,7 @@ async function handleCreate() {
           data: { label: '结束', config: {} },
         },
       ],
-      edges: [
-        { source: 'start', target: 'end' },
-      ],
+      edges: [{ source: 'start', target: 'end' }],
     }
     creating.value = true
     try {
@@ -875,11 +840,9 @@ async function handleValidate() {
 async function handleDelete() {
   if (!currentWorkflow.value) return
   try {
-    await ElMessageBox.confirm(
-      `确认删除工作流 "${currentWorkflow.value.name}"?`,
-      '删除确认',
-      { type: 'warning' },
-    )
+    await ElMessageBox.confirm(`确认删除工作流 "${currentWorkflow.value.name}"?`, '删除确认', {
+      type: 'warning',
+    })
   } catch {
     return
   }
@@ -900,10 +863,7 @@ async function handleToggle() {
   if (!currentWorkflow.value) return
   const newEnabled = !currentWorkflow.value.enabled
   try {
-    const data = await workflowAdminApi.toggle(
-      currentWorkflow.value.id,
-      newEnabled,
-    )
+    const data = await workflowAdminApi.toggle(currentWorkflow.value.id, newEnabled)
     currentWorkflow.value.enabled = data.enabled
     ElMessage.success(`已${newEnabled ? '启用' : '禁用'}`)
   } catch (e) {

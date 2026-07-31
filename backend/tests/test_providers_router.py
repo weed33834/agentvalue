@@ -57,7 +57,11 @@ def temp_db(monkeypatch):
     key = base64.b64encode(os.urandom(32)).decode()
     monkeypatch.setattr(get_settings(), "field_encryption_key", key)
 
-    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+    from sqlalchemy.ext.asyncio import (
+        AsyncSession,
+        async_sessionmaker,
+        create_async_engine,
+    )
 
     from core import database as db_module
 
@@ -189,7 +193,9 @@ def test_update_preferred_type_enable(client):
 # ============================================================
 
 
-def _create_credential(client, provider="openai", name="test", api_key="sk-test12345678901234567"):
+def _create_credential(
+    client, provider="openai", name="test", api_key="sk-test12345678901234567"
+):
     """辅助:创建凭证并返回 credential_id"""
     resp = client.post(
         f"/api/v1/admin/model-providers/workspaces/current/providers/{provider}/credentials",
@@ -243,10 +249,7 @@ def test_list_credentials_masked(client):
     assert masked_key == expected
     assert "****" in masked_key
     # api_base 不脱敏
-    assert (
-        data[0]["credentials_masked"]["api_base"]
-        == "https://api.openai.com/v1"
-    )
+    assert data[0]["credentials_masked"]["api_base"] == "https://api.openai.com/v1"
 
 
 def test_activate_credential(client):
@@ -280,7 +283,9 @@ def test_validate_credentials_success(client, monkeypatch):
 
     from api.admin import providers as providers_module
 
-    monkeypatch.setattr(providers_module, "_validate_provider_credentials", mock_validate)
+    monkeypatch.setattr(
+        providers_module, "_validate_provider_credentials", mock_validate
+    )
 
     resp = client.post(
         "/api/v1/admin/model-providers/workspaces/current/providers/openai/credentials/validate",
@@ -299,7 +304,9 @@ def test_validate_credentials_failure_returns_200(client, monkeypatch):
 
     from api.admin import providers as providers_module
 
-    monkeypatch.setattr(providers_module, "_validate_provider_credentials", mock_validate)
+    monkeypatch.setattr(
+        providers_module, "_validate_provider_credentials", mock_validate
+    )
 
     resp = client.post(
         "/api/v1/admin/model-providers/workspaces/current/providers/openai/credentials/validate",

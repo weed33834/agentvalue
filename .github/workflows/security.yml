@@ -28,8 +28,7 @@ jobs:
         uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          config-path: .gitleaks.toml
+          GITLEAKS_CONFIG: .gitleaks.toml
 
   # ────────────────── 2. Python 依赖漏洞 ──────────────────
   pip-audit:

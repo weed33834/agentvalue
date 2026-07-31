@@ -42,9 +42,7 @@ class FallbackChain(Base):
     # 链描述（可选）
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # 降级链配置：有序候选模型列表，每个元素含 tier/provider/model/timeout/max_retries
-    chain_config: Mapped[List[Any]] = mapped_column(
-        JSON, nullable=False, default=list
-    )
+    chain_config: Mapped[List[Any]] = mapped_column(JSON, nullable=False, default=list)
     # 是否启用
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     # 优先级（数值越大越优先，同租户多条链时按 priority 降序选取）

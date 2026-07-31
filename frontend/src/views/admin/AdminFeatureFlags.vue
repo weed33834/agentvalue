@@ -74,7 +74,9 @@
                   size="small"
                   type="warning"
                   class="target-tag"
-                >{{ t }}</el-tag>
+                >
+                  {{ t }}
+                </el-tag>
               </div>
               <div v-if="row.target_user_ids && row.target_user_ids.length">
                 <span class="target-label">用户:</span>
@@ -84,13 +86,18 @@
                   size="small"
                   type="success"
                   class="target-tag"
-                >{{ u }}</el-tag>
+                >
+                  {{ u }}
+                </el-tag>
               </div>
               <span
-                v-if="(!row.target_tenant_ids || !row.target_tenant_ids.length) &&
-                  (!row.target_user_ids || !row.target_user_ids.length)"
+                v-if="
+                  (!row.target_tenant_ids || !row.target_tenant_ids.length) &&
+                  (!row.target_user_ids || !row.target_user_ids.length)
+                "
                 class="meta-empty"
-              >—</span>
+                >—</span
+              >
             </div>
           </template>
         </el-table-column>
@@ -100,24 +107,14 @@
             <el-button size="small" link type="primary" @click="openCheckDialog(row)">
               测试
             </el-button>
-            <el-button
-              size="small"
-              link
-              type="danger"
-              @click="handleDelete(row)"
-            >删除</el-button>
+            <el-button size="small" link type="danger" @click="handleDelete(row)"> 删除 </el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-card>
 
     <!-- 创建/编辑 Dialog -->
-    <el-dialog
-      v-model="formDialogVisible"
-      :title="formTitle"
-      width="640px"
-      @closed="resetForm"
-    >
+    <el-dialog v-model="formDialogVisible" :title="formTitle" width="640px" @closed="resetForm">
       <el-form
         ref="formRef"
         :model="form"
@@ -155,35 +152,21 @@
           <span class="form-hint">关闭时直接返回 False, 跳过灰度判断</span>
         </el-form-item>
         <el-form-item :label="`灰度百分比: ${form.rollout_percentage}%`">
-          <el-slider
-            v-model="form.rollout_percentage"
-            :min="0"
-            :max="100"
-            :step="1"
-            show-input
-          />
+          <el-slider v-model="form.rollout_percentage" :min="0" :max="100" :step="1" show-input />
           <span class="form-hint">hash(user_id 或 tenant_id) % 100 &lt; 百分比 → 命中</span>
         </el-form-item>
         <el-form-item label="精确受众租户 (逗号或空格分隔)">
-          <el-input
-            v-model="targetTenantInput"
-            placeholder="tenant_a, tenant_b"
-          />
+          <el-input v-model="targetTenantInput" placeholder="tenant_a, tenant_b" />
         </el-form-item>
         <el-form-item label="精确受众用户 (逗号或空格分隔)">
-          <el-input
-            v-model="targetUserInput"
-            placeholder="user_1, user_2"
-          />
+          <el-input v-model="targetUserInput" placeholder="user_1, user_2" />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="formDialogVisible = false">取消</el-button>
-        <el-button
-          type="primary"
-          :loading="formSubmitting"
-          @click="handleSubmitForm"
-        >保存</el-button>
+        <el-button type="primary" :loading="formSubmitting" @click="handleSubmitForm">
+          保存
+        </el-button>
       </template>
     </el-dialog>
 
@@ -212,21 +195,23 @@
           <el-descriptions-item label="命中原因">
             {{ reasonLabel(checkResult.reason) }}
           </el-descriptions-item>
-          <el-descriptions-item v-if="checkResult.bucket !== undefined && checkResult.bucket !== null" label="Hash 桶号">
+          <el-descriptions-item
+            v-if="checkResult.bucket !== undefined && checkResult.bucket !== null"
+            label="Hash 桶号"
+          >
             {{ checkResult.bucket }} / 100
           </el-descriptions-item>
-          <el-descriptions-item v-if="checkResult.percentage !== undefined && checkResult.percentage !== null" label="灰度百分比">
+          <el-descriptions-item
+            v-if="checkResult.percentage !== undefined && checkResult.percentage !== null"
+            label="灰度百分比"
+          >
             {{ checkResult.percentage }}%
           </el-descriptions-item>
         </el-descriptions>
       </div>
       <template #footer>
         <el-button @click="checkDialogVisible = false">关闭</el-button>
-        <el-button
-          type="primary"
-          :loading="checkLoading"
-          @click="handleRunCheck"
-        >检查</el-button>
+        <el-button type="primary" :loading="checkLoading" @click="handleRunCheck"> 检查 </el-button>
       </template>
     </el-dialog>
   </div>
@@ -405,11 +390,9 @@ async function handleToggle(row, enabled) {
 
 async function handleDelete(row) {
   try {
-    await ElMessageBox.confirm(
-      `确认删除 Feature Flag "${row.key}"? 此操作不可恢复。`,
-      '删除确认',
-      { type: 'warning' },
-    )
+    await ElMessageBox.confirm(`确认删除 Feature Flag "${row.key}"? 此操作不可恢复。`, '删除确认', {
+      type: 'warning',
+    })
   } catch {
     return
   }

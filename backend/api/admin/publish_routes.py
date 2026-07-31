@@ -61,7 +61,9 @@ class PublishConfig(BaseModel):
     width: Optional[str] = Field(default=None, description="iframe 宽度")
     height: Optional[str] = Field(default=None, description="iframe 高度")
     # API
-    rate_limit: Optional[int] = Field(default=None, description="API 速率限制 (次/分钟)")
+    rate_limit: Optional[int] = Field(
+        default=None, description="API 速率限制 (次/分钟)"
+    )
 
 
 # ============================================================
@@ -76,7 +78,9 @@ def _config_to_dict(payload: Optional[PublishConfig]) -> dict:
     return {k: v for k, v in payload.model_dump().items() if v is not None}
 
 
-async def _resolve_version_id(session: AsyncSession, agent_id: int, *, tenant_id: str = "default") -> int:
+async def _resolve_version_id(
+    session: AsyncSession, agent_id: int, *, tenant_id: str = "default"
+) -> int:
     """获取 Agent 的最新版本 ID (用于发布)
 
     优先取 published 状态的最新版本, 否则取最新版本。

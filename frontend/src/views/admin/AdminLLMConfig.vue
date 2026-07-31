@@ -1,12 +1,6 @@
 <template>
   <div class="llm-config" v-loading="loading" :aria-busy="loading">
-    <el-alert
-      v-if="!loading"
-      type="info"
-      :closable="false"
-      show-icon
-      class="mb-16"
-    >
+    <el-alert v-if="!loading" type="info" :closable="false" show-icon class="mb-16">
       <template #title>
         LLM 配置中心 —— 在此输入 API Key、base_url、模型名等，保存后立即生效并持久化到
         <code>.env.runtime</code>（gitignored），重启后自动加载。敏感字段保存后以
@@ -49,7 +43,10 @@
               <el-input v-model="form.cloud_base_url" placeholder="https://api.openai.com/v1" />
             </el-form-item>
             <el-form-item label="云端模型名 (cloud_model)">
-              <el-input v-model="form.cloud_model" placeholder="gpt-4o-mini / gpt-5.5 / deepseek-chat" />
+              <el-input
+                v-model="form.cloud_model"
+                placeholder="gpt-4o-mini / gpt-5.5 / deepseek-chat"
+              />
             </el-form-item>
           </el-card>
 
@@ -130,7 +127,12 @@
               <el-input v-model="form.embedding_model" placeholder="text-embedding-3-small" />
             </el-form-item>
             <el-form-item label="向量维度 (embedding_dimensions)">
-              <el-input-number v-model="form.embedding_dimensions" :min="64" :max="8192" :step="64" />
+              <el-input-number
+                v-model="form.embedding_dimensions"
+                :min="64"
+                :max="8192"
+                :step="64"
+              />
             </el-form-item>
           </el-card>
 
@@ -263,12 +265,7 @@
               <span class="field-hint">retrieve_context 默认返回的 top_k 文档数</span>
             </el-form-item>
             <el-form-item>
-              <el-button
-                type="primary"
-                plain
-                :loading="testingRerank"
-                @click="testRerank"
-              >
+              <el-button type="primary" plain :loading="testingRerank" @click="testRerank">
                 <el-icon><CaretRight /></el-icon>
                 测试 Rerank
               </el-button>
@@ -288,7 +285,13 @@
               </span>
             </template>
             <el-form-item label="温度 (temperature)">
-              <el-input-number v-model="form.temperature" :min="0" :max="2" :step="0.1" :precision="1" />
+              <el-input-number
+                v-model="form.temperature"
+                :min="0"
+                :max="2"
+                :step="0.1"
+                :precision="1"
+              />
             </el-form-item>
             <el-form-item label="最大 tokens (max_tokens)">
               <el-input-number v-model="form.max_tokens" :min="256" :max="32768" :step="256" />
@@ -325,9 +328,7 @@
               连接测试结果
             </span>
           </template>
-          <div v-if="!testResult" class="empty-tip">
-            点击"测试连接"查看各档位 LLM 是否可达
-          </div>
+          <div v-if="!testResult" class="empty-tip">点击"测试连接"查看各档位 LLM 是否可达</div>
           <div v-else class="test-list">
             <div v-for="tier in tierList" :key="tier.value" class="test-item">
               <span class="tier-label">{{ tier.value }}</span>
@@ -377,7 +378,10 @@
             <li>敏感字段（API Key）保存后以 <code>sk-***xyz</code> mask 回显</li>
             <li>配置变更记入<strong>审计日志</strong>（仅记字段名，不记值）</li>
             <li>持久化到 <code>.env.runtime</code>（gitignored，不进版本库）</li>
-            <li><code>jwt_secret_key</code> / <code>field_encryption_key</code> 等安全配置不开放运行时修改</li>
+            <li>
+              <code>jwt_secret_key</code> /
+              <code>field_encryption_key</code> 等安全配置不开放运行时修改
+            </li>
           </ul>
         </el-card>
       </el-col>
@@ -390,9 +394,7 @@
       width="720px"
       :destroy-on-close="false"
     >
-      <div v-if="!rerankTestResult" class="empty-tip">
-        暂无结果,请先点击"测试 Rerank"
-      </div>
+      <div v-if="!rerankTestResult" class="empty-tip">暂无结果,请先点击"测试 Rerank"</div>
       <div v-else>
         <div class="rerank-meta">
           <el-tag size="small" type="info">provider: {{ rerankTestResult.provider }}</el-tag>
@@ -476,12 +478,7 @@ const tierOptions = [
   { value: 'L3', label: 'L3 本地旗舰' },
 ]
 
-const tierList = [
-  { value: 'L0' },
-  { value: 'L1' },
-  { value: 'L2' },
-  { value: 'L3' },
-]
+const tierList = [{ value: 'L0' }, { value: 'L1' }, { value: 'L2' }, { value: 'L3' }]
 
 async function loadConfig() {
   loading.value = true
@@ -565,7 +562,10 @@ async function testRerank() {
     return
   }
   // Cohere / Jina 需 API Key; BGE 本地无需(但需后端安装 sentence-transformers)
-  if ((form.rerank_provider === 'cohere' || form.rerank_provider === 'jina') && !form.rerank_api_key) {
+  if (
+    (form.rerank_provider === 'cohere' || form.rerank_provider === 'jina') &&
+    !form.rerank_api_key
+  ) {
     ElMessage.warning('请先填写 API Key')
     return
   }
@@ -618,7 +618,9 @@ async function testRerank() {
     })
     rerankTestResult.value = result
     rerankDialogVisible.value = true
-    ElMessage.success(`rerank 测试完成, provider=${result.provider}, 返回 ${result.reranked.length} 项`)
+    ElMessage.success(
+      `rerank 测试完成, provider=${result.provider}, 返回 ${result.reranked.length} 项`,
+    )
   } catch (err) {
     ElMessage.error('Rerank 测试失败: ' + err.message)
   } finally {

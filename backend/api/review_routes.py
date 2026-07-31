@@ -132,7 +132,9 @@ class RequestReviewsPayload(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    reviewers: List[ReviewerSpec] = Field(min_length=1, max_length=_MAX_REVIEWERS_PER_REQUEST)
+    reviewers: List[ReviewerSpec] = Field(
+        min_length=1, max_length=_MAX_REVIEWERS_PER_REQUEST
+    )
 
 
 class SubmitReviewPayload(BaseModel):
@@ -148,7 +150,9 @@ class SubmitReviewPayload(BaseModel):
 # ---------------- Helpers ----------------
 
 
-def _serialize_review(review: ReviewCycle, include_scores: bool = True) -> Dict[str, Any]:
+def _serialize_review(
+    review: ReviewCycle, include_scores: bool = True
+) -> Dict[str, Any]:
     """序列化 ReviewCycle 为 dict
 
     include_scores: False 时隐藏 scores / feedback_text (用于未提交时查看状态,
@@ -165,9 +169,9 @@ def _serialize_review(review: ReviewCycle, include_scores: bool = True) -> Dict[
         "requested_by": review.requested_by,
         "created_at": review.created_at.isoformat() if review.created_at else None,
         "updated_at": review.updated_at.isoformat() if review.updated_at else None,
-        "submitted_at": review.submitted_at.isoformat()
-        if review.submitted_at
-        else None,
+        "submitted_at": (
+            review.submitted_at.isoformat() if review.submitted_at else None
+        ),
     }
     if include_scores:
         data["scores"] = review.scores or {}
@@ -233,9 +237,7 @@ async def request_reviews(
             ReviewCycle.reviewer_id == spec.reviewer_id,
             ReviewCycle.tenant_id == tenant_id,
         )
-        existing = (
-            await session.execute(existing_stmt)
-        ).scalar_one_or_none()
+        existing = (await session.execute(existing_stmt)).scalar_one_or_none()
         if existing:
             skipped.append(
                 {
@@ -356,12 +358,8 @@ async def list_reviews(
     return {
         "evaluation_id": evaluation_id,
         "total": len(rows),
-        "submitted_count": sum(
-            1 for r in rows if r.status == REVIEW_STATUS_SUBMITTED
-        ),
-        "pending_count": sum(
-            1 for r in rows if r.status == REVIEW_STATUS_PENDING
-        ),
+        "submitted_count": sum(1 for r in rows if r.status == REVIEW_STATUS_SUBMITTED),
+        "pending_count": sum(1 for r in rows if r.status == REVIEW_STATUS_PENDING),
         "summary": _aggregate_reviews(
             [r for r in rows if r.status == REVIEW_STATUS_SUBMITTED]
         ),
@@ -394,9 +392,7 @@ def _aggregate_reviews(reviews: List[ReviewCycle]) -> Dict[str, Any]:
         if dim_count[dim] > 0
     }
     overall_avg = (
-        round(sum(overall_scores) / len(overall_scores), 2)
-        if overall_scores
-        else None
+        round(sum(overall_scores) / len(overall_scores), 2) if overall_scores else None
     )
     return {
         "dimension_avg": dimension_avg,
@@ -431,7 +427,9 @@ async def submit_review(
     )
     review = (await session.execute(stmt)).scalar_one_or_none()
     if review is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="环评邀请不存在")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="环评邀请不存在"
+        )
 
     if review.reviewer_id != actor_id:
         raise HTTPException(
@@ -502,7 +500,9 @@ async def get_review_state(
     )
     review = (await session.execute(stmt)).scalar_one_or_none()
     if review is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="环评邀请不存在")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="环评邀请不存在"
+        )
 
     # 评估人本人: 完整可见
     if review.reviewer_id == actor_id:

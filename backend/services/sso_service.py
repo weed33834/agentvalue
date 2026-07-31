@@ -150,9 +150,7 @@ class SSOService:
             )
         ).scalar_one_or_none()
 
-    async def list_configs(
-        self, *, tenant_id: str = "default"
-    ) -> List[SSOConfig]:
+    async def list_configs(self, *, tenant_id: str = "default") -> List[SSOConfig]:
         """列出租户所有 SSO 配置"""
         result = await self.session.execute(
             select(SSOConfig)
@@ -376,7 +374,9 @@ class SSOService:
                 token_resp.raise_for_status()
                 token_json = token_resp.json()
         except httpx.HTTPError as e:
-            logger.warning("OAuth2 token 交换失败 provider=%s: %s", sso_config.provider_name, e)
+            logger.warning(
+                "OAuth2 token 交换失败 provider=%s: %s", sso_config.provider_name, e
+            )
             raise ValueError(f"OAuth2 token 交换失败: {e}")
 
         access_token = token_json.get("access_token")
@@ -397,7 +397,9 @@ class SSOService:
                 userinfo_resp.raise_for_status()
                 user_info = userinfo_resp.json()
         except httpx.HTTPError as e:
-            logger.warning("OAuth2 userinfo 获取失败 provider=%s: %s", sso_config.provider_name, e)
+            logger.warning(
+                "OAuth2 userinfo 获取失败 provider=%s: %s", sso_config.provider_name, e
+            )
             raise ValueError(f"OAuth2 用户信息获取失败: {e}")
 
         # 属性映射: 外部字段 → 内部字段
@@ -513,9 +515,7 @@ class SSOService:
         try:
             # 2. 搜索用户 DN (H2: 转义 LDAP 特殊字符防过滤器注入)
             escaped_username = self._escape_ldap_filter(username)
-            search_filter = search_filter_tmpl.replace(
-                "{username}", escaped_username
-            )
+            search_filter = search_filter_tmpl.replace("{username}", escaped_username)
             conn.search(
                 search_base=search_base,
                 search_filter=search_filter,
@@ -547,7 +547,9 @@ class SSOService:
         # 从 LDAP entry 提取属性
         for attr_name in user_entry.entry_attributes:
             val = user_entry[attr_name].value
-            user_info[attr_name] = val if not isinstance(val, list) else (val[0] if val else None)
+            user_info[attr_name] = (
+                val if not isinstance(val, list) else (val[0] if val else None)
+            )
 
         external_id = str(user_dn)
 
@@ -608,21 +610,24 @@ class SSOService:
 
         # 查找已有映射
         existing_session = (
-            await self.session.execute(
-                select(SSOSession).where(
-                    SSOSession.tenant_id == tenant_id,
-                    SSOSession.provider_name == provider_name,
-                    SSOSession.external_user_id == external_id,
+            (
+                await self.session.execute(
+                    select(SSOSession).where(
+                        SSOSession.tenant_id == tenant_id,
+                        SSOSession.provider_name == provider_name,
+                        SSOSession.external_user_id == external_id,
+                    )
                 )
             )
-        ).scalars().first()
+            .scalars()
+            .first()
+        )
 
         # 映射字段
         name_key = attr_mapping.get("name", "name")
         email_key = attr_mapping.get("email", "email")
         internal_user_id = str(
-            user_info.get(attr_mapping.get("user_id", "user_id"))
-            or external_id
+            user_info.get(attr_mapping.get("user_id", "user_id")) or external_id
         )
         display_name = str(
             user_info.get(name_key)
@@ -632,7 +637,9 @@ class SSOService:
             or user_info.get("preferred_username")
             or external_id
         )
-        email = user_info.get(email_key) or user_info.get("email") or user_info.get("mail")
+        email = (
+            user_info.get(email_key) or user_info.get("email") or user_info.get("mail")
+        )
 
         if existing_session is not None:
             # 已有映射, 更新内部用户信息
@@ -685,9 +692,7 @@ class SSOService:
     # ===================== 内部方法 =====================
 
     @classmethod
-    def _save_state(
-        cls, state: str, tenant_id: str, provider_name: str
-    ) -> None:
+    def _save_state(cls, state: str, tenant_id: str, provider_name: str) -> None:
         """H1: 存储 OAuth2 state 到服务端, 关联租户 + provider + 过期时间
 
         Args:
@@ -695,7 +700,9 @@ class SSOService:
             tenant_id: 租户 ID。
             provider_name: SSO 提供商名称。
         """
-        expires_at = datetime.now(timezone.utc) + timedelta(seconds=STATE_EXPIRE_SECONDS)
+        expires_at = datetime.now(timezone.utc) + timedelta(
+            seconds=STATE_EXPIRE_SECONDS
+        )
         cls._state_store[state] = {
             "tenant_id": tenant_id,
             "provider_name": provider_name,
@@ -721,9 +728,7 @@ class SSOService:
         # 清理过期 state (惰性清理)
         now = datetime.now(timezone.utc)
         expired_keys = [
-            k
-            for k, v in cls._state_store.items()
-            if v.get("expires_at", now) < now
+            k for k, v in cls._state_store.items() if v.get("expires_at", now) < now
         ]
         for k in expired_keys:
             cls._state_store.pop(k, None)
@@ -766,7 +771,14 @@ class SSOService:
             raise ValueError("config 不能为空且必须是 dict")
 
         required: Dict[str, List[str]] = {
-            "oauth2": ["client_id", "client_secret", "authorize_url", "token_url", "userinfo_url", "redirect_uri"],
+            "oauth2": [
+                "client_id",
+                "client_secret",
+                "authorize_url",
+                "token_url",
+                "userinfo_url",
+                "redirect_uri",
+            ],
             "saml": ["entity_id", "sso_url", "certificate"],
             "ldap": ["server_url", "search_base"],
         }
@@ -804,7 +816,11 @@ class SSOService:
             "tenant_id": c.tenant_id,
             "provider_name": c.provider_name,
             "provider_type": c.provider_type,
-            "config": SSOService._mask_config(config_value) if mask_sensitive else config_value,
+            "config": (
+                SSOService._mask_config(config_value)
+                if mask_sensitive
+                else config_value
+            ),
             "enabled": c.enabled,
             "created_at": c.created_at.isoformat() if c.created_at else None,
             "updated_at": c.updated_at.isoformat() if c.updated_at else None,

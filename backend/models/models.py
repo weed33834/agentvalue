@@ -534,9 +534,7 @@ class PromptEvalRun(Base):
         nullable=False,
     )
     dataset_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    status: Mapped[str] = mapped_column(
-        String(16), nullable=False, default="pending"
-    )
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
     # 评估指标：latency_p50 / latency_p95 / cost / score 等
     metrics: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     # 关联的 Langfuse trace_id 列表
@@ -565,9 +563,7 @@ class WebhookEvent(Base):
     event_type: Mapped[str] = mapped_column(String(64), nullable=False)
     payload: Mapped[str] = mapped_column(Text, nullable=False)  # JSON 字符串
     # pending / processed / failed
-    status: Mapped[str] = mapped_column(
-        String(16), nullable=False, default="pending"
-    )
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     tenant_id: Mapped[str] = mapped_column(
         String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
@@ -622,9 +618,7 @@ class ScheduledTask(Base):
         DateTime(timezone=True), default=now_utc, onupdate=now_utc
     )
 
-    __table_args__ = (
-        Index("ix_scheduled_task_tenant_type", "tenant_id", "task_type"),
-    )
+    __table_args__ = (Index("ix_scheduled_task_tenant_type", "tenant_id", "task_type"),)
 
 
 class ScheduledTaskRun(Base):
@@ -636,9 +630,7 @@ class ScheduledTaskRun(Base):
     __tablename__ = "scheduled_task_runs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    task_id: Mapped[str] = mapped_column(
-        String(64), index=True, nullable=False
-    )
+    task_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False)  # success/failed
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=now_utc
@@ -656,9 +648,7 @@ class ScheduledTaskRun(Base):
         String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
     )
 
-    __table_args__ = (
-        Index("ix_task_run_task_started", "task_id", "started_at"),
-    )
+    __table_args__ = (Index("ix_task_run_task_started", "task_id", "started_at"),)
 
 
 # ====== 通知 ======
@@ -681,17 +671,13 @@ class Notification(Base):
     )
     user_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
     # 通知大类:evaluation / approval / system / webhook
-    type: Mapped[str] = mapped_column(
-        String(32), nullable=False, default="system"
-    )
+    type: Mapped[str] = mapped_column(String(32), nullable=False, default="system")
     title: Mapped[str] = mapped_column(String(256), nullable=False)
     content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # 点击通知跳转的 URL
     link: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     # 兼容旧字段:细分类别 approval/appeal/system/reminder
-    category: Mapped[str] = mapped_column(
-        String(32), nullable=False, default="system"
-    )
+    category: Mapped[str] = mapped_column(String(32), nullable=False, default="system")
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     read_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
@@ -754,9 +740,7 @@ class ApiKey(Base):
         DateTime(timezone=True), nullable=True
     )
 
-    __table_args__ = (
-        Index("ix_apikey_tenant_active", "tenant_id", "is_active"),
-    )
+    __table_args__ = (Index("ix_apikey_tenant_active", "tenant_id", "is_active"),)
 
 
 # ====== 混合检索配置（向量 + BM25 全文检索） ======
@@ -778,9 +762,7 @@ class SearchConfig(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     # 配置键名，同一租户内唯一
-    config_key: Mapped[str] = mapped_column(
-        String(64), nullable=False, index=True
-    )
+    config_key: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     # 配置值（字符串存储，使用时按 config_key 约定的类型转换）
     config_value: Mapped[str] = mapped_column(Text, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -795,5 +777,7 @@ class SearchConfig(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("tenant_id", "config_key", name="uix_tenant_search_config_key"),
+        UniqueConstraint(
+            "tenant_id", "config_key", name="uix_tenant_search_config_key"
+        ),
     )

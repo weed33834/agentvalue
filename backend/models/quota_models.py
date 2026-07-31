@@ -87,9 +87,7 @@ class TenantQuota(Base):
         CheckConstraint(
             "current_requests_today >= 0", name="ck_quota_current_requests"
         ),
-        CheckConstraint(
-            "current_tokens_today >= 0", name="ck_quota_current_tokens"
-        ),
+        CheckConstraint("current_tokens_today >= 0", name="ck_quota_current_tokens"),
     )
 
 
@@ -107,9 +105,7 @@ class QuotaUsageLog(Base):
         String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
     )
     # 使用日期（UTC 日期，格式 YYYY-MM-DD，仅用于按天聚合）
-    usage_date: Mapped[str] = mapped_column(
-        String(10), nullable=False, index=True
-    )
+    usage_date: Mapped[str] = mapped_column(String(10), nullable=False, index=True)
     # 当日请求次数
     request_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     # 当日 token 用量
@@ -149,13 +145,9 @@ class BudgetAlert(Base):
     # 预算上限（美元）
     budget_limit: Mapped[float] = mapped_column(Float, nullable=False)
     # 当前已使用预算（美元）
-    current_usage: Mapped[float] = mapped_column(
-        Float, nullable=False, default=0.0
-    )
+    current_usage: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     # 告警阈值（0-1，默认 0.8，即使用 80% 时触发告警）
-    alert_threshold: Mapped[float] = mapped_column(
-        Float, nullable=False, default=0.8
-    )
+    alert_threshold: Mapped[float] = mapped_column(Float, nullable=False, default=0.8)
     # 是否已触发告警（避免重复通知，周期重置时清零）
     alerted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # 预算周期开始时间
@@ -212,9 +204,7 @@ class BillingRecord(Base):
         DateTime(timezone=True), nullable=False, default=now_utc
     )
     # 账单周期（如 2026-07 表示 2026 年 7 月账单）
-    invoice_period: Mapped[str] = mapped_column(
-        String(16), nullable=False, index=True
-    )
+    invoice_period: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
 
     __table_args__ = (
         Index("ix_billing_tenant_billed", "tenant_id", "billed_at"),

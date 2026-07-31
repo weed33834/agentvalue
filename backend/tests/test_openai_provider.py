@@ -227,6 +227,3 @@ async def test_vision_completion_passes_url_through(monkeypatch):
     _, kwargs = mock_create.call_args
     image_part = kwargs["messages"][0]["content"][1]
     assert image_part["image_url"]["url"] == "https://example.com/x.png"
-
-
-

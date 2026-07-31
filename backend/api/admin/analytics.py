@@ -209,7 +209,9 @@ def _step_for_granularity(granularity: str) -> str:
 async def token_usage(
     start_date: Optional[str] = Query(None, description="起始日期 ISO,默认 7 天前"),
     end_date: Optional[str] = Query(None, description="结束日期 ISO,默认今天"),
-    granularity: str = Query("day", pattern="^(day|hour)$", description="粒度: day / hour"),
+    granularity: str = Query(
+        "day", pattern="^(day|hour)$", description="粒度: day / hour"
+    ),
     tenant_id: Optional[str] = Query(None, description="按租户过滤"),
     model: Optional[str] = Query(None, description="按模型过滤"),
     tier: Optional[str] = Query(None, description="按档位过滤(L0/L1/L2/L3)"),
@@ -246,7 +248,7 @@ async def token_usage(
     # 用 increase 取窗口内增量,避免 Counter 累积值无法看趋势
     promql_prompt = f'sum(increase({selector}{{direction="prompt"}}[{window}]))'
     promql_completion = f'sum(increase({selector}{{direction="completion"}}[{window}]))'
-    promql_total = f'sum(increase({selector}[{window}]))'
+    promql_total = f"sum(increase({selector}[{window}]))"
 
     prompt_points, completion_points, total_points = await _gather(
         _query_range(promql_prompt, start, end, step),
@@ -319,21 +321,21 @@ async def cost(
 
     # 按 model × direction 二维查询(用于 by_model 与总成本)
     promql_prompt_by_model = (
-        f'sum by (model) (increase(agentvalue_llm_token_usage_total'
+        f"sum by (model) (increase(agentvalue_llm_token_usage_total"
         f'{{{tenant_filter}direction="prompt"}}[{window}]))'
     )
     promql_completion_by_model = (
-        f'sum by (model) (increase(agentvalue_llm_token_usage_total'
+        f"sum by (model) (increase(agentvalue_llm_token_usage_total"
         f'{{{tenant_filter}direction="completion"}}[{window}]))'
     )
 
     # 按 tenant × direction × model 三维查询(用于 by_tenant 精确成本)
     promql_prompt_by_tenant_model = (
-        f'sum by (tenant_id, model) (increase(agentvalue_llm_token_usage_total'
+        f"sum by (tenant_id, model) (increase(agentvalue_llm_token_usage_total"
         f'{{direction="prompt"}}[{window}]))'
     )
     promql_completion_by_tenant_model = (
-        f'sum by (tenant_id, model) (increase(agentvalue_llm_token_usage_total'
+        f"sum by (tenant_id, model) (increase(agentvalue_llm_token_usage_total"
         f'{{direction="completion"}}[{window}]))'
     )
 
@@ -350,7 +352,9 @@ async def cost(
     )
 
     # 聚合 by_model
-    prompt_model_map = {p["labels"].get("model", ""): p["value"] for p in prompt_by_model}
+    prompt_model_map = {
+        p["labels"].get("model", ""): p["value"] for p in prompt_by_model
+    }
     completion_model_map = {
         p["labels"].get("model", ""): p["value"] for p in completion_by_model
     }

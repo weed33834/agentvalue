@@ -56,6 +56,7 @@ class AppState:
         )
         # AgentToolkit: 封装 memory + kb, 供 ToolRegistry 加载 toolkit 依赖工具
         from agent.tools import AgentToolkit
+
         self.toolkit = AgentToolkit(memory=self.memory_store, kb=self.company_kb)
         # P2-2: 缓存 rerank provider 实例 (类似 model_router 模式)
         # BGE 依赖缺失或凭证缺失时工厂内部降级 Dummy, 不抛异常

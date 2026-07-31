@@ -119,7 +119,9 @@ class OllamaProvider(BaseProvider):
             "messages": [{"role": m.role, "content": m.content} for m in messages],
             "stream": True,
             "options": {
-                "temperature": temperature if temperature is not None else self.config.temperature,
+                "temperature": (
+                    temperature if temperature is not None else self.config.temperature
+                ),
                 "num_predict": max_tokens or self.config.max_tokens,
             },
         }

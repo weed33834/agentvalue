@@ -112,9 +112,7 @@ class MultiAgentRunRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    task: str = Field(
-        ..., min_length=1, max_length=2000, description="任务描述"
-    )
+    task: str = Field(..., min_length=1, max_length=2000, description="任务描述")
     context: Dict[str, Any] = Field(
         default_factory=dict,
         description="共享上下文, 如 {employee_id, period}",
@@ -340,7 +338,9 @@ async def get_multi_agent_state(
     try:
         state_obj = await graph.aget_state(config)
     except Exception:
-        logger.debug("查询 multi-agent state 失败 thread_id=%s", thread_id, exc_info=True)
+        logger.debug(
+            "查询 multi-agent state 失败 thread_id=%s", thread_id, exc_info=True
+        )
 
     next_nodes: List[str] = []
     values: Dict[str, Any] = {}

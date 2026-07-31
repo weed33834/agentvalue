@@ -114,11 +114,16 @@ class AgentVersionService:
         self.session.add(version)
         await self.session.flush()
         logger.info(
-            "创建 Agent 版本 agent_id=%s version=%s tenant=%s", agent_id, next_version, tenant_id
+            "创建 Agent 版本 agent_id=%s version=%s tenant=%s",
+            agent_id,
+            next_version,
+            tenant_id,
         )
         return version
 
-    async def list_versions(self, agent_id: int, *, tenant_id: str = "default") -> List[Dict[str, Any]]:
+    async def list_versions(
+        self, agent_id: int, *, tenant_id: str = "default"
+    ) -> List[Dict[str, Any]]:
         """列出指定 Agent 的所有版本 (按版本号倒序)
 
         Args:
@@ -139,7 +144,9 @@ class AgentVersionService:
         versions = result.scalars().all()
         return [self._version_to_dict(v) for v in versions]
 
-    async def get_version(self, version_id: int, *, tenant_id: str = "default") -> Optional[Dict[str, Any]]:
+    async def get_version(
+        self, version_id: int, *, tenant_id: str = "default"
+    ) -> Optional[Dict[str, Any]]:
         """获取版本详情
 
         Args:
@@ -161,7 +168,9 @@ class AgentVersionService:
             return None
         return self._version_to_dict(version)
 
-    async def get_version_entity(self, version_id: int, *, tenant_id: str = "default") -> Optional[AgentVersion]:
+    async def get_version_entity(
+        self, version_id: int, *, tenant_id: str = "default"
+    ) -> Optional[AgentVersion]:
         """获取版本 ORM 实体 (内部使用)"""
         return (
             await self.session.execute(
@@ -252,7 +261,10 @@ class AgentVersionService:
             created_targets.append(self._target_to_dict(target))
 
         logger.info(
-            "发布 Agent 版本 version_id=%s targets=%s tenant=%s", version_id, targets, tenant_id
+            "发布 Agent 版本 version_id=%s targets=%s tenant=%s",
+            version_id,
+            targets,
+            tenant_id,
         )
         return {
             "version": self._version_to_dict(version),
@@ -386,7 +398,9 @@ class AgentVersionService:
             "has_changes": bool(diff),
         }
 
-    async def archive_version(self, version_id: int, *, tenant_id: str = "default") -> AgentVersion:
+    async def archive_version(
+        self, version_id: int, *, tenant_id: str = "default"
+    ) -> AgentVersion:
         """归档版本
 
         将版本状态置为 archived, 归档后不可再发布。
@@ -483,9 +497,7 @@ class AgentVersionService:
             "changelog": v.changelog,
             "created_by": v.created_by,
             "created_at": v.created_at.isoformat() if v.created_at else None,
-            "published_at": v.published_at.isoformat()
-            if v.published_at
-            else None,
+            "published_at": v.published_at.isoformat() if v.published_at else None,
         }
 
     @staticmethod
@@ -498,8 +510,6 @@ class AgentVersionService:
             "channel": t.channel,
             "config": t.config,
             "status": t.status,
-            "published_at": t.published_at.isoformat()
-            if t.published_at
-            else None,
+            "published_at": t.published_at.isoformat() if t.published_at else None,
             "error_message": t.error_message,
         }

@@ -87,7 +87,9 @@ class LDAPLoginRequest(BaseModel):
 # ============================================================
 
 
-@config_router.post("/configs", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
+@config_router.post(
+    "/configs", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED
+)
 async def create_sso_config(
     payload: SSOConfigCreate,
     session: AsyncSession = Depends(get_db),
@@ -104,9 +106,7 @@ async def create_sso_config(
             tenant_id=tenant_id,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     await session.commit()
     return SSOService._config_to_dict(sso_config)
 
@@ -161,9 +161,7 @@ async def update_sso_config(
             tenant_id=tenant_id,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     await session.commit()
     return SSOService._config_to_dict(sso_config)
 
@@ -179,9 +177,7 @@ async def delete_sso_config(
     try:
         deleted = await service.delete_config(config_id, tenant_id=tenant_id)
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -215,9 +211,7 @@ async def get_authorization_url(
             config_id, tenant_id=tenant_id, state=state
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @auth_router.post("/configs/{config_id}/callback", response_model=Dict[str, Any])
@@ -247,9 +241,7 @@ async def oauth2_callback(
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail=err_msg
             )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=err_msg
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err_msg)
     await session.commit()
     return result
 
@@ -275,9 +267,7 @@ async def ldap_login(
         )
     except ValueError as e:
         # ldap3 未安装 / 认证失败 / 配置错误
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
     await session.commit()
     return result
 
