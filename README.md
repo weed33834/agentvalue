@@ -734,3 +734,15 @@ This project is licensed under the **Custom Non-Commercial License (CNCL) v1.0**
 |---|---|---|
 | GitCode (Primary) | https://gitcode.com/badhope/agentvalue | Issues & PRs |
 | GitHub (Mirror) | https://github.com/weed33834/agentvalue | International mirror |
+
+## Mirrors / 镜像
+
+This repository is primarily hosted on **GitHub** and mirrored to GitCode and Gitee for accessibility.
+
+| Platform | URL |
+|----------|-----|
+| **GitHub** (primary) | https://github.com/weed33834/agentvalue |
+| GitCode (mirror) | https://gitcode.com/badhope/agentvalue |
+| Gitee (mirror) | https://gitee.com/badhope/agentvalue |
+
+> Content is synchronized manually across platforms. GitHub is the canonical source.
