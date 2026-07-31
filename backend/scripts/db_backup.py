@@ -177,28 +177,18 @@ def run_backup(retain_days: int = DEFAULT_RETAIN_DAYS) -> Path | None:
 def schedule_backup(scheduler, hour: int = 2, minute: int = 0):
     """通过 APScheduler 注册定时备份任务
 
-    默认每天凌晨 2:00 执行备份。
+    默认每天凌晨 2:00 执行备份。幂等：服务重启后重复注册会更新既有任务定义。
     """
-    import asyncio
+    from core.scheduler import register_system_task
 
-    async def _register():
-        await scheduler.add_task(
-            name="数据库自动备份",
-            func=run_backup,
-            cron_expression=f"{minute} {hour} * * *",
-            task_type="system",
-            description="每天定时备份数据库并清理过期备份(默认保留30天)",
-            task_id="db_backup",
-        )
-
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            asyncio.ensure_future(_register())
-        else:
-            loop.run_until_complete(_register())
-    except Exception as e:
-        logger.warning("注册数据库备份定时任务失败: %s", e)
+    register_system_task(
+        scheduler,
+        name="数据库自动备份",
+        func=run_backup,
+        cron_expression=f"{minute} {hour} * * *",
+        description="每天定时备份数据库并清理过期备份(默认保留30天)",
+        task_id="db_backup",
+    )
 
 
 def schedule_restore_test(scheduler, day_of_week: str = "sun", hour: int = 4, minute: int = 0):
@@ -213,7 +203,7 @@ def schedule_restore_test(scheduler, day_of_week: str = "sun", hour: int = 4, mi
         hour: 执行小时,默认 4
         minute: 执行分钟,默认 0
     """
-    import asyncio
+    from core.scheduler import register_system_task
 
     async def _run_restore_verification():
         """执行恢复验证(异步包装)"""
@@ -234,24 +224,14 @@ def schedule_restore_test(scheduler, day_of_week: str = "sun", hour: int = 4, mi
         except Exception as e:
             logger.error("备份恢复验证异常: %s", e, exc_info=True)
 
-    async def _register():
-        await scheduler.add_task(
-            name="数据库备份恢复验证",
-            func=_run_restore_verification,
-            cron_expression=f"{minute} {hour} * * {day_of_week}",
-            task_type="system",
-            description="每周定期验证备份文件可完整恢复(staging 环境)",
-            task_id="db_restore_verify",
-        )
-
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            asyncio.ensure_future(_register())
-        else:
-            loop.run_until_complete(_register())
-    except Exception as e:
-        logger.warning("注册备份恢复验证定时任务失败: %s", e)
+    register_system_task(
+        scheduler,
+        name="数据库备份恢复验证",
+        func=_run_restore_verification,
+        cron_expression=f"{minute} {hour} * * {day_of_week}",
+        description="每周定期验证备份文件可完整恢复(staging 环境)",
+        task_id="db_restore_verify",
+    )
 
 
 def main():

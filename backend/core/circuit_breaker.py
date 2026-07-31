@@ -294,6 +294,21 @@ class CircuitBreakerRegistry:
         self._redis = redis_client
         logger.info("熔断器注册表已切换到 Redis 分布式模式")
 
+    def reset(self) -> None:
+        """清空全部熔断器状态(所有 key 回到未创建/CLOSED)。
+
+        两类使用场景:
+        1. 测试隔离: 本注册表是**全局单例**,若上一个用例把某档位打到 OPEN,
+           下一个用例的降级顺序就会静默缺档,产生顺序依赖的偶发失败
+           (tests/conftest.py 的 clear_global_state 每个用例调用一次)。
+        2. 运维手动复位: 上游恢复后无需干等 recovery_timeout,可立即放行流量。
+
+        注意: Redis 模式下仅清本进程缓存的包装对象,不删远端 key
+        (远端状态由多副本共享,不应被单副本单方面清除)。
+        """
+        self._circuits.clear()
+        self._redis_circuits.clear()
+
 
 # 全局单例
 _global_registry: Optional[CircuitBreakerRegistry] = None

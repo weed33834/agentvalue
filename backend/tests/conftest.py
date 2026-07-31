@@ -61,6 +61,16 @@ def test_settings(monkeypatch):
     # 生产部署必须保持 ip/token 模式,这里仅测试环境放开
     monkeypatch.setattr(settings, "metrics_auth_mode", "none")
 
+    # 行为开关归零：get_settings() 的缓存实例在 monkeypatch 生效前已从本地 .env
+    # 读入过值（本 fixture 不做 cache_clear，见上方说明），若开发机 .env 里
+    # DEBUG=true / LLM_MOCK_MODE=true，会让依赖"默认关闭"的用例（如
+    # test_compliance.py 的 CC7.1 调试模式关闭）在本地失败、CI 通过，
+    # 形成难以复现的环境依赖型脆弱测试。这里统一钉死为关闭态，
+    # 需要开启的用例应显式 monkeypatch 或传参构造 Settings(...)。
+    monkeypatch.setattr(settings, "debug", False)
+    monkeypatch.setattr(settings, "llm_mock_mode", False)
+    monkeypatch.setattr(settings, "agentvalue_env", "development")
+
     tmp_dir = tempfile.mkdtemp(prefix="chroma_test_")
     monkeypatch.setattr(settings, "vector_store_dir", tmp_dir)
 
@@ -85,6 +95,11 @@ def clear_global_state():
     # (sync fixture 不能 await,直接操作底层 store)
     if hasattr(token_blacklist, "_store"):
         token_blacklist._store.clear()
+    # 熔断器注册表是全局单例:上一个用例把某档位打到 OPEN 会让后续用例的
+    # 降级顺序静默缺档(如 test_model_router_extra 的降级顺序断言偶发失败)。
+    from core.circuit_breaker import get_global_registry
+
+    get_global_registry().reset()
     yield
     routes_module.job_store.clear()
     if hasattr(routes_module, "thread_store"):

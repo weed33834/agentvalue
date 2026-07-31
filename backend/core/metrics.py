@@ -452,8 +452,42 @@ def setup_metrics(app: FastAPI) -> None:
     Prometheus 抓取配置需对应:
     - ip 模式: 直接抓(Prometheus 通常部署在集群内网)
     - token 模式: 抓取 header 加 `Authorization: Bearer <token>`
+
+    路径说明: Starlette 的 Mount 正则为 `^/metrics(?P<path>/.*)$`,不带斜杠的
+    `/metrics` 无法匹配,会被 redirect_slashes 以 307 重定向到 `/metrics/`。
+    部分抓取端(以及不跟随重定向的 ServiceMonitor 配置)会因此记为抓取失败。
+    这里额外注册一条精确路由,使 `/metrics` 与 `/metrics/` 都直接返回 200。
+
+    注意: Starlette 的 Route 仅在 endpoint 为「函数」时才按 request→response
+    语义包装;传入可调用对象(实例)则原样当作 ASGI app。故用 _ASGIEndpoint
+    包一层,避免闭包函数被误判。
     """
+    from starlette.routing import Route
+
     from core.config import get_settings
 
     settings = get_settings()
-    app.mount("/metrics", _make_authed_metrics_asgi(settings))
+    metrics_asgi = _make_authed_metrics_asgi(settings)
+
+    class _ASGIEndpoint:
+        """把裸 ASGI app 适配成 Starlette Route 可接受的 endpoint 对象。
+
+        额外暴露 __name__ / __module__：slowapi 的限流中间件会以
+        f"{handler.__module__}.{handler.__name__}" 计算路由名做豁免判断，
+        缺少这两个属性会在请求期抛 AttributeError 导致 500。
+        """
+
+        __name__ = "prometheus_metrics"
+        __module__ = "core.metrics"
+
+        def __init__(self, asgi_app):
+            self._app = asgi_app
+
+        async def __call__(self, scope, receive, send):
+            await self._app(scope, receive, send)
+
+    # 精确路径优先,避免落入 Mount 的 307 重定向
+    app.router.routes.insert(
+        0, Route("/metrics", endpoint=_ASGIEndpoint(metrics_asgi), methods=["GET"])
+    )
+    app.mount("/metrics", metrics_asgi)

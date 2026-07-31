@@ -253,6 +253,13 @@ class Settings(BaseSettings):
     # retrieve_context 默认 top_k(rerank 返回的文档数)
     rerank_top_k: int = 5
 
+    # ------------------------------------------------------------- Mock LLM
+    # 开启后 ModelRouter 全档位返回确定性 MockProvider，无需任何模型凭证即可跑通
+    # 「创建评估 → LangGraph → 落库 → 双视图读取」全链路。
+    # 适用场景：售前 POC 演示、CI/E2E 流水线、内网隔离环境的流程验证。
+    # 生产环境强制禁止（见 _enforce_prod_demo_mode_guard），避免假数据被当作真实绩效结论。
+    llm_mock_mode: bool = False
+
     @model_validator(mode="after")
     def _enforce_prod_demo_mode_guard(self) -> "Settings":
         """
@@ -270,6 +277,10 @@ class Settings(BaseSettings):
         """
         if self.agentvalue_env == "production" and self.auth_demo_mode:
             raise ValueError("生产环境禁止开启 AUTH_DEMO_MODE(auth_demo_mode)")
+        if self.agentvalue_env == "production" and self.llm_mock_mode:
+            # 与 auth_demo_mode 同级的灾难级风险：Mock 结果若流入生产，
+            # 会让虚构的评分与风险标记被当成真实绩效依据。
+            raise ValueError("生产环境禁止开启 LLM_MOCK_MODE(llm_mock_mode)")
         return self
 
 

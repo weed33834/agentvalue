@@ -409,10 +409,29 @@ async def create_evaluation(
     employee_id = payload.employee_id
     period = payload.period
     raw_inputs = [inp.model_dump() for inp in payload.raw_inputs]
+    current_user_id = await get_current_user_id(request)
 
-    # employee 角色只能为自己创建评估
+    # employee 角色只能为自己创建评估。
+    # 此处显式 403 而非静默改写 employee_id：静默改写属于「混淆代理」反模式——
+    # 调用方请求评估 A 却拿到 200 且实际评估了 B，错误被掩盖且会产生错误记录。
+    if role == Role.EMPLOYEE and employee_id and employee_id != current_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="员工只能为自己发起评估",
+        )
     if role == Role.EMPLOYEE:
-        employee_id = await get_current_user_id(request)
+        employee_id = current_user_id
+
+    # H7 对齐：主管仅能为直属下属发起评估。
+    # 读接口（get_evaluation / get_evaluation_job）早已做此校验，写接口此前遗漏，
+    # 导致跨团队主管可为他人创建评估记录 —— 这里补齐，保证读写权限模型一致。
+    await assert_manager_team_access(
+        eval_service,
+        role,
+        employee_id,
+        current_user_id,
+        detail="无权为非直属下属发起评估",
+    )
 
     # 确保用户存在
     await eval_service.ensure_user_exists(employee_id, role="employee")
@@ -498,7 +517,7 @@ async def create_evaluation(
 
     # 后台任务脱离请求上下文，这里先捕获当前租户/触发者，避免 contextvar 丢失
     tenant_id = get_current_tenant()
-    actor_id = await get_current_user_id(request)
+    actor_id = current_user_id
     background_tasks.add_task(
         _run_evaluation_job,
         job_id,
@@ -538,7 +557,38 @@ async def get_evaluation_job(
         await assert_manager_team_access(
             eval_service, role, job.get("employee_id", ""), current_user_id
         )
-    return job
+
+    # 安全修复：任务完成后 job 内嵌了完整评估结果。此前直接 return job，
+    # 使员工轮询自己的任务即可读到本该对其隐藏的 manager_view（严厉评价、
+    # 隐藏问题、ROI 分析），绕过了产品核心的「双视图隔离」原则。
+    # 这里复用与 GET /evaluations/{id} 相同的 can_access 字段级过滤，保证
+    # 同一份数据无论从哪个入口读出，可见性都一致。
+    return _filter_job_payload(job, role)
+
+
+def _filter_job_payload(job: Dict[str, Any], role: Role) -> Dict[str, Any]:
+    """按角色过滤任务载荷中内嵌的评估结果字段。
+
+    与 GET /evaluations/{evaluation_id} 共用 can_access 规则，避免两个入口
+    的可见性策略漂移。同时把 evaluation_id 提升到顶层，便于客户端在轮询到
+    completed 后直接跳转详情页，无需深挖嵌套结构。
+    """
+    evaluation = job.get("evaluation")
+    if not isinstance(evaluation, dict):
+        return job
+
+    filtered = {
+        k: v for k, v in evaluation.items() if k not in ("employee_view", "manager_view", "audit")
+    }
+    for field in ("employee_view", "manager_view", "audit"):
+        if field in evaluation and can_access(role, field):
+            filtered[field] = evaluation[field]
+
+    return {
+        **{k: v for k, v in job.items() if k != "evaluation"},
+        "evaluation_id": evaluation.get("evaluation_id"),
+        "evaluation": filtered,
+    }
 
 
 @router.get("/evaluations/{evaluation_id}")

@@ -70,3 +70,6 @@ backend/data/pilot/*/employees.json
 backend/data/pilot/*/weekly_reports_week*.json
 backend/data/pilot/fairness-monthly-report.json
 backend/data/pilot/sla-report.json
+
+# Local dev server PID file (scripts/devserver.sh)
+backend/.devserver.pid

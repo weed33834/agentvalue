@@ -440,11 +440,18 @@ class TaskScheduler:
         description: Optional[str] = None,
         config: Optional[Dict[str, Any]] = None,
         task_id: Optional[str] = None,
+        replace_existing: bool = False,
     ) -> str:
         """添加定时任务
 
         将任务注册到 APScheduler 并持久化到 scheduled_tasks 表。
         返回 task_id。
+
+        Args:
+            replace_existing: 为 True 时采用 upsert 语义——若 task_id 已存在则
+                更新其定义并重新激活，而不是抛出 ValueError。系统内置任务
+                (task_type="system") 在每次进程启动时都会重复注册，必须使用该
+                模式，否则服务重启后注册会因唯一键冲突而失败。
         """
         task_id = task_id or f"task-{uuid.uuid4().hex[:12]}"
 
@@ -456,20 +463,30 @@ class TaskScheduler:
                 )
             ).scalar_one_or_none()
             if existing is not None:
-                raise ValueError(f"任务 {task_id} 已存在")
-
-            task = ScheduledTask(
-                task_id=task_id,
-                name=name,
-                description=description,
-                cron_expression=cron_expression,
-                task_type=task_type,
-                config=json.dumps(config or {}, ensure_ascii=False),
-                is_active=True,
-                tenant_id=DEFAULT_TENANT_ID,
-            )
-            session.add(task)
-            await session.commit()
+                if not replace_existing:
+                    raise ValueError(f"任务 {task_id} 已存在")
+                # upsert：刷新任务定义并重新激活（幂等注册）
+                existing.name = name
+                existing.description = description
+                existing.cron_expression = cron_expression
+                existing.task_type = task_type
+                existing.config = json.dumps(config or {}, ensure_ascii=False)
+                existing.is_active = True
+                await session.commit()
+                logger.debug("定时任务 %s 已存在，执行 upsert 更新", task_id)
+            else:
+                task = ScheduledTask(
+                    task_id=task_id,
+                    name=name,
+                    description=description,
+                    cron_expression=cron_expression,
+                    task_type=task_type,
+                    config=json.dumps(config or {}, ensure_ascii=False),
+                    is_active=True,
+                    tenant_id=DEFAULT_TENANT_ID,
+                )
+                session.add(task)
+                await session.commit()
 
         # 注册到调度器
         job = self.scheduler.add_job(
@@ -690,3 +707,42 @@ def set_scheduler(scheduler: Optional[TaskScheduler]) -> None:
     """设置全局调度器实例"""
     global _scheduler_instance
     _scheduler_instance = scheduler
+
+
+def register_system_task(scheduler: "TaskScheduler", **task_kwargs: Any) -> None:
+    """幂等注册系统内置定时任务（供模块在启动期调用）。
+
+    统一处理三件事，避免各调用方重复实现：
+
+    1. **幂等**：强制 ``replace_existing=True``、``task_type="system"``，
+       使服务重启时重复注册不再抛 ``任务已存在``。
+    2. **事件循环兼容**：无论调用方处于同步启动代码还是运行中的事件循环
+       （FastAPI lifespan）都能正确注册。
+    3. **异常不逃逸**：后台注册失败只记录告警，不产生
+       "Task exception was never retrieved" 噪声，也不会拖垮启动流程。
+
+    Args:
+        scheduler: TaskScheduler 实例。
+        **task_kwargs: 透传给 :meth:`TaskScheduler.add_task` 的参数。
+    """
+    import asyncio
+
+    task_kwargs.setdefault("task_type", "system")
+    task_kwargs["replace_existing"] = True
+    task_name = task_kwargs.get("task_id") or task_kwargs.get("name") or "<unnamed>"
+
+    async def _register() -> None:
+        try:
+            await scheduler.add_task(**task_kwargs)
+        except Exception as exc:  # noqa: BLE001 - 启动期注册失败不应中断服务
+            logger.warning("注册系统定时任务 %s 失败: %s", task_name, exc)
+
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # 已在事件循环中（如 FastAPI lifespan）：后台注册，异常已在内部吞掉
+            loop.create_task(_register())
+        else:
+            loop.run_until_complete(_register())
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("调度系统定时任务 %s 失败: %s", task_name, exc)

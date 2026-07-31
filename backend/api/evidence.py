@@ -14,14 +14,16 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.rbac import get_current_user_id
+from api.deps import assert_manager_team_access, get_evaluation_service
+from auth.rbac import Role, get_current_user_id, require_role
 from core.database import get_db
 from core.tenant_context import get_current_tenant
 from models.models import DimensionScore, Evaluation, EvidenceRef, RawInput
+from services.evaluation_service import EvaluationService
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +33,12 @@ router = APIRouter(prefix="/api/v1/evaluations", tags=["evidence"])
 @router.get("/{evaluation_id}/evidence")
 async def list_evidence(
     evaluation_id: str,
-    user_id: str = Depends(get_current_user_id),
+    request: Request,
+    role: Role = Depends(
+        require_role(Role.EMPLOYEE, Role.MANAGER, Role.HR, Role.ADMIN)
+    ),
     db: AsyncSession = Depends(get_db),
+    eval_service: EvaluationService = Depends(get_evaluation_service),
 ):
     """返回某评估的所有证据引用，按 dimension 分组。
 
@@ -50,14 +56,30 @@ async def list_evidence(
     tenant_id = get_current_tenant()
 
     # 1. 校验评估存在 + 租户隔离
+    # 注意：路径参数是业务主键 Evaluation.evaluation_id（形如 EV-2026-Q3-E1001-xxxx），
+    # 而 Evaluation.id 是自增整型代理键。EvidenceRef.evaluation_id 外键也指向业务主键，
+    # 早期实现误用 Evaluation.id 比对字符串，导致该端点恒返回 404。
     eval_stmt = select(Evaluation).where(
-        Evaluation.id == evaluation_id,
+        Evaluation.evaluation_id == evaluation_id,
         Evaluation.tenant_id == tenant_id,
     )
     eval_result = await db.execute(eval_stmt)
     evaluation = eval_result.scalar_one_or_none()
     if evaluation is None:
         raise HTTPException(status_code=404, detail="评估不存在")
+
+    # 1.1 越权校验：与 GET /evaluations/{id} 保持一致的可见性边界
+    # 员工仅可查看本人证据；主管仅可查看直属下属；HR/ADMIN 不受限。
+    current_user_id = await get_current_user_id(request)
+    if role == Role.EMPLOYEE and evaluation.employee_id != current_user_id:
+        raise HTTPException(status_code=403, detail="无权访问该评估的证据链")
+    await assert_manager_team_access(
+        eval_service,
+        role,
+        evaluation.employee_id,
+        current_user_id,
+        detail="无权查看非直属下属的证据链",
+    )
 
     # 2. 查 DimensionScore（含 dimension + score）
     dim_stmt = select(DimensionScore).where(

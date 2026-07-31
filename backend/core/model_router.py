@@ -224,6 +224,16 @@ class ModelRouter:
     def get_provider(self, tier: Optional[ModelTier] = None) -> BaseProvider:
         """根据档位返回 Provider 实例"""
         selected_tier = tier or self.get_recommended_tier()
+
+        # Mock 模式：全档位返回确定性 MockProvider，无需任何模型凭证。
+        # 用于售前 POC / CI E2E / 内网隔离环境；生产环境由 Settings validator 禁止开启。
+        if getattr(self.settings, "llm_mock_mode", False):
+            from core.providers.mock_provider import MockProvider
+
+            return MockProvider(
+                ProviderConfig(model_name="mock-model", model_tier=selected_tier)
+            )
+
         tier_info = self._tier_map[selected_tier]
 
         # 仅 model_name/base_url/api_key 随档位类型变化,其余字段对齐 settings
@@ -273,6 +283,13 @@ class ModelRouter:
         - 健康检查缓存: 30s 内重复调用直接返回缓存,避免浪费上游 /models 配额
         """
         preferred_tier = self.get_recommended_tier()
+
+        # Mock 模式：直接短路返回，跳过全部健康探测与熔断逻辑。
+        # 这既省掉了每档 2s 的网络超时，也保证无外网环境下链路 100% 可跑通。
+        if getattr(self.settings, "llm_mock_mode", False):
+            logger.info("LLM_MOCK_MODE 已开启，使用确定性 MockProvider（不调用真实模型）")
+            return self.get_provider(preferred_tier), preferred_tier
+
         order: List[ModelTier] = [preferred_tier]
 
         # 构造降级顺序
