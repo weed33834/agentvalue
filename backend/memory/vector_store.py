@@ -38,7 +38,7 @@ class DummyEmbeddingFunction:
         results = []
         for text in input:
             seed = int(
-                hashlib.md5(text.encode("utf-8"), usedforsecurity=False).hexdigest(), 16
+                hashlib.sha256(text.encode("utf-8")).hexdigest(), 16
             )
             vec = []
             for i in range(self.dimensions):
@@ -66,7 +66,7 @@ def _init_embedding(settings: Settings):
         try:
             return EmbeddingClient(settings)
         except Exception as e:
-            logger.warning(f"EmbeddingClient 初始化失败，降级到 dummy embedding: {e}")
+            logger.warning("EmbeddingClient 初始化失败，降级到 dummy embedding: %s", e)
     logger.info("未配置 embedding key，使用 dummy embedding（仅适合测试/演示）")
     return DummyEmbeddingFunction(dimensions=settings.embedding_dimensions or 384)
 
@@ -131,7 +131,7 @@ class ChromaMemoryStore(MemoryStore):
         try:
             results = await asyncio.to_thread(self.collection.query, **query_kwargs)
         except Exception as e:
-            logger.warning(f"Chroma 记忆查询失败: {e}")
+            logger.warning("Chroma 记忆查询失败: %s", e)
             return []
 
         memories = []
@@ -192,7 +192,7 @@ class ChromaMemoryStore(MemoryStore):
                     await self.embedding.embed_query(document)
                 ]
             except Exception as e:
-                logger.error(f"记忆 embedding 失败，跳过写入: {e}")
+                logger.error("记忆 embedding 失败，跳过写入: %s", e)
                 raise
 
         await asyncio.to_thread(self.collection.upsert, **upsert_kwargs)
@@ -254,7 +254,7 @@ class ChromaCompanyKB(CompanyKB):
         try:
             results = await asyncio.to_thread(self.collection.query, **query_kwargs)
         except Exception as e:
-            logger.warning(f"Chroma KB 查询失败: {e}")
+            logger.warning("Chroma KB 查询失败: %s", e)
             return []
 
         docs = []
@@ -317,6 +317,6 @@ class ChromaCompanyKB(CompanyKB):
                     await self.embedding.embed_query(document)
                 ]
             except Exception as e:
-                logger.error(f"KB embedding 失败，跳过写入: {e}")
+                logger.error("KB embedding 失败，跳过写入: %s", e)
                 raise
         await asyncio.to_thread(self.collection.upsert, **upsert_kwargs)

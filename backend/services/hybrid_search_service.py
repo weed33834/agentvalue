@@ -182,7 +182,7 @@ class HybridSearchService:
 
         # 4. hash 对比：内容未变化则跳过
         if old_content_hash and old_content_hash == new_content_hash:
-            logger.debug(f"文档 {document_id} 内容未变化，跳过增量更新")
+            logger.debug("文档 %s 内容未变化，跳过增量更新", document_id)
             return {
                 "updated": False,
                 "added": 0,
@@ -273,7 +273,7 @@ class HybridSearchService:
         try:
             results = await self.kb_store.query(query, top_k=fetch_k, where=where)
         except Exception as e:
-            logger.warning(f"向量检索失败: {e}")
+            logger.warning("向量检索失败: %s", e)
             return []
 
         # 统一输出格式 + 后过滤
@@ -336,7 +336,7 @@ class HybridSearchService:
         try:
             scores = bm25_instance.get_scores(query_tokens)
         except Exception as e:
-            logger.warning(f"BM25 打分失败: {e}")
+            logger.warning("BM25 打分失败: %s", e)
             return []
 
         # 组装结果并按分数降序排序
@@ -383,7 +383,7 @@ class HybridSearchService:
                 include=["metadatas", "documents"],
             )
         except Exception as e:
-            logger.warning(f"BM25 索引构建: 获取 collection 文档失败: {e}")
+            logger.warning("BM25 索引构建: 获取 collection 文档失败: %s", e)
             return None, [], [], []
 
         ids = result.get("ids", [])
@@ -517,7 +517,7 @@ class HybridSearchService:
                     }
                 )
         except Exception as e:
-            logger.debug(f"按 parent_kb_id 获取 chunk 失败: {e}")
+            logger.debug("按 parent_kb_id 获取 chunk 失败: %s", e)
 
         # 2. 如果没有分块子文档，尝试获取主文档（id == document_id）
         if not chunks:
@@ -541,7 +541,7 @@ class HybridSearchService:
                         }
                     )
             except Exception as e:
-                logger.debug(f"获取主文档失败: {e}")
+                logger.debug("获取主文档失败: %s", e)
 
         # 按 paragraph_index + chunk_index 排序
         def _sort_key(c: dict) -> Tuple[int, int]:
@@ -685,7 +685,7 @@ class HybridSearchService:
                 await asyncio.to_thread(collection.delete, ids=ids)
             return len(ids)
         except Exception as e:
-            logger.warning(f"删除段落 {paragraph_index} chunk 失败: {e}")
+            logger.warning("删除段落 %s chunk 失败: {e}", paragraph_index)
             return 0
 
     async def _update_paragraph_index(
@@ -725,7 +725,7 @@ class HybridSearchService:
                 new_id = f"{document_id}__p{new_index}__c{i}"
                 await self._upsert_chunk(collection, new_id, doc, meta)
         except Exception as e:
-            logger.warning(f"更新段落索引 {old_index}→{new_index} 失败: {e}")
+            logger.warning("更新段落索引 %s→{new_index} 失败: {e}", old_index)
 
     async def _index_paragraphs(
         self,
@@ -750,8 +750,8 @@ class HybridSearchService:
         for p_idx, paragraph in enumerate(paragraphs):
             real_para_idx = paragraph_offset + p_idx
             # 段落 hash，用于增量更新时快速判断段落是否变化
-            para_hash = hashlib.md5(
-                paragraph.encode("utf-8"), usedforsecurity=False
+            para_hash = hashlib.sha256(
+                paragraph.encode("utf-8")
             ).hexdigest()
 
             # 按 chunk_size 切分段落
@@ -788,7 +788,7 @@ class HybridSearchService:
             try:
                 upsert_kwargs["embeddings"] = [await embedding.embed_query(document)]
             except Exception as e:
-                logger.error(f"chunk embedding 失败，跳过写入: {e}")
+                logger.error("chunk embedding 失败，跳过写入: %s", e)
                 raise
         await asyncio.to_thread(collection.upsert, **upsert_kwargs)
 
@@ -920,7 +920,7 @@ class HybridSearchService:
                 kwargs["embedding_function"] = embedding
             return client.get_or_create_collection(**kwargs)
         except Exception as e:
-            logger.warning(f"获取 collection {collection_name} 失败: {e}")
+            logger.warning("获取 collection %s 失败: {e}", collection_name)
             return current_collection
 
     # --------------------------------------------------------

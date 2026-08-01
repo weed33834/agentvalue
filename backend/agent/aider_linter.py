@@ -308,19 +308,8 @@ def lint_python_compile(fname: str, code: str) -> Optional[LintResult]:
         end_lineno = getattr(err, "end_lineno", err.lineno)
         line_numbers = list(range(err.lineno - 1, end_lineno))
 
-        tb_lines = traceback.format_exception(type(err), err, err.__traceback__)
-        last_file_i = 0
-
-        target = "# USE TRACEBACK"
-        target += " BELOW HERE"
-        for i in range(len(tb_lines)):
-            if target in tb_lines[i]:
-                last_file_i = i
-                break
-
-        tb_lines = tb_lines[:1] + tb_lines[last_file_i + 1 :]
-
-        res = "".join(tb_lines)
+        # Use exception message only, not full traceback, to avoid stack trace exposure
+        res = f"{type(err).__name__}: {err}"
         return LintResult(text=res, lines=line_numbers)
 
 

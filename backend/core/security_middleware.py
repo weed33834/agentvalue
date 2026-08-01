@@ -320,27 +320,14 @@ class GlobalExceptionMiddleware:
                 exc_info=True,
             )
 
-            # 统一错误响应
-            if self._debug:
-                # 开发模式: 返回完整堆栈
-                return JSONResponse(
-                    status_code=500,
-                    content={
-                        "detail": str(exc),
-                        "trace_id": trace_id,
-                        "type": type(exc).__name__,
-                        "traceback": traceback.format_exc(),
-                    },
-                    headers={"X-Trace-Id": trace_id},
-                )
-            else:
-                # 生产模式: 隐藏堆栈
-                return JSONResponse(
-                    status_code=500,
-                    content={
-                        "detail": "内部服务器错误,请联系管理员并提供 trace_id",
-                        "trace_id": trace_id,
-                        "type": "internal_server_error",
-                    },
-                    headers={"X-Trace-Id": trace_id},
-                )
+            # 统一错误响应(堆栈仅写入日志,不返回给客户端)
+            detail = str(exc) if self._debug else "内部服务器错误,请联系管理员并提供 trace_id"
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "detail": detail,
+                    "trace_id": trace_id,
+                    "type": type(exc).__name__ if self._debug else "internal_server_error",
+                },
+                headers={"X-Trace-Id": trace_id},
+            )

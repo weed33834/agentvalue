@@ -124,19 +124,19 @@ class ModelRouter:
             try:
                 result["ram_gb"] = psutil.virtual_memory().total / (1024**3)
             except Exception as e:
-                logger.warning(f"无法检测内存: {e}")
+                logger.warning("无法检测内存: %s", e)
             try:
                 # physical cores（非逻辑线程），更贴合本地模型可用的真实算力
                 cpu = psutil.cpu_count(logical=False)
                 result["cpu_count"] = int(cpu) if cpu else 0
             except Exception as e:
-                logger.warning(f"无法检测 CPU 核数: {e}")
+                logger.warning("无法检测 CPU 核数: %s", e)
             try:
                 result["disk_free_gb"] = psutil.disk_usage("/").free / (1024**3)
             except Exception as e:
-                logger.warning(f"无法检测磁盘可用空间: {e}")
+                logger.warning("无法检测磁盘可用空间: %s", e)
         except Exception as e:
-            logger.warning(f"psutil 不可用，跳过 CPU/内存/磁盘探测: {e}")
+            logger.warning("psutil 不可用，跳过 CPU/内存/磁盘探测: %s", e)
 
         # GPU / 显存
         try:
@@ -149,7 +149,7 @@ class ModelRouter:
                     result["vram_gb"] += props.total_memory / (1024**3)
                     result["gpu_names"].append(props.name)
         except Exception as e:
-            logger.debug(f"torch 不可用，尝试 nvidia-smi: {e}")
+            logger.debug("torch 不可用，尝试 nvidia-smi: %s", e)
             #  fallback：尝试 nvidia-smi
             try:
                 output = subprocess.check_output(
@@ -172,7 +172,7 @@ class ModelRouter:
                 result["vram_gb"] = total_vram_mb / 1024
                 result["gpu_count"] = len(result["gpu_names"])
             except Exception as e2:
-                logger.warning(f"无法检测 GPU: {e2}")
+                logger.warning("无法检测 GPU: %s", e2)
 
         # 网络延迟：探测 L0 health_check 端点（{base_url}/models），timeout 2s
         if cloud_base_url:
@@ -329,7 +329,7 @@ class ModelRouter:
                         "档位 %s 健康检查通过但熔断器已 OPEN,跳过", tier
                     )
                     continue
-                logger.info(f"ModelRouter 选择档位: {tier}")
+                logger.info("ModelRouter 选择档位: %s", tier)
                 return provider, tier
             else:
                 # 健康检查失败: 触发熔断器 record_failure
