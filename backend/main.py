@@ -60,6 +60,12 @@ from api.admin.billing_routes import router as admin_billing_router  # noqa: E40
 from api.admin.agent_version_routes import router as admin_agent_version_router  # noqa: E402
 # 多渠道发布 (飞书/微信/钉钉/Web/API)
 from api.admin.publish_routes import router as admin_publish_router  # noqa: E402
+# Admin Agent CRUD (契约补齐: 列表/详情/创建)
+from api.admin.agents_crud_routes import router as admin_agents_crud_router  # noqa: E402
+# 发布记录管理 (契约补齐: 记录列表/创建/更新 + 通用渠道发布)
+from api.admin.publish_manage_routes import router as admin_publish_manage_router  # noqa: E402
+# 契约补齐集合路由 (11 个跨模块补充端点, 必须最后挂载)
+from api.admin.contract_supplement_routes import router as admin_contract_supplement_router  # noqa: E402
 # 工具配置 (超时管理)
 from api.admin.tool_config_routes import router as admin_tool_config_router  # noqa: E402
 # 敏感词字典管理 (增删改查 + 文本审核 + 导入导出)
@@ -303,7 +309,7 @@ class LimitRequestBodyMiddleware(BaseHTTPMiddleware):
 app = FastAPI(
     title="AgentValue",
     description="AI 驱动员工价值量化与成长 Agent 系统",
-    version="2.2.0",
+    version="2.3.0",
     lifespan=lifespan,
 )
 
@@ -480,9 +486,20 @@ app.include_router(
     admin_agent_version_router,
     tags=["admin-agent-version"],
 )
+# Admin Agent CRUD (契约补齐: GET / | GET /{id} | POST /)
+app.include_router(
+    admin_agents_crud_router,
+    tags=["admin-agents"],
+)
 # 多渠道发布 (飞书/微信/钉钉/Web/API)
 app.include_router(
     admin_publish_router,
+    tags=["admin-publish"],
+)
+# 发布记录管理 (契约补齐) —— 必须在 admin_publish_router 之后,
+# 保证 /{agent_id}/feishu 等静态渠道路径优先于本模块的 /{agent_id}/{channel}
+app.include_router(
+    admin_publish_manage_router,
     tags=["admin-publish"],
 )
 # 工具配置 (超时管理)
@@ -601,6 +618,11 @@ app.include_router(webhook_router)
 app.include_router(admin_webhook_event_router, tags=["admin-webhook-events"])
 # 站内通知系统(列表/未读数/已读/删除)
 app.include_router(notification_router)
+
+# 契约补齐集合路由 —— 必须最后挂载。
+# 本模块含多个动态路径 (/budgets/{id}、/alerts/{id}、/scheduler/tasks/{id} 等),
+# 放在最后可保证各业务模块的静态路径 (/budgets/status、/alerts/stats) 优先匹配。
+app.include_router(admin_contract_supplement_router)
 
 # 挂载 Prometheus 指标端点（/metrics，无需鉴权，供 Prometheus 抓取）
 setup_metrics(app)

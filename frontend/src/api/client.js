@@ -333,9 +333,9 @@ export const providerAdminApi = {
   getProvider: (provider) => api.get(`/admin/model-providers/providers/${provider}`),
   // 当前工作空间 Provider 视图(template + tenant config 合并) - 复数版本获取所有
   getWorkspaceProviders: () => api.get('/admin/model-providers/workspaces/current/providers'),
-  // 单数版本获取单个 Provider 视图(template + tenant config 合并)
+  // 单个 Provider 详情(后端未提供 workspace 维度的单 Provider 视图，改用 Provider 模板详情)
   getWorkspaceProvider: (provider) =>
-    api.get(`/admin/model-providers/workspaces/current/providers/${provider}`),
+    api.get(`/admin/model-providers/providers/${provider}`),
   // 启用/禁用 Provider
   setPreferredType: (provider, payload) =>
     api.post(`/admin/model-providers/workspaces/current/providers/${provider}/preferred-type`, payload),
@@ -823,10 +823,12 @@ export const alertApi = {
 
 // 配额管理 API
 export const quotaApi = {
-  get: (tenantId) => api.get(`/admin/quota/${encodeURIComponent(tenantId)}`),
-  update: (tenantId, payload) => api.put(`/admin/quota/${encodeURIComponent(tenantId)}`, payload),
-  usage: (tenantId) => api.get(`/admin/quota/${encodeURIComponent(tenantId)}/usage`),
-  reset: (tenantId) => api.post(`/admin/quota/${encodeURIComponent(tenantId)}/reset`),
+  // 租户由后端从上下文(X-Tenant-Id / JWT)解析，不走路径参数
+  get: () => api.get('/admin/quota'),
+  update: (payload) => api.put('/admin/quota', payload),
+  usage: (params) => api.get('/admin/quota/usage', { params }),
+  usageDaily: (params) => api.get('/admin/quota/usage/daily', { params }),
+  reset: () => api.post('/admin/quota/reset'),
 }
 
 // 预算管理 API
@@ -836,7 +838,7 @@ export const budgetApi = {
   get: (budgetId) => api.get(`/admin/budgets/${encodeURIComponent(budgetId)}`),
   update: (budgetId, payload) => api.put(`/admin/budgets/${encodeURIComponent(budgetId)}`, payload),
   delete: (budgetId) => api.delete(`/admin/budgets/${encodeURIComponent(budgetId)}`),
-  status: (budgetId) => api.get(`/admin/budgets/${encodeURIComponent(budgetId)}/status`),
+  status: (params) => api.get('/admin/budgets/status', { params }),
 }
 
 // 计费管理 API
@@ -866,15 +868,19 @@ export const ssoApi = {
   updateConfig: (configId, payload) => api.put(`/admin/sso/configs/${encodeURIComponent(configId)}`, payload),
   deleteConfig: (configId) => api.delete(`/admin/sso/configs/${encodeURIComponent(configId)}`),
   authorize: (configId) => api.get(`/admin/sso/configs/${encodeURIComponent(configId)}/authorize`),
-  callback: (configId, params) => api.get(`/admin/sso/configs/${encodeURIComponent(configId)}/callback`, { params }),
-  ldapLogin: (payload) => api.post('/admin/sso/ldap/login', payload),
+  callback: (configId, payload) => api.post(`/admin/sso/configs/${encodeURIComponent(configId)}/callback`, payload),
+  ldapLogin: (configId, payload) => api.post(`/admin/sso/configs/${encodeURIComponent(configId)}/ldap-login`, payload),
 }
 
 // 敏感词管理 API
 export const sensitiveWordApi = {
   list: (params) => api.get('/admin/sensitive-words', { params }),
   create: (payload) => api.post('/admin/sensitive-words', payload),
-  batchImport: (data) => api.post('/admin/sensitive-words/batch-import', data),
+  batchImport: (data) => api.post('/admin/sensitive-words/import', data),
+  batchCreate: (data) => api.post('/admin/sensitive-words/batch', data),
+  check: (payload) => api.post('/admin/sensitive-words/check', payload),
+  filter: (payload) => api.post('/admin/sensitive-words/filter', payload),
+  export: (params) => api.get('/admin/sensitive-words/export', { params, responseType: 'blob' }),
   update: (wordId, payload) => api.put(`/admin/sensitive-words/${encodeURIComponent(wordId)}`, payload),
   delete: (wordId) => api.delete(`/admin/sensitive-words/${encodeURIComponent(wordId)}`),
   review: (wordId, payload) => api.post(`/admin/sensitive-words/${encodeURIComponent(wordId)}/review`, payload),
@@ -882,57 +888,72 @@ export const sensitiveWordApi = {
 
 // 模型容灾策略 API
 export const modelFallbackApi = {
-  list: (params) => api.get('/admin/model-fallback', { params }),
-  create: (payload) => api.post('/admin/model-fallback', payload),
-  get: (chainId) => api.get(`/admin/model-fallback/${encodeURIComponent(chainId)}`),
-  update: (chainId, payload) => api.put(`/admin/model-fallback/${encodeURIComponent(chainId)}`, payload),
-  delete: (chainId) => api.delete(`/admin/model-fallback/${encodeURIComponent(chainId)}`),
-  test: (chainId) => api.post(`/admin/model-fallback/${encodeURIComponent(chainId)}/test`),
+  list: (params) => api.get('/admin/model-fallback/chains', { params }),
+  create: (payload) => api.post('/admin/model-fallback/chains', payload),
+  get: (chainId) => api.get(`/admin/model-fallback/chains/${encodeURIComponent(chainId)}`),
+  update: (chainId, payload) => api.put(`/admin/model-fallback/chains/${encodeURIComponent(chainId)}`, payload),
+  delete: (chainId) => api.delete(`/admin/model-fallback/chains/${encodeURIComponent(chainId)}`),
+  test: (chainId) => api.post(`/admin/model-fallback/chains/${encodeURIComponent(chainId)}/test`),
 }
 
 // 模型负载均衡 API
 export const modelLoadBalancerApi = {
   listInstances: (params) => api.get('/admin/model-lb/instances', { params }),
   createInstance: (payload) => api.post('/admin/model-lb/instances', payload),
-  updateConfig: (payload) => api.put('/admin/model-lb/config', payload),
-  getConfig: () => api.get('/admin/model-lb/config'),
+  getInstance: (instanceId) => api.get(`/admin/model-lb/instances/${encodeURIComponent(instanceId)}`),
+  updateInstance: (instanceId, payload) => api.put(`/admin/model-lb/instances/${encodeURIComponent(instanceId)}`, payload),
+  deleteInstance: (instanceId) => api.delete(`/admin/model-lb/instances/${encodeURIComponent(instanceId)}`),
+  listConfigs: (params) => api.get('/admin/model-lb/configs', { params }),
+  createConfig: (payload) => api.post('/admin/model-lb/configs', payload),
+  updateConfig: (configId, payload) => api.put(`/admin/model-lb/configs/${encodeURIComponent(configId)}`, payload),
+  deleteConfig: (configId) => api.delete(`/admin/model-lb/configs/${encodeURIComponent(configId)}`),
   healthCheck: (instanceId) => api.post(`/admin/model-lb/instances/${encodeURIComponent(instanceId)}/health-check`),
+  healthCheckAll: () => api.post('/admin/model-lb/health-check-all'),
 }
 
 // Agent 版本管理 API
+// 说明: 后端 /admin/agents/* 均为「版本」维度; Agent 主体 CRUD 见 agentAdminApi。
 export const agentVersionApi = {
-  list: (params) => api.get('/admin/agents', { params }),
-  create: (payload) => api.post('/admin/agents', payload),
-  get: (agentId) => api.get(`/admin/agents/${encodeURIComponent(agentId)}`),
-  publish: (agentId, payload) => api.post(`/admin/agents/${encodeURIComponent(agentId)}/publish`, payload),
-  rollback: (agentId, version) => api.post(`/admin/agents/${encodeURIComponent(agentId)}/rollback`, null, { params: { version } }),
-  compare: (agentId, params) => api.get(`/admin/agents/${encodeURIComponent(agentId)}/compare`, { params }),
-  archive: (agentId) => api.post(`/admin/agents/${encodeURIComponent(agentId)}/archive`),
+  // Agent 主体 (契约补齐: agents_crud_routes.py)
+  listAgents: (params) => api.get('/admin/agents', { params }),
+  createAgent: (payload) => api.post('/admin/agents', payload),
+  getAgent: (agentId) => api.get(`/admin/agents/${encodeURIComponent(agentId)}`),
+  // 版本操作
+  listVersions: (agentId, params) => api.get(`/admin/agents/${encodeURIComponent(agentId)}/versions`, { params }),
+  createVersion: (agentId, payload) => api.post(`/admin/agents/${encodeURIComponent(agentId)}/versions`, payload),
+  getVersion: (agentId, versionId) => api.get(`/admin/agents/${encodeURIComponent(agentId)}/versions/${encodeURIComponent(versionId)}`),
+  publish: (agentId, versionId, payload) => api.post(`/admin/agents/${encodeURIComponent(agentId)}/versions/${encodeURIComponent(versionId)}/publish`, payload),
+  archive: (agentId, versionId) => api.post(`/admin/agents/${encodeURIComponent(agentId)}/versions/${encodeURIComponent(versionId)}/archive`),
+  rollback: (agentId, targetVersion) => api.post(`/admin/agents/${encodeURIComponent(agentId)}/rollback/${encodeURIComponent(targetVersion)}`),
+  compare: (agentId, v1Id, v2Id) => api.get(`/admin/agents/${encodeURIComponent(agentId)}/versions/${encodeURIComponent(v1Id)}/compare/${encodeURIComponent(v2Id)}`),
 }
 
 // 多渠道发布 API
+// 后端按「Agent + 渠道」维度组织: channel ∈ web | api | feishu | dingtalk | wechat
 export const publishApi = {
+  // 发布记录列表/创建/更新 (契约补齐: publish_manage_routes.py)
   list: (params) => api.get('/admin/publish', { params }),
   create: (payload) => api.post('/admin/publish', payload),
-  get: (publishId) => api.get(`/admin/publish/${encodeURIComponent(publishId)}`),
   update: (publishId, payload) => api.put(`/admin/publish/${encodeURIComponent(publishId)}`, payload),
-  deploy: (publishId) => api.post(`/admin/publish/${encodeURIComponent(publishId)}/deploy`),
-  undeploy: (publishId) => api.post(`/admin/publish/${encodeURIComponent(publishId)}/undeploy`),
-  status: (publishId) => api.get(`/admin/publish/${encodeURIComponent(publishId)}/status`),
+  // 渠道级操作
+  status: (agentId) => api.get(`/admin/publish/${encodeURIComponent(agentId)}/status`),
+  deploy: (agentId, channel, payload) => api.post(`/admin/publish/${encodeURIComponent(agentId)}/${encodeURIComponent(channel)}`, payload),
+  undeploy: (agentId, channel) => api.delete(`/admin/publish/${encodeURIComponent(agentId)}/${encodeURIComponent(channel)}`),
 }
 
 // 灰度发布 API
 export const grayReleaseApi = {
-  list: (params) => api.get('/admin/gray-release', { params }),
-  create: (payload) => api.post('/admin/gray-release', payload),
-  get: (releaseId) => api.get(`/admin/gray-release/${encodeURIComponent(releaseId)}`),
-  update: (releaseId, payload) => api.put(`/admin/gray-release/${encodeURIComponent(releaseId)}`, payload),
-  start: (releaseId) => api.post(`/admin/gray-release/${encodeURIComponent(releaseId)}/start`),
-  pause: (releaseId) => api.post(`/admin/gray-release/${encodeURIComponent(releaseId)}/pause`),
-  complete: (releaseId) => api.post(`/admin/gray-release/${encodeURIComponent(releaseId)}/complete`),
-  rollback: (releaseId) => api.post(`/admin/gray-release/${encodeURIComponent(releaseId)}/rollback`),
-  delete: (releaseId) => api.delete(`/admin/gray-release/${encodeURIComponent(releaseId)}`),
-  stats: (releaseId) => api.get(`/admin/gray-release/${encodeURIComponent(releaseId)}/stats`),
+  list: (params) => api.get('/admin/gray-release/releases', { params }),
+  create: (payload) => api.post('/admin/gray-release/releases', payload),
+  get: (releaseId) => api.get(`/admin/gray-release/releases/${encodeURIComponent(releaseId)}`),
+  update: (releaseId, payload) => api.put(`/admin/gray-release/releases/${encodeURIComponent(releaseId)}`, payload),
+  start: (releaseId) => api.post(`/admin/gray-release/releases/${encodeURIComponent(releaseId)}/start`),
+  pause: (releaseId) => api.post(`/admin/gray-release/releases/${encodeURIComponent(releaseId)}/pause`),
+  complete: (releaseId) => api.post(`/admin/gray-release/releases/${encodeURIComponent(releaseId)}/complete`),
+  rollback: (releaseId) => api.post(`/admin/gray-release/releases/${encodeURIComponent(releaseId)}/rollback`),
+  delete: (releaseId) => api.delete(`/admin/gray-release/releases/${encodeURIComponent(releaseId)}`),
+  stats: (releaseId) => api.get(`/admin/gray-release/releases/${encodeURIComponent(releaseId)}/stats`),
+  activeForAgent: (agentId) => api.get(`/admin/gray-release/agents/${encodeURIComponent(agentId)}/active`),
 }
 
 // 多环境管理 API
@@ -953,8 +974,11 @@ export const datasetApi = {
   get: (datasetId) => api.get(`/admin/datasets/${encodeURIComponent(datasetId)}`),
   update: (datasetId, payload) => api.put(`/admin/datasets/${encodeURIComponent(datasetId)}`, payload),
   delete: (datasetId) => api.delete(`/admin/datasets/${encodeURIComponent(datasetId)}`),
-  listEntries: (datasetId, params) => api.get(`/admin/datasets/${encodeURIComponent(datasetId)}/entries`, { params }),
-  importEntries: (datasetId, data) => api.post(`/admin/datasets/${encodeURIComponent(datasetId)}/entries/import`, data),
+  listEntries: (datasetId, params) => api.get(`/admin/datasets/${encodeURIComponent(datasetId)}/items`, { params }),
+  createEntry: (datasetId, payload) => api.post(`/admin/datasets/${encodeURIComponent(datasetId)}/items`, payload),
+  updateEntry: (datasetId, itemId, payload) => api.put(`/admin/datasets/${encodeURIComponent(datasetId)}/items/${encodeURIComponent(itemId)}`, payload),
+  deleteEntry: (datasetId, itemId) => api.delete(`/admin/datasets/${encodeURIComponent(datasetId)}/items/${encodeURIComponent(itemId)}`),
+  importEntries: (datasetId, data) => api.post(`/admin/datasets/${encodeURIComponent(datasetId)}/items/batch`, data),
   stats: (datasetId) => api.get(`/admin/datasets/${encodeURIComponent(datasetId)}/stats`),
   export: (datasetId, params) => api.get(`/admin/datasets/${encodeURIComponent(datasetId)}/export`, { params, responseType: 'blob' }),
 }
@@ -988,7 +1012,10 @@ export const annotationApi = {
   get: (taskId) => api.get(`/admin/annotations/tasks/${encodeURIComponent(taskId)}`),
   assign: (taskId, payload) => api.post(`/admin/annotations/tasks/${encodeURIComponent(taskId)}/assign`, payload),
   annotate: (taskId, payload) => api.post(`/admin/annotations/tasks/${encodeURIComponent(taskId)}/annotate`, payload),
-  stats: (taskId) => api.get(`/admin/annotations/tasks/${encodeURIComponent(taskId)}/stats`),
+  stats: (params) => api.get('/admin/annotations/stats', { params }),
+  listAnnotations: (taskId, params) => api.get(`/admin/annotations/tasks/${encodeURIComponent(taskId)}/annotations`, { params }),
+  update: (taskId, payload) => api.put(`/admin/annotations/tasks/${encodeURIComponent(taskId)}`, payload),
+  batchFromEval: (payload) => api.post('/admin/annotations/tasks/batch-from-eval', payload),
   export: (taskId, params) => api.get(`/admin/annotations/tasks/${encodeURIComponent(taskId)}/export`, { params, responseType: 'blob' }),
   delete: (taskId) => api.delete(`/admin/annotations/tasks/${encodeURIComponent(taskId)}`),
 }
@@ -1001,7 +1028,10 @@ export const agentTemplateApi = {
   update: (templateId, payload) => api.put(`/admin/agent-templates/${encodeURIComponent(templateId)}`, payload),
   delete: (templateId) => api.delete(`/admin/agent-templates/${encodeURIComponent(templateId)}`),
   stats: () => api.get('/admin/agent-templates/stats'),
-  instantiate: (templateId, payload) => api.post(`/admin/agent-templates/${encodeURIComponent(templateId)}/instantiate`, payload),
+  instantiate: (templateId, payload) => api.post(`/admin/agent-templates/${encodeURIComponent(templateId)}/install`, payload),
+  market: (params) => api.get('/admin/agent-templates/market', { params }),
+  reviews: (templateId, params) => api.get(`/admin/agent-templates/${encodeURIComponent(templateId)}/reviews`, { params }),
+  review: (templateId, payload) => api.post(`/admin/agent-templates/${encodeURIComponent(templateId)}/review`, payload),
 }
 
 // NL2SQL API
@@ -1015,7 +1045,9 @@ export const nl2sqlApi = {
   createSchema: (payload) => api.post('/admin/nl2sql/schemas', payload),
   deleteSchema: (schemaId) => api.delete(`/admin/nl2sql/schemas/${encodeURIComponent(schemaId)}`),
   refreshSchema: (schemaId) => api.post(`/admin/nl2sql/schemas/${encodeURIComponent(schemaId)}/refresh`),
-  executeSql: (payload) => api.post('/admin/nl2sql/execute-sql', payload),
+  executeSql: (payload) => api.post('/admin/nl2sql/execute', payload),
+  generateAndExecute: (payload) => api.post('/admin/nl2sql/generate-and-execute', payload),
+  updateSchema: (schemaId, payload) => api.put(`/admin/nl2sql/schemas/${encodeURIComponent(schemaId)}`, payload),
 }
 
 // 深度文档解析 API
@@ -1033,10 +1065,16 @@ export const graphRagApi = {
   listTasks: (params) => api.get('/admin/graph-rag/tasks', { params }),
   createTask: (payload) => api.post('/admin/graph-rag/tasks', payload),
   getTask: (taskId) => api.get(`/admin/graph-rag/tasks/${encodeURIComponent(taskId)}`),
-  entities: (taskId, params) => api.get(`/admin/graph-rag/tasks/${encodeURIComponent(taskId)}/entities`, { params }),
-  relations: (taskId, params) => api.get(`/admin/graph-rag/tasks/${encodeURIComponent(taskId)}/relations`, { params }),
-  search: (payload) => api.post('/admin/graph-rag/search', payload),
+  runTask: (taskId) => api.post(`/admin/graph-rag/tasks/${encodeURIComponent(taskId)}/run`),
+  // 实体/关系为顶层资源，按 task_id 过滤
+  entities: (taskId, params) => api.get('/admin/graph-rag/entities', { params: { task_id: taskId, ...(params || {}) } }),
+  relations: (taskId, params) => api.get('/admin/graph-rag/relations', { params: { task_id: taskId, ...(params || {}) } }),
+  getEntity: (entityId) => api.get(`/admin/graph-rag/entities/${encodeURIComponent(entityId)}`),
+  entityRelations: (entityId, params) => api.get(`/admin/graph-rag/entities/${encodeURIComponent(entityId)}/relations`, { params }),
+  deleteEntity: (entityId) => api.delete(`/admin/graph-rag/entities/${encodeURIComponent(entityId)}`),
+  search: (params) => api.get('/admin/graph-rag/search', { params }),
   visualize: (taskId) => api.get(`/admin/graph-rag/tasks/${encodeURIComponent(taskId)}/visualize`),
+  visualizeEntity: (entityId) => api.get(`/admin/graph-rag/visualization/${encodeURIComponent(entityId)}`),
   deleteTask: (taskId) => api.delete(`/admin/graph-rag/tasks/${encodeURIComponent(taskId)}`),
 }
 
@@ -1057,7 +1095,7 @@ export const promptOptimizationApi = {
   create: (payload) => api.post('/admin/prompt-optimization/tasks', payload),
   get: (taskId) => api.get(`/admin/prompt-optimization/tasks/${encodeURIComponent(taskId)}`),
   run: (taskId) => api.post(`/admin/prompt-optimization/tasks/${encodeURIComponent(taskId)}/run`),
-  results: (taskId, params) => api.get(`/admin/prompt-optimization/tasks/${encodeURIComponent(taskId)}/results`, { params }),
+  results: (taskId, params) => api.get(`/admin/prompt-optimization/tasks/${encodeURIComponent(taskId)}/result`, { params }),
   delete: (taskId) => api.delete(`/admin/prompt-optimization/tasks/${encodeURIComponent(taskId)}`),
 }
 
@@ -1065,36 +1103,39 @@ export const promptOptimizationApi = {
 export const apiHealthApi = {
   stats: (params) => api.get('/admin/api-health/stats', { params }),
   endpoints: (params) => api.get('/admin/api-health/endpoints', { params }),
-  endpointDetail: (endpointId) => api.get(`/admin/api-health/endpoints/${encodeURIComponent(endpointId)}`),
-  listSLOs: () => api.get('/admin/api-health/slos'),
-  createSLO: (payload) => api.post('/admin/api-health/slos', payload),
-  updateSLO: (sloId, payload) => api.put(`/admin/api-health/slos/${encodeURIComponent(sloId)}`, payload),
-  deleteSLO: (sloId) => api.delete(`/admin/api-health/slos/${encodeURIComponent(sloId)}`),
-  status: () => api.get('/admin/api-health/status'),
+  // 后端路径参数为 {endpoint_path:path}，此处不转义斜杠，交由后端 path 转换器匹配
+  endpointDetail: (endpointPath) => api.get(`/admin/api-health/endpoints/${endpointPath}/stats`),
+  listSLOs: () => api.get('/admin/api-health/slo'),
+  createSLO: (payload) => api.post('/admin/api-health/slo', payload),
+  updateSLO: (sloId, payload) => api.put(`/admin/api-health/slo/${encodeURIComponent(sloId)}`, payload),
+  deleteSLO: (sloId) => api.delete(`/admin/api-health/slo/${encodeURIComponent(sloId)}`),
+  status: () => api.get('/admin/api-health/slo/status'),
+  sloStatus: (sloId) => api.get(`/admin/api-health/slo/${encodeURIComponent(sloId)}/status`),
 }
 
 // 会话分析看板 API
 export const analyticsV2Api = {
   tokenTrends: (params) => api.get('/admin/analytics-v2/token-trends', { params }),
-  latency: (params) => api.get('/admin/analytics-v2/latency', { params }),
+  latency: (params) => api.get('/admin/analytics-v2/latency-stats', { params }),
   errorRate: (params) => api.get('/admin/analytics-v2/error-rate', { params }),
-  cost: (params) => api.get('/admin/analytics-v2/cost', { params }),
+  cost: (params) => api.get('/admin/analytics-v2/cost-breakdown', { params }),
   anomalies: (params) => api.get('/admin/analytics-v2/anomalies', { params }),
 }
 
 // 混合检索管理 API
 export const searchAdminApi = {
-  search: (payload) => api.post('/admin/search', payload),
+  search: (payload) => api.post('/admin/search/hybrid', payload),
+  hybridSearch: (payload) => api.post('/admin/search/hybrid', payload),
   vectorSearch: (payload) => api.post('/admin/search/vector', payload),
   bm25Search: (payload) => api.post('/admin/search/bm25', payload),
   getConfig: () => api.get('/admin/search/config'),
   updateConfig: (payload) => api.put('/admin/search/config', payload),
-  incrementalUpdate: (payload) => api.post('/admin/search/incremental-update', payload),
+  incrementalUpdate: (documentId, payload) => api.post(`/admin/search/documents/${encodeURIComponent(documentId)}/incremental-update`, payload),
 }
 
 // 工具超时配置 API
 export const toolConfigApi = {
-  list: (params) => api.get('/admin/tool-config', { params }),
-  update: (toolName, payload) => api.put(`/admin/tool-config/${encodeURIComponent(toolName)}`, payload),
+  list: (params) => api.get('/admin/tool-config/timeouts', { params }),
+  update: (toolName, payload) => api.put(`/admin/tool-config/${encodeURIComponent(toolName)}/timeout`, payload),
   reset: (toolName) => api.post(`/admin/tool-config/${encodeURIComponent(toolName)}/reset`),
 }

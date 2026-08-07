@@ -11,22 +11,28 @@
       <!-- ============ Agent 版本 ============ -->
       <el-tab-pane label="Agent 版本" name="version">
         <div class="toolbar mb-16">
+          <el-select v-model="currentAgentId" placeholder="选择 Agent" style="width: 240px" :loading="agentLoading" @change="loadVersions">
+            <el-option v-for="a in agents" :key="a.id" :label="a.name" :value="a.id" />
+          </el-select>
           <el-button :loading="verLoading" @click="loadVersions"><el-icon><RefreshLeft /></el-icon>刷新</el-button>
-          <el-button type="primary" @click="openVersionDialog"><el-icon><Upload /></el-icon>发布新版本</el-button>
+          <el-button type="primary" :disabled="!currentAgentId" @click="openVersionDialog"><el-icon><Upload /></el-icon>发布新版本</el-button>
         </div>
         <el-card v-loading="verLoading">
           <el-table :data="versions" stripe empty-text="暂无版本">
-            <el-table-column prop="version" label="版本号" width="130" />
-            <el-table-column prop="channel" label="渠道" width="120"><template #default="{ row }"><el-tag size="small">{{ row.channel || '—' }}</el-tag></template></el-table-column>
-            <el-table-column prop="description" label="说明" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="version_number" label="版本号" width="100" align="center">
+              <template #default="{ row }">v{{ row.version_number }}</template>
+            </el-table-column>
+            <el-table-column prop="changelog" label="变更日志" min-width="200" show-overflow-tooltip />
+            <el-table-column label="温度" width="90" align="center"><template #default="{ row }">{{ (row.temperature ?? 0) / 100 }}</template></el-table-column>
             <el-table-column label="状态" width="110">
               <template #default="{ row }"><el-tag size="small" :type="verStatusType(row.status)">{{ verStatusLabel(row.status) }}</el-tag></template>
             </el-table-column>
-            <el-table-column label="发布时间" width="180"><template #default="{ row }">{{ formatTime(row.released_at) }}</template></el-table-column>
-            <el-table-column label="操作" width="220" fixed="right">
+            <el-table-column label="发布时间" width="180"><template #default="{ row }">{{ formatTime(row.published_at || row.created_at) }}</template></el-table-column>
+            <el-table-column label="操作" width="260" fixed="right">
               <template #default="{ row }">
                 <el-button size="small" link type="success" @click="openCompareDialog(row)">对比</el-button>
-                <el-button size="small" link type="warning" :loading="actingId === row.id" @click="handleRollback(row)">回滚</el-button>
+                <el-button v-if="row.status !== 'published'" size="small" link type="primary" :loading="actingId === row.id" @click="handlePublishVersion(row)">发布</el-button>
+                <el-button size="small" link type="warning" :loading="actingId === row.id" @click="handleRollback(row)">回滚到此</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -40,17 +46,22 @@
           <el-button type="primary" @click="openPublishDialog"><el-icon><Plus /></el-icon>新建发布配置</el-button>
         </div>
         <el-card v-loading="pubLoading">
-          <el-table :data="publishConfigs" stripe empty-text="暂无发布配置">
+          <el-table :data="publishConfigs" stripe empty-text="暂无发布记录">
             <el-table-column prop="id" label="ID" width="70" align="center" />
-            <el-table-column prop="name" label="名称" min-width="140" show-overflow-tooltip />
-            <el-table-column prop="channel" label="渠道" width="120" />
-            <el-table-column prop="version" label="版本" width="120" />
+            <el-table-column label="Agent" min-width="140" show-overflow-tooltip>
+              <template #default="{ row }">{{ agentName(row.agent_id) }}</template>
+            </el-table-column>
+            <el-table-column prop="channel" label="渠道" width="110">
+              <template #default="{ row }"><el-tag size="small">{{ row.channel }}</el-tag></template>
+            </el-table-column>
+            <el-table-column prop="version_id" label="版本 ID" width="100" align="center" />
             <el-table-column label="状态" width="110">
               <template #default="{ row }"><el-tag size="small" :type="pubStatusType(row.status)">{{ pubStatusLabel(row.status) }}</el-tag></template>
             </el-table-column>
+            <el-table-column label="发布时间" width="180"><template #default="{ row }">{{ formatTime(row.published_at) }}</template></el-table-column>
             <el-table-column label="操作" width="200" fixed="right">
               <template #default="{ row }">
-                <el-button v-if="row.status !== 'deployed'" size="small" link type="success" :loading="actingId === row.id" @click="handleDeploy(row)">部署</el-button>
+                <el-button v-if="row.status !== 'published'" size="small" link type="success" :loading="actingId === row.id" @click="handleDeploy(row)">部署</el-button>
                 <el-button v-else size="small" link type="danger" :loading="actingId === row.id" @click="handleOffline(row)">下线</el-button>
               </template>
             </el-table-column>
@@ -68,16 +79,20 @@
           <el-table :data="grayTasks" stripe empty-text="暂无灰度任务">
             <el-table-column prop="id" label="ID" width="70" align="center" />
             <el-table-column prop="name" label="任务名称" min-width="140" show-overflow-tooltip />
-            <el-table-column label="灰度比例" width="120"><template #default="{ row }">{{ row.percentage != null ? row.percentage + '%' : '—' }}</template></el-table-column>
-            <el-table-column label="状态" width="120">
+            <el-table-column prop="release_type" label="类型" width="110">
+              <template #default="{ row }"><el-tag size="small">{{ row.release_type || 'canary' }}</el-tag></template>
+            </el-table-column>
+            <el-table-column label="灰度比例" width="110"><template #default="{ row }">{{ row.traffic_percentage != null ? row.traffic_percentage + '%' : '—' }}</template></el-table-column>
+            <el-table-column label="状态" width="110">
               <template #default="{ row }"><el-tag size="small" :type="grayStatusType(row.status)">{{ grayStatusLabel(row.status) }}</el-tag></template>
             </el-table-column>
-            <el-table-column label="操作" width="280" fixed="right">
+            <el-table-column label="操作" width="330" fixed="right">
               <template #default="{ row }">
-                <el-button v-if="row.status === 'pending'" size="small" link type="success" :loading="actingId === row.id" @click="handleGrayAction(row, 'start')">启动</el-button>
-                <el-button v-if="row.status === 'running'" size="small" link type="warning" :loading="actingId === row.id" @click="handleGrayAction(row, 'pause')">暂停</el-button>
+                <el-button size="small" link type="info" @click="openGrayStats(row)">统计</el-button>
+                <el-button v-if="row.status === 'draft'" size="small" link type="success" :loading="actingId === row.id" @click="handleGrayAction(row, 'start')">启动</el-button>
+                <el-button v-if="row.status === 'active'" size="small" link type="warning" :loading="actingId === row.id" @click="handleGrayAction(row, 'pause')">暂停</el-button>
                 <el-button v-if="row.status === 'paused'" size="small" link type="success" :loading="actingId === row.id" @click="handleGrayAction(row, 'start')">继续</el-button>
-                <el-button v-if="row.status === 'running' || row.status === 'paused'" size="small" link type="primary" :loading="actingId === row.id" @click="handleGrayAction(row, 'complete')">完成</el-button>
+                <el-button v-if="row.status === 'active' || row.status === 'paused'" size="small" link type="primary" :loading="actingId === row.id" @click="handleGrayAction(row, 'complete')">完成</el-button>
                 <el-button v-if="row.status !== 'rolled_back' && row.status !== 'completed'" size="small" link type="danger" :loading="actingId === row.id" @click="handleGrayAction(row, 'rollback')">回滚</el-button>
               </template>
             </el-table-column>
@@ -111,16 +126,22 @@
     </el-tabs>
 
     <!-- 版本发布 -->
-    <el-dialog v-model="versionDialogVisible" title="发布新版本" width="520px">
-      <el-form ref="verFormRef" :model="verForm" :rules="verRules" label-position="top" v-loading="verSubmitting">
-        <el-form-item label="版本号" prop="version"><el-input v-model="verForm.version" placeholder="v1.2.0" /></el-form-item>
-        <el-form-item label="渠道"><el-select v-model="verForm.channel" style="width: 100%"><el-option label="stable" value="stable" /><el-option label="beta" value="beta" /><el-option label="canary" value="canary" /></el-select></el-form-item>
-        <el-form-item label="说明"><el-input v-model="verForm.description" type="textarea" :rows="3" /></el-form-item>
-        <el-form-item label="制品地址"><el-input v-model="verForm.artifact_url" placeholder="https://..." /></el-form-item>
+    <el-dialog v-model="versionDialogVisible" title="发布新版本" width="560px">
+      <el-form ref="verFormRef" :model="verForm" label-position="top" v-loading="verSubmitting">
+        <el-form-item label="所属 Agent">
+          <el-input :model-value="agentName(currentAgentId)" disabled />
+        </el-form-item>
+        <el-form-item label="系统提示词（留空则继承 Agent 预设）">
+          <el-input v-model="verForm.system_prompt" type="textarea" :rows="4" placeholder="留空继承" />
+        </el-form-item>
+        <el-form-item :label="`温度: ${(verForm.temperature / 100).toFixed(2)}`">
+          <el-slider v-model="verForm.temperature" :min="0" :max="100" :step="5" show-input />
+        </el-form-item>
+        <el-form-item label="变更日志"><el-input v-model="verForm.changelog" type="textarea" :rows="3" placeholder="本次版本改动说明" /></el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="versionDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="verSubmitting" @click="handleSubmitVersion">发布</el-button>
+        <el-button type="primary" :loading="verSubmitting" @click="handleSubmitVersion">创建版本</el-button>
       </template>
     </el-dialog>
 
@@ -129,11 +150,11 @@
       <el-form label-position="top">
         <el-form-item label="对比版本">
           <el-select v-model="compareForm.from" placeholder="源版本" style="width: 45%">
-            <el-option v-for="v in versions" :key="v.version" :label="v.version" :value="v.version" />
+            <el-option v-for="v in versions" :key="v.id" :label="`v${v.version_number}`" :value="v.id" />
           </el-select>
           <span style="margin: 0 8px">→</span>
           <el-select v-model="compareForm.to" placeholder="目标版本" style="width: 45%">
-            <el-option v-for="v in versions" :key="v.version" :label="v.version" :value="v.version" />
+            <el-option v-for="v in versions" :key="v.id" :label="`v${v.version_number}`" :value="v.id" />
           </el-select>
         </el-form-item>
       </el-form>
@@ -144,12 +165,22 @@
       </template>
     </el-dialog>
 
-    <!-- 发布配置 -->
-    <el-dialog v-model="publishDialogVisible" title="新建发布配置" width="500px">
+    <!-- 发布记录 -->
+    <el-dialog v-model="publishDialogVisible" title="新建发布记录" width="520px">
       <el-form ref="pubFormRef" :model="pubForm" :rules="pubRules" label-position="top" v-loading="pubSubmitting">
-        <el-form-item label="名称" prop="name"><el-input v-model="pubForm.name" /></el-form-item>
-        <el-form-item label="渠道" prop="channel"><el-input v-model="pubForm.channel" placeholder="web / desktop / mobile" /></el-form-item>
-        <el-form-item label="版本" prop="version"><el-input v-model="pubForm.version" /></el-form-item>
+        <el-form-item label="Agent" prop="agent_id">
+          <el-select v-model="pubForm.agent_id" placeholder="选择 Agent" style="width: 100%">
+            <el-option v-for="a in agents" :key="a.id" :label="a.name" :value="a.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="渠道" prop="channel">
+          <el-select v-model="pubForm.channel" style="width: 100%">
+            <el-option v-for="c in PUBLISH_CHANNELS" :key="c" :label="c" :value="c" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="版本 ID（留空自动取最新可用版本）">
+          <el-input-number v-model="pubForm.version_id" :min="1" controls-position="right" style="width: 100%" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="publishDialogVisible = false">取消</el-button>
@@ -158,16 +189,50 @@
     </el-dialog>
 
     <!-- 灰度任务 -->
-    <el-dialog v-model="grayDialogVisible" title="新建灰度任务" width="500px">
+    <el-dialog v-model="grayDialogVisible" title="新建灰度任务" width="520px">
       <el-form ref="grayFormRef" :model="grayForm" :rules="grayRules" label-position="top" v-loading="graySubmitting">
         <el-form-item label="任务名称" prop="name"><el-input v-model="grayForm.name" /></el-form-item>
-        <el-form-item label="版本" prop="version"><el-input v-model="grayForm.version" /></el-form-item>
-        <el-form-item :label="`灰度比例: ${grayForm.percentage}%`"><el-slider v-model="grayForm.percentage" :min="0" :max="100" :step="5" show-input /></el-form-item>
+        <el-form-item label="Agent" prop="agent_id">
+          <el-select v-model="grayForm.agent_id" placeholder="选择 Agent" style="width: 100%">
+            <el-option v-for="a in agents" :key="a.id" :label="a.name" :value="a.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="灰度目标版本 ID" prop="version_id">
+          <el-input-number v-model="grayForm.version_id" :min="1" controls-position="right" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="发布类型">
+          <el-select v-model="grayForm.release_type" style="width: 100%">
+            <el-option label="canary（金丝雀）" value="canary" />
+            <el-option label="blue_green（蓝绿）" value="blue_green" />
+            <el-option label="rolling（滚动）" value="rolling" />
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="`灰度比例: ${grayForm.traffic_percentage}%`"><el-slider v-model="grayForm.traffic_percentage" :min="0" :max="100" :step="5" show-input /></el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="grayDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="graySubmitting" @click="handleSubmitGray">创建</el-button>
       </template>
+    </el-dialog>
+
+    <!-- 灰度统计 -->
+    <el-dialog v-model="grayStatsVisible" title="灰度发布统计" width="600px">
+      <div v-loading="grayStatsLoading">
+        <template v-if="grayStats">
+          <el-descriptions :column="2" border size="small">
+            <el-descriptions-item label="名称">{{ grayStats.name }}</el-descriptions-item>
+            <el-descriptions-item label="状态">{{ grayStatusLabel(grayStats.status) }}</el-descriptions-item>
+            <el-descriptions-item label="灰度流量">{{ grayStats.traffic?.gray_percentage }}%</el-descriptions-item>
+            <el-descriptions-item label="基线流量">{{ grayStats.traffic?.baseline_percentage }}%</el-descriptions-item>
+            <el-descriptions-item label="发布类型">{{ grayStats.progress?.release_type }}</el-descriptions-item>
+            <el-descriptions-item label="完成度">{{ grayStats.progress?.percent_complete != null ? grayStats.progress.percent_complete + '%' : '—' }}</el-descriptions-item>
+            <el-descriptions-item label="启动时间">{{ formatTime(grayStats.timeline?.started_at) }}</el-descriptions-item>
+            <el-descriptions-item label="运行时长">{{ grayStats.timeline?.running_seconds != null ? grayStats.timeline.running_seconds + 's' : '—' }}</el-descriptions-item>
+          </el-descriptions>
+        </template>
+        <el-empty v-else description="暂无统计" />
+      </div>
+      <template #footer><el-button @click="grayStatsVisible = false">关闭</el-button></template>
     </el-dialog>
 
     <!-- 环境部署 -->
@@ -191,54 +256,95 @@ import { agentVersionApi, publishApi, grayReleaseApi, environmentApi } from '@/a
 const activeTab = ref('version')
 const actingId = ref(null)
 
+// 后端 services/publish_service.py PUBLISH_CHANNELS
+const PUBLISH_CHANNELS = ['web', 'api', 'feishu', 'dingtalk', 'wechat']
+
+// ====== Agent 列表（版本/发布/灰度共用） ======
+const agentLoading = ref(false)
+const agents = ref([])
+const currentAgentId = ref(null)
+
+function agentName(id) {
+  if (id == null) return '—'
+  const hit = agents.value.find((a) => a.id === id)
+  return hit ? hit.name : `#${id}`
+}
+
+async function loadAgents() {
+  agentLoading.value = true
+  try {
+    const data = await agentVersionApi.listAgents({ page_size: 100 })
+    agents.value = data.items || []
+    if (!currentAgentId.value && agents.value.length) currentAgentId.value = agents.value[0].id
+  } catch (err) { ElMessage.error('加载 Agent 列表失败: ' + (err.message || '')) } finally { agentLoading.value = false }
+}
+
 // ====== Agent 版本 ======
 const verLoading = ref(false)
 const versions = ref([])
 
 async function loadVersions() {
+  if (!currentAgentId.value) { versions.value = []; return }
   verLoading.value = true
-  try { const data = await agentVersionApi.list(); versions.value = data.items || [] }
-  catch (err) { ElMessage.error('加载版本失败: ' + (err.message || '')) } finally { verLoading.value = false }
+  try {
+    const data = await agentVersionApi.listVersions(currentAgentId.value)
+    versions.value = data.versions || data.items || []
+  } catch (err) { ElMessage.error('加载版本失败: ' + (err.message || '')) } finally { verLoading.value = false }
 }
 
 const versionDialogVisible = ref(false)
 const verSubmitting = ref(false)
 const verFormRef = ref(null)
-const verForm = reactive({ version: '', channel: 'stable', description: '', artifact_url: '' })
-const verRules = { version: [{ required: true, message: '请输入版本号', trigger: 'blur' }] }
+const verForm = reactive({ system_prompt: '', temperature: 70, changelog: '' })
 
 function openVersionDialog() {
-  Object.assign(verForm, { version: '', channel: 'stable', description: '', artifact_url: '' })
+  Object.assign(verForm, { system_prompt: '', temperature: 70, changelog: '' })
   versionDialogVisible.value = true
 }
 
 async function handleSubmitVersion() {
-  if (!verFormRef.value) return
-  try { await verFormRef.value.validate() } catch { return }
+  if (!currentAgentId.value) { ElMessage.warning('请先选择 Agent'); return }
   verSubmitting.value = true
   try {
-    await agentVersionApi.release({ ...verForm })
-    ElMessage.success('版本发布成功')
+    await agentVersionApi.createVersion(currentAgentId.value, {
+      system_prompt: verForm.system_prompt || undefined,
+      temperature: verForm.temperature,
+      changelog: verForm.changelog || undefined,
+    })
+    ElMessage.success('版本创建成功')
     versionDialogVisible.value = false
     await loadVersions()
-  } catch (err) { ElMessage.error('发布失败: ' + (err.message || '')) } finally { verSubmitting.value = false }
+  } catch (err) { ElMessage.error('创建失败: ' + (err.message || '')) } finally { verSubmitting.value = false }
+}
+
+async function handlePublishVersion(row) {
+  try { await ElMessageBox.confirm(`确认发布版本 v${row.version_number}?`, '发布确认', { type: 'warning' }) } catch { return }
+  actingId.value = row.id
+  try {
+    await agentVersionApi.publish(currentAgentId.value, row.id, { targets: ['web'] })
+    ElMessage.success('发布成功')
+    await loadVersions()
+  } catch (err) { ElMessage.error('发布失败: ' + (err.message || '')) } finally { actingId.value = null }
 }
 
 async function handleRollback(row) {
-  try { await ElMessageBox.confirm(`确认回滚到版本 ${row.version}?`, '回滚确认', { type: 'warning' }) } catch { return }
+  try { await ElMessageBox.confirm(`确认回滚到版本 v${row.version_number}?`, '回滚确认', { type: 'warning' }) } catch { return }
   actingId.value = row.id
-  try { await agentVersionApi.rollback(row.id); ElMessage.success('回滚成功'); await loadVersions() }
-  catch (err) { ElMessage.error('回滚失败: ' + (err.message || '')) } finally { actingId.value = null }
+  try {
+    await agentVersionApi.rollback(currentAgentId.value, row.version_number)
+    ElMessage.success('回滚成功')
+    await loadVersions()
+  } catch (err) { ElMessage.error('回滚失败: ' + (err.message || '')) } finally { actingId.value = null }
 }
 
 const compareDialogVisible = ref(false)
 const compareLoading = ref(false)
 const compareResult = ref('')
-const compareForm = reactive({ from: '', to: '' })
+const compareForm = reactive({ from: null, to: null })
 
 function openCompareDialog(row) {
-  compareForm.from = row.version
-  compareForm.to = ''
+  compareForm.from = row.id
+  compareForm.to = null
   compareResult.value = ''
   compareDialogVisible.value = true
 }
@@ -247,47 +353,64 @@ async function handleCompare() {
   if (!compareForm.from || !compareForm.to) { ElMessage.warning('请选择两个版本'); return }
   compareLoading.value = true
   try {
-    const data = await agentVersionApi.compare(compareForm.from, compareForm.to)
+    const data = await agentVersionApi.compare(currentAgentId.value, compareForm.from, compareForm.to)
     compareResult.value = typeof data === 'string' ? data : JSON.stringify(data, null, 2)
   } catch (err) { ElMessage.error('对比失败: ' + (err.message || '')) } finally { compareLoading.value = false }
 }
 
-// ====== 发布 ======
+// ====== 发布记录 ======
 const pubLoading = ref(false)
 const publishConfigs = ref([])
 
 async function loadPublish() {
   pubLoading.value = true
   try { const data = await publishApi.list(); publishConfigs.value = data.items || [] }
-  catch (err) { ElMessage.error('加载发布配置失败: ' + (err.message || '')) } finally { pubLoading.value = false }
+  catch (err) { ElMessage.error('加载发布记录失败: ' + (err.message || '')) } finally { pubLoading.value = false }
 }
 
 const publishDialogVisible = ref(false)
 const pubSubmitting = ref(false)
 const pubFormRef = ref(null)
-const pubForm = reactive({ name: '', channel: '', version: '' })
-const pubRules = { name: [{ required: true, message: '请输入名称', trigger: 'blur' }], version: [{ required: true, message: '请输入版本', trigger: 'blur' }] }
+const pubForm = reactive({ agent_id: null, channel: 'web', version_id: null })
+const pubRules = {
+  agent_id: [{ required: true, message: '请选择 Agent', trigger: 'change' }],
+  channel: [{ required: true, message: '请选择渠道', trigger: 'change' }],
+}
 
-function openPublishDialog() { Object.assign(pubForm, { name: '', channel: '', version: '' }); publishDialogVisible.value = true }
+function openPublishDialog() {
+  Object.assign(pubForm, { agent_id: currentAgentId.value, channel: 'web', version_id: null })
+  publishDialogVisible.value = true
+}
 
 async function handleSubmitPublish() {
   if (!pubFormRef.value) return
   try { await pubFormRef.value.validate() } catch { return }
   pubSubmitting.value = true
-  try { await publishApi.create({ ...pubForm }); ElMessage.success('创建成功'); publishDialogVisible.value = false; await loadPublish() }
-  catch (err) { ElMessage.error('创建失败: ' + (err.message || '')) } finally { pubSubmitting.value = false }
+  try {
+    await publishApi.create({
+      agent_id: pubForm.agent_id,
+      channel: pubForm.channel,
+      version_id: pubForm.version_id || undefined,
+    })
+    ElMessage.success('创建成功')
+    publishDialogVisible.value = false
+    await loadPublish()
+  } catch (err) { ElMessage.error('创建失败: ' + (err.message || '')) } finally { pubSubmitting.value = false }
 }
 
 async function handleDeploy(row) {
   actingId.value = row.id
-  try { await publishApi.deploy(row.id); ElMessage.success('部署成功'); await loadPublish() }
-  catch (err) { ElMessage.error('部署失败: ' + (err.message || '')) } finally { actingId.value = null }
+  try {
+    await publishApi.deploy(row.agent_id, row.channel, { version_id: row.version_id })
+    ElMessage.success('部署成功')
+    await loadPublish()
+  } catch (err) { ElMessage.error('部署失败: ' + (err.message || '')) } finally { actingId.value = null }
 }
 
 async function handleOffline(row) {
-  try { await ElMessageBox.confirm(`确认下线 "${row.name}"?`, '下线确认', { type: 'warning' }) } catch { return }
+  try { await ElMessageBox.confirm(`确认下线 ${agentName(row.agent_id)} 的 ${row.channel} 渠道?`, '下线确认', { type: 'warning' }) } catch { return }
   actingId.value = row.id
-  try { await publishApi.offline(row.id); ElMessage.success('下线成功'); await loadPublish() }
+  try { await publishApi.undeploy(row.agent_id, row.channel); ElMessage.success('下线成功'); await loadPublish() }
   catch (err) { ElMessage.error('下线失败: ' + (err.message || '')) } finally { actingId.value = null }
 }
 
@@ -304,10 +427,17 @@ async function loadGray() {
 const grayDialogVisible = ref(false)
 const graySubmitting = ref(false)
 const grayFormRef = ref(null)
-const grayForm = reactive({ name: '', version: '', percentage: 10 })
-const grayRules = { name: [{ required: true, message: '请输入任务名称', trigger: 'blur' }], version: [{ required: true, message: '请输入版本', trigger: 'blur' }] }
+const grayForm = reactive({ name: '', agent_id: null, version_id: null, release_type: 'canary', traffic_percentage: 10 })
+const grayRules = {
+  name: [{ required: true, message: '请输入任务名称', trigger: 'blur' }],
+  agent_id: [{ required: true, message: '请选择 Agent', trigger: 'change' }],
+  version_id: [{ required: true, message: '请输入灰度目标版本 ID', trigger: 'blur' }],
+}
 
-function openGrayDialog() { Object.assign(grayForm, { name: '', version: '', percentage: 10 }); grayDialogVisible.value = true }
+function openGrayDialog() {
+  Object.assign(grayForm, { name: '', agent_id: currentAgentId.value, version_id: null, release_type: 'canary', traffic_percentage: 10 })
+  grayDialogVisible.value = true
+}
 
 async function handleSubmitGray() {
   if (!grayFormRef.value) return
@@ -315,6 +445,18 @@ async function handleSubmitGray() {
   graySubmitting.value = true
   try { await grayReleaseApi.create({ ...grayForm }); ElMessage.success('创建成功'); grayDialogVisible.value = false; await loadGray() }
   catch (err) { ElMessage.error('创建失败: ' + (err.message || '')) } finally { graySubmitting.value = false }
+}
+
+const grayStatsVisible = ref(false)
+const grayStatsLoading = ref(false)
+const grayStats = ref(null)
+
+async function openGrayStats(row) {
+  grayStats.value = null
+  grayStatsVisible.value = true
+  grayStatsLoading.value = true
+  try { grayStats.value = await grayReleaseApi.stats(row.id) }
+  catch (err) { ElMessage.error('加载统计失败: ' + (err.message || '')) } finally { grayStatsLoading.value = false }
 }
 
 async function handleGrayAction(row, action) {
@@ -361,12 +503,12 @@ async function handleUndeploy(row) {
 }
 
 // ====== 工具函数 ======
-function verStatusType(v) { return { released: 'success', deprecated: 'warning', draft: 'info' }[v] || 'info' }
-function verStatusLabel(v) { return { released: '已发布', deprecated: '已弃用', draft: '草稿' }[v] || v || '—' }
-function pubStatusType(v) { return { deployed: 'success', offline: 'info', deploying: 'warning' }[v] || 'info' }
-function pubStatusLabel(v) { return { deployed: '已部署', offline: '已下线', deploying: '部署中' }[v] || v || '—' }
-function grayStatusType(v) { return { pending: 'info', running: 'success', paused: 'warning', completed: 'success', rolled_back: 'danger' }[v] || 'info' }
-function grayStatusLabel(v) { return { pending: '待启动', running: '运行中', paused: '已暂停', completed: '已完成', rolled_back: '已回滚' }[v] || v || '—' }
+function verStatusType(v) { return { published: 'success', archived: 'warning', draft: 'info' }[v] || 'info' }
+function verStatusLabel(v) { return { published: '已发布', archived: '已归档', draft: '草稿' }[v] || v || '—' }
+function pubStatusType(v) { return { published: 'success', pending: 'warning', failed: 'danger' }[v] || 'info' }
+function pubStatusLabel(v) { return { published: '已发布', pending: '待发布', failed: '失败' }[v] || v || '—' }
+function grayStatusType(v) { return { draft: 'info', active: 'success', paused: 'warning', completed: 'success', rolled_back: 'danger' }[v] || 'info' }
+function grayStatusLabel(v) { return { draft: '草稿', active: '运行中', paused: '已暂停', completed: '已完成', rolled_back: '已回滚' }[v] || v || '—' }
 function envStatusType(v) { return { deployed: 'success', idle: 'info', failed: 'danger' }[v] || 'info' }
 function envStatusLabel(v) { return { deployed: '已部署', idle: '空闲', failed: '失败' }[v] || v || '—' }
 function formatTime(iso) { if (!iso) return '—'; try { return new Date(iso).toLocaleString('zh-CN', { hour12: false }) } catch { return iso } }
@@ -377,7 +519,10 @@ function onTabChange(name) {
   if (name === 'env' && environments.value.length === 0) loadEnvs()
 }
 
-onMounted(() => { loadVersions() })
+onMounted(async () => {
+  await loadAgents()
+  await loadVersions()
+})
 </script>
 
 <style scoped>

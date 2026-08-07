@@ -58,11 +58,13 @@
         <el-card v-loading="ssoLoading">
           <el-table :data="ssoConfigs" stripe empty-text="暂无 SSO 配置">
             <el-table-column prop="id" label="ID" width="70" align="center" />
-            <el-table-column prop="name" label="名称" min-width="140" show-overflow-tooltip />
-            <el-table-column prop="protocol" label="协议" width="120">
-              <template #default="{ row }"><el-tag size="small">{{ row.protocol || '—' }}</el-tag></template>
+            <el-table-column prop="provider_name" label="名称" min-width="140" show-overflow-tooltip />
+            <el-table-column prop="provider_type" label="协议" width="120">
+              <template #default="{ row }"><el-tag size="small">{{ row.provider_type || '—' }}</el-tag></template>
             </el-table-column>
-            <el-table-column prop="issuer" label="Issuer / 地址" min-width="220" show-overflow-tooltip />
+            <el-table-column label="Issuer / 地址" min-width="220" show-overflow-tooltip>
+              <template #default="{ row }">{{ issuerOf(row) }}</template>
+            </el-table-column>
             <el-table-column label="启用" width="90">
               <template #default="{ row }"><el-tag size="small" :type="row.enabled ? 'success' : 'info'">{{ row.enabled ? '是' : '否' }}</el-tag></template>
             </el-table-column>
@@ -102,17 +104,19 @@
     <!-- SSO 新增/编辑 -->
     <el-dialog v-model="ssoDialogVisible" :title="ssoIsEdit ? '编辑 SSO 配置' : '新增 SSO 配置'" width="560px" @closed="resetSsoForm">
       <el-form ref="ssoFormRef" :model="ssoForm" :rules="ssoRules" label-position="top" v-loading="ssoSubmitting">
-        <el-form-item label="名称" prop="name"><el-input v-model="ssoForm.name" /></el-form-item>
-        <el-form-item label="协议" prop="protocol">
-          <el-select v-model="ssoForm.protocol" style="width: 100%">
-            <el-option label="OIDC" value="oidc" />
+        <el-form-item label="提供商名称" prop="provider_name"><el-input v-model="ssoForm.provider_name" placeholder="如 企业微信/飞书/Okta" /></el-form-item>
+        <el-form-item label="协议类型" prop="provider_type">
+          <el-select v-model="ssoForm.provider_type" style="width: 100%">
+            <el-option label="OAuth2" value="oauth2" />
             <el-option label="SAML" value="saml" />
             <el-option label="LDAP" value="ldap" />
           </el-select>
         </el-form-item>
-        <el-form-item label="Issuer / 服务地址"><el-input v-model="ssoForm.issuer" placeholder="https://sso.example.com" /></el-form-item>
+        <el-form-item :label="ssoForm.provider_type === 'ldap' ? 'LDAP 服务地址 (server_url)' : 'Issuer / 服务地址'">
+          <el-input v-model="ssoForm.issuer" :placeholder="ssoForm.provider_type === 'ldap' ? 'ldap://host:389' : 'https://sso.example.com'" />
+        </el-form-item>
         <el-form-item label="Client ID"><el-input v-model="ssoForm.client_id" /></el-form-item>
-        <el-form-item label="Client Secret"><el-input v-model="ssoForm.client_secret" type="password" show-password /></el-form-item>
+        <el-form-item label="Client Secret / Bind Password"><el-input v-model="ssoForm.client_secret" type="password" show-password /></el-form-item>
         <el-form-item label="启用"><el-switch v-model="ssoForm.enabled" /></el-form-item>
       </el-form>
       <template #footer>
@@ -123,9 +127,16 @@
 
     <!-- LDAP 登录测试 -->
     <el-dialog v-model="ldapDialogVisible" title="LDAP 登录测试" width="460px">
+      <el-alert v-if="!ldapConfigs.length" type="warning" :closable="false" show-icon class="mb-16">
+        暂无 LDAP 类型配置, 请先在「SSO 配置」中创建 provider_type=ldap 的配置。
+      </el-alert>
       <el-form label-position="top" v-loading="ldapSubmitting">
-        <el-form-item label="LDAP 服务地址"><el-input v-model="ldapForm.server" placeholder="ldap://host:389" /></el-form-item>
-        <el-form-item label="用户 DN"><el-input v-model="ldapForm.bind_dn" placeholder="uid=test,ou=users,dc=example,dc=com" /></el-form-item>
+        <el-form-item label="选择 LDAP 配置" required>
+          <el-select v-model="ldapForm.config_id" style="width: 100%" placeholder="选择 LDAP 配置">
+            <el-option v-for="c in ldapConfigs" :key="c.id" :label="`#${c.id} ${c.provider_name}`" :value="c.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="用户 DN / 用户名"><el-input v-model="ldapForm.username" placeholder="uid=test,ou=users,dc=example,dc=com" /></el-form-item>
         <el-form-item label="密码"><el-input v-model="ldapForm.password" type="password" show-password /></el-form-item>
       </el-form>
       <div v-if="ldapResult" class="ldap-result">
@@ -137,14 +148,14 @@
       </div>
       <template #footer>
         <el-button @click="ldapDialogVisible = false">关闭</el-button>
-        <el-button type="primary" :loading="ldapSubmitting" @click="handleLdapTest">测试登录</el-button>
+        <el-button type="primary" :loading="ldapSubmitting" :disabled="!ldapForm.config_id" @click="handleLdapTest">测试登录</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { sensitiveWordApi, ssoApi } from '@/api/client'
 
@@ -256,7 +267,7 @@ const ssoConfigs = ref([])
 async function loadSso() {
   ssoLoading.value = true
   try {
-    const data = await ssoApi.list()
+    const data = await ssoApi.listConfigs()
     ssoConfigs.value = data.items || []
   } catch (err) {
     ElMessage.error('加载 SSO 配置失败: ' + (err.message || ''))
@@ -265,20 +276,36 @@ async function loadSso() {
   }
 }
 
+function issuerOf(row) {
+  const cfg = row.config || {}
+  return cfg.server_url || cfg.issuer || cfg.entity_id || '—'
+}
+
+const ldapConfigs = computed(() => ssoConfigs.value.filter((c) => c.provider_type === 'ldap'))
+
 const ssoDialogVisible = ref(false)
 const ssoSubmitting = ref(false)
 const ssoIsEdit = ref(false)
 const ssoFormRef = ref(null)
-const ssoForm = reactive({ id: null, name: '', protocol: 'oidc', issuer: '', client_id: '', client_secret: '', enabled: true })
+const ssoForm = reactive({ id: null, provider_name: '', provider_type: 'oauth2', issuer: '', client_id: '', client_secret: '', enabled: true })
 const ssoRules = {
-  name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
-  protocol: [{ required: true, message: '请选择协议', trigger: 'change' }],
+  provider_name: [{ required: true, message: '请输入提供商名称', trigger: 'blur' }],
+  provider_type: [{ required: true, message: '请选择协议类型', trigger: 'change' }],
 }
 
 function openSsoDialog(row = null) {
   ssoIsEdit.value = !!row
   if (row) {
-    Object.assign(ssoForm, { id: row.id, name: row.name, protocol: row.protocol, issuer: row.issuer || '', client_id: row.client_id || '', client_secret: '', enabled: !!row.enabled })
+    const cfg = row.config || {}
+    Object.assign(ssoForm, {
+      id: row.id,
+      provider_name: row.provider_name || '',
+      provider_type: row.provider_type || 'oauth2',
+      issuer: cfg.server_url || cfg.issuer || cfg.entity_id || '',
+      client_id: cfg.client_id || '',
+      client_secret: '',
+      enabled: !!row.enabled,
+    })
   } else {
     resetSsoForm()
   }
@@ -286,22 +313,38 @@ function openSsoDialog(row = null) {
 }
 
 function resetSsoForm() {
-  Object.assign(ssoForm, { id: null, name: '', protocol: 'oidc', issuer: '', client_id: '', client_secret: '', enabled: true })
+  Object.assign(ssoForm, { id: null, provider_name: '', provider_type: 'oauth2', issuer: '', client_id: '', client_secret: '', enabled: true })
   ssoFormRef.value?.clearValidate?.()
+}
+
+function buildSsoConfig() {
+  const cfg = {}
+  const isLdap = ssoForm.provider_type === 'ldap'
+  if (ssoForm.client_id) cfg.client_id = ssoForm.client_id
+  if (ssoForm.client_secret) cfg.client_secret = ssoForm.client_secret
+  if (ssoForm.issuer) {
+    if (isLdap) cfg.server_url = ssoForm.issuer
+    else cfg.issuer = ssoForm.issuer
+  }
+  return cfg
 }
 
 async function handleSubmitSso() {
   if (!ssoFormRef.value) return
   try { await ssoFormRef.value.validate() } catch { return }
   ssoSubmitting.value = true
-  const payload = { name: ssoForm.name, protocol: ssoForm.protocol, issuer: ssoForm.issuer, client_id: ssoForm.client_id, enabled: ssoForm.enabled }
-  if (ssoForm.client_secret) payload.client_secret = ssoForm.client_secret
+  const payload = {
+    provider_name: ssoForm.provider_name,
+    provider_type: ssoForm.provider_type,
+    config: buildSsoConfig(),
+    enabled: ssoForm.enabled,
+  }
   try {
     if (ssoIsEdit.value) {
-      await ssoApi.update(ssoForm.id, payload)
+      await ssoApi.updateConfig(ssoForm.id, payload)
       ElMessage.success('更新成功')
     } else {
-      await ssoApi.create(payload)
+      await ssoApi.createConfig(payload)
       ElMessage.success('创建成功')
     }
     ssoDialogVisible.value = false
@@ -314,9 +357,9 @@ async function handleSubmitSso() {
 }
 
 async function handleDeleteSso(row) {
-  try { await ElMessageBox.confirm(`确认删除 SSO 配置 "${row.name}"?`, '删除确认', { type: 'warning' }) } catch { return }
+  try { await ElMessageBox.confirm(`确认删除 SSO 配置 "${row.provider_name}"?`, '删除确认', { type: 'warning' }) } catch { return }
   try {
-    await ssoApi.delete(row.id)
+    await ssoApi.deleteConfig(row.id)
     ElMessage.success('删除成功')
     await loadSso()
   } catch (err) {
@@ -328,21 +371,24 @@ async function handleDeleteSso(row) {
 const ldapDialogVisible = ref(false)
 const ldapSubmitting = ref(false)
 const ldapResult = ref(null)
-const ldapForm = reactive({ server: '', bind_dn: '', password: '' })
+const ldapForm = reactive({ config_id: null, username: '', password: '' })
 
 function openLdapDialog() {
-  ldapForm.server = ''
-  ldapForm.bind_dn = ''
+  ldapForm.config_id = null
+  ldapForm.username = ''
   ldapForm.password = ''
   ldapResult.value = null
   ldapDialogVisible.value = true
 }
 
 async function handleLdapTest() {
-  if (!ldapForm.server || !ldapForm.bind_dn || !ldapForm.password) { ElMessage.warning('请填写完整信息'); return }
+  if (!ldapForm.config_id) { ElMessage.warning('请先选择 LDAP 配置'); return }
+  if (!ldapForm.username || !ldapForm.password) { ElMessage.warning('请填写用户名和密码'); return }
   ldapSubmitting.value = true
   try {
-    ldapResult.value = await ssoApi.testLdap({ server: ldapForm.server, bind_dn: ldapForm.bind_dn, password: ldapForm.password })
+    const res = await ssoApi.ldapLogin(ldapForm.config_id, { username: ldapForm.username, password: ldapForm.password })
+    const who = res?.user ? (res.user.name || res.user.user_id || '') : ''
+    ldapResult.value = { success: true, message: who ? `登录成功, 欢迎 ${who}` : '登录成功' }
   } catch (err) {
     ldapResult.value = { success: false, message: err.message || '测试失败' }
   } finally {

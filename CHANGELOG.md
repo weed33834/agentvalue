@@ -3,6 +3,33 @@
 本文件记录 AgentValue-AI 所有显著变更,格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/),
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [v2.3.0] - 2026-08-07
+
+### 第四轮: 前后端契约全面对齐 (Contract Drift 清零)
+
+经静态提取 + 逐模块核验,发现项目前两阶段虽补齐了大量后端路由与前台页面,但前端 `client.js` 与后端从未真正对接,导致大量页面调用后端不存在的路由。本轮系统性修复两层契约断裂。
+
+#### 契约修复成果
+
+- **第一层 (client.js ↔ 后端路由)**: 不匹配从 71 个降至 **0** (后端 490 条运行时路由 / 前端 441 个调用, 全部对齐)
+- **第二层 (view.vue ↔ client.js)**: 20 个 view 调用 client.js 不存在的方法, 全部修复至 **0** (扫描 72 个 .vue 文件)
+- 新增 3 个后端契约补齐路由文件 (Agent 主体 CRUD / 发布渠道分发 / 契约补充聚合端点), 共 12+ 端点
+
+#### 修复的关键视图 (9 个页面)
+
+- **AdminSecurity.vue** — SSO: `list/create/update/delete` → `listConfigs/createConfig/updateConfig/deleteConfig`; LDAP 测试 → `ldapLogin(configId, {username,password})` (新增配置选择器, server 移入 config)
+- **AdminModelOps.vue** — API 健康 SLO: 改用 `listSLOs/createSLO/deleteSLO/stats`, payload 对齐后端 `SloCreate` (target_latency_ms / target_success_rate)
+- **AdminReleaseOps.vue** — 改为 Agent 中心模型: `agentVersionApi.listVersions/createVersion/publish/rollback` + `publishApi.list/create/deploy/undeploy` + 灰度发布 `grayReleaseApi`
+- **AdminBilling.vue** — `analyticsV2Api.trend` → `cost`
+- **AdminEvalCenter.vue** — `datasetApi.listItems/import` → `listEntries/importEntries`; `annotationApi.submit` → `annotate`
+- **AdminKnowledgeOps.vue** — `graphRagApi.list`→`listTasks`; `docParsingApi.result`→`results`; `nl2sqlApi.schemas/translate`→`listSchemas/generate`; `searchAdminApi.test`→`search`
+
+#### 验证
+
+- 后端 `app.openapi()` 展开 492 路由, 契约校验脚本 0 不匹配
+- 前端 `npm run build` 通过 (3.7s)
+- 后端 pytest: 1732 passed; 7 failed / 13 error 为仓库既有问题 (停用词提取 / 特性开关 rerank / 认证夹具 / coderepo 适配器), 与本轮改动无关
+
 ## [v2.2.0] - 2026-07-22
 
 ### 第三轮 P1 级缺失功能补全

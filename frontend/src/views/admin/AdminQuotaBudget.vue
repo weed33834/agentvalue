@@ -11,57 +11,90 @@
       <!-- ============ 配额管理 ============ -->
       <el-tab-pane label="配额管理" name="quota">
         <div class="toolbar mb-16">
-          <el-input v-model="quotaFilter.tenant" placeholder="按租户筛选" clearable style="width: 220px" @change="loadQuotas" />
+          <el-select v-model="usageDays" style="width: 160px" @change="loadQuotas">
+            <el-option :value="7" label="最近 7 天" />
+            <el-option :value="30" label="最近 30 天" />
+            <el-option :value="90" label="最近 90 天" />
+          </el-select>
           <el-button :loading="quotaLoading" @click="loadQuotas">
             <el-icon><RefreshLeft /></el-icon>刷新
           </el-button>
+          <el-button type="warning" :loading="resetting" @click="handleResetQuota">
+            重置今日用量
+          </el-button>
         </div>
+
+        <!-- 当前租户配额概览 (后端 H2: 租户由上下文解析,不支持跨租户查询) -->
+        <el-card v-loading="quotaLoading" class="mb-16">
+          <template #header>
+            <span>当前租户配额</span>
+            <el-tag v-if="quota" size="small" :type="quota.enabled ? 'success' : 'info'" class="ml-8">
+              {{ quota.enabled ? '已启用' : '未启用' }}
+            </el-tag>
+          </template>
+          <el-descriptions v-if="quota" :column="2" border>
+            <el-descriptions-item label="租户 ID">{{ quota.tenant_id || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="配额重置时间">{{ formatTime(quota.quota_reset_at) }}</el-descriptions-item>
+            <el-descriptions-item label="今日请求数">
+              <div class="usage-cell">
+                <el-progress
+                  :percentage="requestPercent"
+                  :color="usageColor(requestPercent)"
+                  :stroke-width="14"
+                  :text-inside="true"
+                />
+                <span class="usage-text">
+                  {{ formatNum(quota.current_requests_today) }} / {{ formatNum(quota.max_requests_per_day) }}
+                </span>
+              </div>
+            </el-descriptions-item>
+            <el-descriptions-item label="今日 Token 数">
+              <div class="usage-cell">
+                <el-progress
+                  :percentage="tokenPercent"
+                  :color="usageColor(tokenPercent)"
+                  :stroke-width="14"
+                  :text-inside="true"
+                />
+                <span class="usage-text">
+                  {{ formatNum(quota.current_tokens_today) }} / {{ formatNum(quota.max_tokens_per_day) }}
+                </span>
+              </div>
+            </el-descriptions-item>
+            <el-descriptions-item label="最大 API Key 数">{{ formatNum(quota.max_api_keys) }}</el-descriptions-item>
+            <el-descriptions-item label="更新时间">{{ formatTime(quota.updated_at) }}</el-descriptions-item>
+          </el-descriptions>
+          <el-empty v-else description="暂无配额数据" />
+        </el-card>
+
+        <!-- 用量汇总 + 每日明细 -->
         <el-card v-loading="quotaLoading">
-          <el-table :data="quotas" stripe empty-text="暂无配额记录">
-            <el-table-column prop="tenant_id" label="租户 ID" min-width="160" show-overflow-tooltip />
-            <el-table-column prop="resource" label="资源" min-width="140" />
-            <el-table-column label="用量 / 配额" min-width="220">
-              <template #default="{ row }">
-                <div class="usage-cell">
-                  <el-progress
-                    :percentage="usagePercent(row)"
-                    :color="usageColor(usagePercent(row))"
-                    :stroke-width="14"
-                    :text-inside="true"
-                  />
-                  <span class="usage-text">{{ formatNum(row.used) }} / {{ formatNum(row.limit) }}</span>
-                </div>
-              </template>
+          <template #header>
+            <span>用量统计（最近 {{ usageDays }} 天）</span>
+          </template>
+          <el-row v-if="usageSummary" :gutter="16" class="mb-16">
+            <el-col :span="8">
+              <el-statistic title="总请求数" :value="usageSummary.total_requests || 0" />
+            </el-col>
+            <el-col :span="8">
+              <el-statistic title="总 Token 数" :value="usageSummary.total_tokens || 0" />
+            </el-col>
+            <el-col :span="8">
+              <el-statistic title="总成本 (USD)" :value="usageSummary.total_cost || 0" :precision="4" />
+            </el-col>
+          </el-row>
+          <el-table :data="dailyUsage" stripe empty-text="暂无用量记录" max-height="420">
+            <el-table-column prop="usage_date" label="日期" min-width="140" />
+            <el-table-column label="请求数" min-width="120">
+              <template #default="{ row }">{{ formatNum(row.request_count) }}</template>
             </el-table-column>
-            <el-table-column label="周期" width="120">
-              <template #default="{ row }">{{ row.period || '—' }}</template>
+            <el-table-column label="Token 数" min-width="140">
+              <template #default="{ row }">{{ formatNum(row.token_count) }}</template>
             </el-table-column>
-            <el-table-column label="重置时间" width="180">
-              <template #default="{ row }">{{ formatTime(row.reset_at) }}</template>
-            </el-table-column>
-            <el-table-column label="操作" width="120" fixed="right">
-              <template #default="{ row }">
-                <el-button
-                  size="small" link type="warning"
-                  :loading="resettingId === row.id"
-                  @click="handleResetQuota(row)"
-                >
-                  重置
-                </el-button>
-              </template>
+            <el-table-column label="成本 (USD)" min-width="140">
+              <template #default="{ row }">{{ (row.cost_usd ?? 0).toFixed(6) }}</template>
             </el-table-column>
           </el-table>
-          <div class="pagination-wrapper">
-            <el-pagination
-              v-model:current-page="quotaPage"
-              v-model:page-size="quotaPageSize"
-              :total="quotaTotal"
-              :page-sizes="[10, 20, 50]"
-              layout="total, sizes, prev, pager, next, jumper"
-              @size-change="loadQuotas"
-              @current-change="loadQuotas"
-            />
-          </div>
         </el-card>
       </el-tab-pane>
 
@@ -164,51 +197,68 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { quotaApi, budgetApi } from '@/api/client'
 
 const activeTab = ref('quota')
 
 // ====== 配额 ======
+// 后端 H2 安全加固: 租户 ID 由服务端从请求上下文解析,不接受路径/查询参数,
+// 因此本页展示"当前租户"的配额与用量,不做跨租户列表。
 const quotaLoading = ref(false)
-const quotas = ref([])
-const quotaTotal = ref(0)
-const quotaPage = ref(1)
-const quotaPageSize = ref(20)
-const quotaFilter = reactive({ tenant: '' })
-const resettingId = ref(null)
+const quota = ref(null)
+const usageSummary = ref(null)
+const dailyUsage = ref([])
+const usageDays = ref(30)
+const resetting = ref(false)
+
+function percentOf(used, limit) {
+  const u = Number(used) || 0
+  const l = Number(limit) || 0
+  if (l <= 0) return 0
+  return Math.min(100, Math.round((u / l) * 100))
+}
+
+const requestPercent = computed(() =>
+  percentOf(quota.value?.current_requests_today, quota.value?.max_requests_per_day)
+)
+const tokenPercent = computed(() =>
+  percentOf(quota.value?.current_tokens_today, quota.value?.max_tokens_per_day)
+)
 
 async function loadQuotas() {
   quotaLoading.value = true
   try {
-    const params = { page: quotaPage.value, page_size: quotaPageSize.value }
-    if (quotaFilter.tenant) params.tenant_id = quotaFilter.tenant
-    const data = await quotaApi.list(params)
-    quotas.value = data.items || []
-    quotaTotal.value = data.total || 0
+    const [quotaData, usageData] = await Promise.all([
+      quotaApi.get(),
+      quotaApi.usage({ days: usageDays.value }),
+    ])
+    quota.value = quotaData || null
+    usageSummary.value = usageData?.summary || null
+    dailyUsage.value = usageData?.daily || []
   } catch (err) {
-    ElMessage.error('加载配额列表失败: ' + (err.message || ''))
+    ElMessage.error('加载配额信息失败: ' + (err.message || ''))
   } finally {
     quotaLoading.value = false
   }
 }
 
-async function handleResetQuota(row) {
+async function handleResetQuota() {
   try {
-    await ElMessageBox.confirm(`确认重置租户 ${row.tenant_id} 的 ${row.resource} 配额用量?`, '重置确认', { type: 'warning' })
+    await ElMessageBox.confirm('确认重置当前租户今日配额用量?', '重置确认', { type: 'warning' })
   } catch {
     return
   }
-  resettingId.value = row.id
+  resetting.value = true
   try {
-    await quotaApi.reset(row.id)
+    await quotaApi.reset()
     ElMessage.success('配额用量已重置')
     await loadQuotas()
   } catch (err) {
     ElMessage.error('重置配额失败: ' + (err.message || ''))
   } finally {
-    resettingId.value = null
+    resetting.value = false
   }
 }
 
@@ -300,11 +350,6 @@ async function handleDeleteBudget(row) {
 }
 
 // ====== 工具函数 ======
-function usagePercent(row) {
-  const limit = Number(row.limit) || 0
-  if (limit <= 0) return 0
-  return Math.min(100, Math.round((Number(row.used) || 0) / limit * 100))
-}
 function budgetPercent(row) {
   const amount = Number(row.amount) || 0
   if (amount <= 0) return 0
@@ -337,7 +382,7 @@ function formatTime(iso) {
 }
 
 function onTabChange(name) {
-  if (name === 'quota' && quotas.value.length === 0) loadQuotas()
+  if (name === 'quota' && !quota.value) loadQuotas()
   if (name === 'budget' && budgets.value.length === 0) loadBudgets()
 }
 

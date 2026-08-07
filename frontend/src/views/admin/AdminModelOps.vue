@@ -85,9 +85,10 @@
             <el-table-column prop="id" label="ID" width="70" align="center" />
             <el-table-column prop="name" label="SLO 名称" min-width="160" show-overflow-tooltip />
             <el-table-column prop="endpoint" label="端点" min-width="180" show-overflow-tooltip />
-            <el-table-column label="目标" width="120"><template #default="{ row }">{{ row.target != null ? row.target : '—' }}</template></el-table-column>
-            <el-table-column label="当前" width="120"><template #default="{ row }">{{ row.current != null ? row.current : '—' }}</template></el-table-column>
-            <el-table-column label="状态" width="120">
+            <el-table-column label="目标延迟" width="110"><template #default="{ row }">{{ row.target_latency_ms != null ? row.target_latency_ms + 'ms' : '—' }}</template></el-table-column>
+            <el-table-column label="目标成功率" width="120"><template #default="{ row }">{{ row.target_success_rate != null ? (row.target_success_rate * 100).toFixed(2) + '%' : '—' }}</template></el-table-column>
+            <el-table-column label="窗口" width="90"><template #default="{ row }">{{ row.window_minutes != null ? row.window_minutes + 'min' : '—' }}</template></el-table-column>
+            <el-table-column label="状态" width="110">
               <template #default="{ row }">
                 <el-tag size="small" :type="sloStatusType(row)">{{ sloStatusLabel(row) }}</el-tag>
               </template>
@@ -289,17 +290,29 @@ const slos = ref([])
 const endpointStats = ref({})
 const endpointCards = [
   { key: 'total_endpoints', label: '端点总数' },
-  { key: 'healthy', label: '健康端点' },
-  { key: 'degraded', label: '降级端点' },
-  { key: 'down', label: '不可用端点' },
+  { key: 'total_requests', label: '总请求数' },
+  { key: 'error_rate', label: '错误率' },
+  { key: 'avg_latency_ms', label: '平均延迟(ms)' },
 ]
 
 async function loadSlos() {
   sloLoading.value = true
   try {
-    const [sloData, epData] = await Promise.all([apiHealthApi.slos(), apiHealthApi.endpoints()])
-    slos.value = sloData.items || []
-    endpointStats.value = epData.summary || epData || {}
+    // stats 为后端聚合总览 (summary + slo)，listSLOs 为 SLO 定义列表
+    const [sloData, statsData, statusData] = await Promise.all([
+      apiHealthApi.listSLOs(),
+      apiHealthApi.stats(),
+      apiHealthApi.status().catch(() => null),
+    ])
+    const statusMap = new Map((statusData?.items || []).map((s) => [s.slo_id ?? s.id, s]))
+    slos.value = (sloData.items || []).map((s) => ({ ...s, _status: statusMap.get(s.id) || null }))
+    const summary = statsData?.summary || {}
+    endpointStats.value = {
+      total_endpoints: summary.endpoint_count ?? 0,
+      total_requests: summary.total_requests ?? 0,
+      error_rate: summary.error_rate != null ? (summary.error_rate * 100).toFixed(2) + '%' : '—',
+      avg_latency_ms: summary.avg_latency_ms ?? 0,
+    }
   } catch (err) {
     ElMessage.error('加载 SLO 失败: ' + (err.message || ''))
   } finally {
@@ -310,14 +323,14 @@ async function loadSlos() {
 const sloDialogVisible = ref(false)
 const sloSubmitting = ref(false)
 const sloFormRef = ref(null)
-const sloForm = reactive({ name: '', endpoint: '', target: 99.9, metric: 'availability' })
+const sloForm = reactive({ name: '', endpoint: '', target_latency_ms: 1000, target_success_rate: 99, window_minutes: 5 })
 const sloRules = {
   name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
   endpoint: [{ required: true, message: '请输入端点', trigger: 'blur' }],
 }
 
 function openSloDialog() {
-  Object.assign(sloForm, { name: '', endpoint: '', target: 99.9, metric: 'availability' })
+  Object.assign(sloForm, { name: '', endpoint: '', target_latency_ms: 1000, target_success_rate: 99, window_minutes: 5 })
   sloDialogVisible.value = true
 }
 
@@ -326,7 +339,15 @@ async function handleSubmitSlo() {
   try { await sloFormRef.value.validate() } catch { return }
   sloSubmitting.value = true
   try {
-    await apiHealthApi.createSlo({ name: sloForm.name, endpoint: sloForm.endpoint, target: sloForm.target, metric: sloForm.metric })
+    await apiHealthApi.createSLO({
+      name: sloForm.name,
+      endpoint: sloForm.endpoint,
+      target_latency_ms: sloForm.target_latency_ms,
+      // 后端 target_success_rate 取值区间为 0-1
+      target_success_rate: sloForm.target_success_rate / 100,
+      window_minutes: sloForm.window_minutes,
+      enabled: true,
+    })
     ElMessage.success('创建成功')
     sloDialogVisible.value = false
     await loadSlos()
@@ -340,7 +361,7 @@ async function handleSubmitSlo() {
 async function handleDeleteSlo(row) {
   try { await ElMessageBox.confirm(`确认删除 SLO "${row.name}"?`, '删除确认', { type: 'warning' }) } catch { return }
   try {
-    await apiHealthApi.deleteSlo(row.id)
+    await apiHealthApi.deleteSLO(row.id)
     ElMessage.success('删除成功')
     await loadSlos()
   } catch (err) {
@@ -351,12 +372,12 @@ async function handleDeleteSlo(row) {
 function healthTagType(v) { return { healthy: 'success', degraded: 'warning', down: 'danger' }[v] || 'info' }
 function healthLabel(v) { return { healthy: '健康', degraded: '降级', down: '不可用' }[v] || v || '—' }
 function sloStatusType(row) {
-  if (row.current == null || row.target == null) return 'info'
-  return Number(row.current) >= Number(row.target) ? 'success' : 'danger'
+  if (!row._status) return row.enabled === false ? 'info' : 'info'
+  return row._status.achieved ? 'success' : 'danger'
 }
 function sloStatusLabel(row) {
-  if (row.current == null || row.target == null) return '—'
-  return Number(row.current) >= Number(row.target) ? '达标' : '未达标'
+  if (!row._status) return row.enabled === false ? '已停用' : '无数据'
+  return row._status.achieved ? '达标' : '未达标'
 }
 
 function onTabChange(name) {

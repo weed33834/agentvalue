@@ -1,7 +1,7 @@
 {
   "name": "agentvalue-frontend",
   "private": true,
-  "version": "2.2.0",
+  "version": "2.3.0",
   "license": "CNCL-1.0",
   "type": "module",
   "description": "AgentValue 前端 — 员工 / 主管 / HR / 管理后台四端可视化",

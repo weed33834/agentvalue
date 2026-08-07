@@ -229,7 +229,7 @@ const graphTasks = ref([])
 
 async function loadGraphTasks() {
   grLoading.value = true
-  try { const data = await graphRagApi.list(); graphTasks.value = data.items || [] }
+  try { const data = await graphRagApi.listTasks(); graphTasks.value = data.items || [] }
   catch (err) { ElMessage.error('加载 GraphRAG 任务失败: ' + (err.message || '')) } finally { grLoading.value = false }
 }
 
@@ -335,7 +335,7 @@ async function openParseResult(row) {
   parseResultVisible.value = true
   parseResultText.value = '加载中...'
   try {
-    const data = await docParsingApi.result(row.id)
+    const data = await docParsingApi.results(row.id)
     parseResultText.value = typeof data === 'string' ? data : JSON.stringify(data, null, 2)
   } catch (err) { parseResultText.value = '加载失败: ' + (err.message || '') }
 }
@@ -352,7 +352,7 @@ const execResult = ref(null)
 
 async function loadSchemas() {
   schemaLoading.value = true
-  try { const data = await nl2sqlApi.schemas(); schemas.value = data.items || [] }
+  try { const data = await nl2sqlApi.listSchemas(); schemas.value = data.items || [] }
   catch (err) { ElMessage.error('加载 Schema 失败: ' + (err.message || '')) } finally { schemaLoading.value = false }
 }
 
@@ -360,7 +360,7 @@ async function handleTranslate() {
   if (!nlQuestion.value.trim()) { ElMessage.warning('请输入自然语言问题'); return }
   translateLoading.value = true
   try {
-    const data = await nl2sqlApi.translate({ question: nlQuestion.value, schema_id: nlSchema.value || undefined })
+    const data = await nl2sqlApi.generate({ question: nlQuestion.value, schema_id: nlSchema.value || undefined })
     nlSql.value = data.sql || data.query || JSON.stringify(data)
   } catch (err) { ElMessage.error('翻译失败: ' + (err.message || '')) } finally { translateLoading.value = false }
 }
@@ -401,7 +401,7 @@ async function handleSearchTest() {
   if (!testQuery.value.trim()) { ElMessage.warning('请输入测试查询'); return }
   testLoading.value = true
   testResult.value = null
-  try { testResult.value = await searchAdminApi.test({ query: testQuery.value }) }
+  try { testResult.value = await searchAdminApi.search({ query: testQuery.value }) }
   catch (err) { ElMessage.error('测试失败: ' + (err.message || '')) } finally { testLoading.value = false }
 }
 

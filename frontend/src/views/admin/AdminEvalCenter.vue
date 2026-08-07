@@ -292,7 +292,7 @@ async function openItemsDialog(row) {
 
 async function loadItems() {
   itemsLoading.value = true
-  try { const data = await datasetApi.listItems(itemsTarget.value.id, { page: itemsPage.value, page_size: 20 }); items.value = data.items || []; itemsTotal.value = data.total || 0 }
+  try { const data = await datasetApi.listEntries(itemsTarget.value.id, { page: itemsPage.value, page_size: 20 }); items.value = data.items || []; itemsTotal.value = data.total || 0 }
   catch (err) { ElMessage.error('加载条目失败: ' + (err.message || '')) } finally { itemsLoading.value = false }
 }
 
@@ -310,7 +310,7 @@ async function handleImport() {
   try { items = JSON.parse(importText.value) } catch { ElMessage.error('不是合法的 JSON 数组'); return }
   if (!Array.isArray(items)) { ElMessage.error('需为 JSON 数组'); return }
   importSubmitting.value = true
-  try { const data = await datasetApi.import(importTarget.value.id, { items }); ElMessage.success(`导入 ${data.imported ?? items.length} 条`); importDialogVisible.value = false }
+  try { const data = await datasetApi.importEntries(importTarget.value.id, { items }); ElMessage.success(`导入 ${data.imported ?? items.length} 条`); importDialogVisible.value = false }
   catch (err) { ElMessage.error('导入失败: ' + (err.message || '')) } finally { importSubmitting.value = false }
 }
 
@@ -468,7 +468,7 @@ function openSubmitDialog(row) { submitTarget.value = row; Object.assign(submitF
 async function handleSubmitLabel() {
   if (!submitForm.item_id) { ElMessage.warning('请输入条目 ID'); return }
   submitSubmitting.value = true
-  try { await annotationApi.submit(submitTarget.value.id, { item_id: submitForm.item_id, label: submitForm.label, score: submitForm.score }); ElMessage.success('提交成功'); submitDialogVisible.value = false; await loadAnnotations() }
+  try { await annotationApi.annotate(submitTarget.value.id, { item_id: submitForm.item_id, label: submitForm.label, score: submitForm.score }); ElMessage.success('提交成功'); submitDialogVisible.value = false; await loadAnnotations() }
   catch (err) { ElMessage.error('提交失败: ' + (err.message || '')) } finally { submitSubmitting.value = false }
 }
 

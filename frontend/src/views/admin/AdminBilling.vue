@@ -164,7 +164,7 @@ async function loadSummary() {
 async function loadTrend() {
   trendLoading.value = true
   try {
-    const data = await analyticsV2Api.trend({ ...dateParams(), metric: 'cost' })
+    const data = await analyticsV2Api.cost({ ...dateParams() })
     trend.value = data.items || data.points || []
   } catch (err) {
     ElMessage.error('加载趋势失败: ' + (err.message || ''))
