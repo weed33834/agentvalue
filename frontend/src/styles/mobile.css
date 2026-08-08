@@ -249,3 +249,140 @@
 .m-fade-leave-to {
   opacity: 0;
 }
+
+/* ===== 移动端表单（工作录入 / 反馈申诉等） ===== */
+.m-field {
+  display: block;
+  margin-bottom: 14px;
+}
+.m-field__label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 6px;
+}
+.m-field__hint {
+  display: block;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.m-input,
+.m-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--el-border-color);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 15px;
+  font-family: inherit;
+  background: var(--el-bg-color);
+  color: var(--el-text-color-primary);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.m-input:focus,
+.m-textarea:focus {
+  outline: none;
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.15);
+}
+.m-textarea {
+  resize: vertical;
+  min-height: 96px;
+  line-height: 1.6;
+}
+.m-seg {
+  display: flex;
+  background: var(--el-fill-color-light);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 3px;
+}
+.m-seg__item {
+  flex: 1;
+  text-align: center;
+  padding: 8px 0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  background: transparent;
+  border: none;
+}
+.m-seg__item--active {
+  background: var(--el-bg-color);
+  color: var(--el-color-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.m-list-item--select {
+  border-left: 3px solid transparent;
+}
+.m-list-item--select.m-list-item--active {
+  border-left-color: var(--el-color-primary);
+  background: rgba(64, 158, 255, 0.06);
+}
+.m-attach {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.m-attach:last-child {
+  border-bottom: none;
+}
+.m-attach__name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--el-text-color-regular);
+}
+.m-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
+}
+.m-tag--ok {
+  background: rgba(103, 194, 58, 0.15);
+  color: var(--el-color-success);
+}
+.m-tag--err {
+  background: rgba(245, 108, 108, 0.15);
+  color: var(--el-color-danger);
+}
+.m-tag--go {
+  background: rgba(64, 158, 255, 0.15);
+  color: var(--el-color-primary);
+}
+.m-tag--warn {
+  background: rgba(230, 162, 60, 0.15);
+  color: var(--el-color-warning);
+}
+.m-result {
+  text-align: center;
+  padding: 28px 12px;
+}
+.m-result__icon {
+  font-size: 44px;
+  line-height: 1;
+}
+.m-result__title {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 12px 0 6px;
+}
+.m-result__sub {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.6;
+  word-break: break-all;
+}

@@ -17,13 +17,109 @@
 """
 
 import logging
+from contextlib import AsyncExitStack
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.metrics import record_evaluation_failure
+from core.observe import current_trace_id, record_llm_usage, span, trace_context
 from core.providers.base import ChatCompletion, ChatMessage
 from core.tracing import tracer
 
 logger = logging.getLogger(__name__)
+
+
+async def _invoke_provider(
+    provider: Any,
+    messages: List[ChatMessage],
+    response_format: Optional[Dict[str, str]],
+    *,
+    tier: str,
+    employee_id: Optional[str],
+    period: Optional[str],
+) -> ChatCompletion:
+    """WS-1：带观测埋点地调用 provider.chat_completion。
+
+    在原调用外套一层 ``span(kind="llm")``，并在返回后：
+    1. 从 ``completion.usage`` 取 token 用量 → ``span.set_usage`` 计算成本；
+    2. 落 ``ConversationMetrics`` + ``BillingRecord``（成本账本唯一写入点）。
+
+    无活跃 trace 时自动开一条隐式 trace（对标 Langfuse 的 orphan generation），
+    保证自托管部署下链路数据不会因为上游没埋点而全部丢失。
+
+    埋点与账本写入的任何失败都只告警，不影响补全结果与异常语义：
+    provider 抛出的异常会被 span 记录后原样向上抛，由调用方走降级重试逻辑。
+    """
+    model_name = (
+        getattr(getattr(provider, "config", None), "model_name", None) or "unknown"
+    )
+    provider_name = None
+    try:
+        name_attr = getattr(provider, "name", None)
+        provider_name = name_attr() if callable(name_attr) else name_attr
+    except Exception:
+        logger.debug("provider 名称获取失败", exc_info=True)
+
+    async with AsyncExitStack() as stack:
+        if current_trace_id() is None:
+            await stack.enter_async_context(
+                trace_context(
+                    f"llm_call:{model_name}",
+                    kind="chat",
+                    user_id=employee_id,
+                    metadata={"period": period, "tier": tier},
+                )
+            )
+        llm_span = span(
+            "llm.chat_completion",
+            kind="llm",
+            model=model_name,
+            provider=provider_name,
+            input={"messages": [getattr(m, "__dict__", m) for m in messages]},
+            attributes={"tier": tier, "employee_id": employee_id, "period": period},
+        )
+        try:
+            async with llm_span:
+                completion = await provider.chat_completion(
+                    messages=messages,
+                    response_format=response_format,
+                )
+                # 兼容部分 Provider 在结果上挂 error 字段表示非异常失败
+                if getattr(completion, "error", None):
+                    raise RuntimeError(f"provider 返回错误: {completion.error}")
+                usage = getattr(completion, "usage", None) or {}
+                llm_span.set_usage(
+                    usage.get("prompt_tokens", 0),
+                    usage.get("completion_tokens", 0),
+                    model=getattr(completion, "model", None) or model_name,
+                    total_tokens=usage.get("total_tokens"),
+                )
+                llm_span.set_output(getattr(completion, "content", None))
+        except Exception as exc:
+            # 失败也入账本（status=error），否则 /analytics-v2/error-rate 永远为空
+            await record_llm_usage(
+                model=llm_span.model,
+                prompt_tokens=llm_span.prompt_tokens,
+                completion_tokens=llm_span.completion_tokens,
+                cost=llm_span.cost,
+                latency_ms=llm_span.duration_ms,
+                conversation_id=llm_span.trace_id,
+                user_id=employee_id,
+                status="error",
+                error_message=str(exc)[:1000],
+            )
+            raise
+
+        await record_llm_usage(
+            model=llm_span.model,
+            prompt_tokens=llm_span.prompt_tokens,
+            completion_tokens=llm_span.completion_tokens,
+            cost=llm_span.cost,
+            latency_ms=llm_span.duration_ms,
+            conversation_id=llm_span.trace_id,
+            user_id=employee_id,
+            status="success",
+        )
+        return completion
 
 
 async def call_llm_with_fallback(
@@ -69,13 +165,16 @@ async def call_llm_with_fallback(
 
     provider, tier = await model_router.get_provider_with_fallback()
     try:
-        completion = await provider.chat_completion(
-            messages=messages,
-            response_format=response_format,
+        # WS-1：埋点 + 成本账本落库在 _invoke_provider 内完成，
+        # provider 返回 error 字段的非异常失败同样在其中转为 RuntimeError
+        completion = await _invoke_provider(
+            provider,
+            messages,
+            response_format,
+            tier=tier,
+            employee_id=employee_id,
+            period=period,
         )
-        # 兼容部分 Provider 在结果上挂 error 字段表示非异常失败
-        if getattr(completion, "error", None):
-            raise RuntimeError(f"provider 返回错误: {completion.error}")
         return completion, tier
     except Exception as first_err:
         # LLM 调用失败，触发 runtime_reselect 档位降级并重试一次
@@ -119,9 +218,13 @@ async def call_llm_with_fallback(
             ):
                 # get_provider 为同步方法
                 retry_provider = model_router.get_provider(new_tier)
-                retry_completion = await retry_provider.chat_completion(
-                    messages=messages,
-                    response_format=response_format,
+                retry_completion = await _invoke_provider(
+                    retry_provider,
+                    messages,
+                    response_format,
+                    tier=new_tier,
+                    employee_id=employee_id,
+                    period=period,
                 )
             if getattr(retry_completion, "error", None):
                 raise RuntimeError(f"provider 返回错误: {retry_completion.error}")

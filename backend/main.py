@@ -66,6 +66,7 @@ from api.admin.agents_crud_routes import router as admin_agents_crud_router  # n
 from api.admin.publish_manage_routes import router as admin_publish_manage_router  # noqa: E402
 # 契约补齐集合路由 (11 个跨模块补充端点, 必须最后挂载)
 from api.admin.contract_supplement_routes import router as admin_contract_supplement_router  # noqa: E402
+from api.feature_registry import register_feature_routers  # noqa: E402
 # 工具配置 (超时管理)
 from api.admin.tool_config_routes import router as admin_tool_config_router  # noqa: E402
 # 敏感词字典管理 (增删改查 + 文本审核 + 导入导出)
@@ -158,6 +159,8 @@ from core.rate_limit import (  # noqa: E402
     _rate_limit_exceeded_handler,
     limiter,
 )
+# WS-4: Redis 分布式限流中间件（四维令牌桶; Redis 不可用时降级 slowapi 兜底）
+from core.redis_rate_limit import RedisRateLimitMiddleware  # noqa: E402
 
 
 @asynccontextmanager
@@ -181,6 +184,13 @@ async def lifespan(app: FastAPI):
         set_app_state_for_graph(app.state.app_state)
     except Exception as e:
         logger.warning("Graph app state 设置失败: %s", e, exc_info=True)
+    # WS-1: 启动原生 Trace/Span 批量写入器 (降级容错：启动失败时采集走直写)
+    try:
+        from core.observe import start_trace_writer
+
+        start_trace_writer()
+    except Exception as e:
+        logger.warning("原生 Trace 写入器启动失败: %s", e, exc_info=True)
     # P1-1: OpenTelemetry 分布式追踪 (降级容错：未安装/未配置时跳过)
     try:
         from core.tracing import setup_tracing
@@ -265,6 +275,13 @@ async def lifespan(app: FastAPI):
                 set_scheduler(None)
         except Exception as e:
             logger.warning("定时任务调度器停止失败: %s", e, exc_info=True)
+        # WS-1: 停止原生 Trace 写入器并 flush 队列中剩余记录
+        try:
+            from core.observe import stop_trace_writer
+
+            await stop_trace_writer()
+        except Exception as e:
+            logger.warning("原生 Trace 写入器停止失败: %s", e, exc_info=True)
         # P1-1: 关闭 OpenTelemetry 追踪
         try:
             from core.tracing import shutdown_tracing
@@ -309,7 +326,7 @@ class LimitRequestBodyMiddleware(BaseHTTPMiddleware):
 app = FastAPI(
     title="AgentValue",
     description="AI 驱动员工价值量化与成长 Agent 系统",
-    version="2.3.0",
+    version="2.4.0",
     lifespan=lifespan,
 )
 
@@ -356,6 +373,11 @@ if SLOWAPI_AVAILABLE:
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
     app.add_middleware(SlowAPIMiddleware)
+
+# WS-4: Redis 分布式限流中间件。必须注册在 TenantMiddleware / ApiKeyMiddleware
+# 之前（即运行时在其内侧），才能读到已写入的租户上下文与 api_key_id。
+# Redis 不可用（含 REDIS_URL 未配置）时自动降级为 slowapi 进程内限流兜底。
+app.add_middleware(RedisRateLimitMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -618,6 +640,10 @@ app.include_router(webhook_router)
 app.include_router(admin_webhook_event_router, tags=["admin-webhook-events"])
 # 站内通知系统(列表/未读数/已读/删除)
 app.include_router(notification_router)
+
+# v3 特性路由（可观测/评估实验/集成开放/治理加固）——集中声明于 api.feature_registry，
+# 避免本文件的 include_router 列表继续膨胀成合并冲突热点。
+register_feature_routers(app)
 
 # 契约补齐集合路由 —— 必须最后挂载。
 # 本模块含多个动态路径 (/budgets/{id}、/alerts/{id}、/scheduler/tasks/{id} 等),

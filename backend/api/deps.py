@@ -3,10 +3,14 @@ FastAPI 依赖注入
 """
 
 import asyncio
+import json
 import logging
-from typing import Any
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Any, Callable
 
 from fastapi import Depends, HTTPException, Request, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.graph import create_evaluation_graph
@@ -26,6 +30,182 @@ from services.audit_service import AuditService
 from services.evaluation_service import EvaluationService
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# WS-3：API Key Scope 权限词表与依赖
+# ---------------------------------------------------------------------------
+
+#: API Key scope 词表。key 为 scope 名，value 为中文描述（供 admin UI / 文档展示）。
+#: 约定 ``<资源>:<动作>`` 两段式，动作固定为 read / write / invoke。
+#: 通配符：``*`` 代表全部权限；``evaluations:*`` 代表该资源下全部动作。
+API_KEY_SCOPES: dict[str, str] = {
+    "*": "全部权限（超级 Key，慎用）",
+    "evaluations:read": "读取评估记录",
+    "evaluations:write": "创建/提交评估",
+    "agents:read": "读取 Agent 列表与配置",
+    "agents:invoke": "调用 Agent 执行",
+    "datasets:read": "读取数据集与数据项",
+    "traces:read": "读取调用链路追踪数据",
+    "webhooks:read": "读取 Webhook 订阅与投递记录",
+    "webhooks:write": "管理 Webhook 订阅",
+}
+
+#: 未显式配置 scopes 的历史 Key 的兜底权限（只读，最小权限原则）。
+DEFAULT_API_KEY_SCOPES: tuple[str, ...] = (
+    "evaluations:read",
+    "agents:read",
+    "datasets:read",
+)
+
+
+@dataclass
+class ApiKeyPrincipal:
+    """通过 API Key 鉴权后的调用方身份
+
+    由 :func:`require_api_key` 注入到公共 API 端点，
+    携带租户、scope 与限流配额，供端点做数据隔离与配额判断。
+    """
+
+    key_id: str
+    tenant_id: str
+    name: str
+    scopes: list[str] = field(default_factory=list)
+    rate_limit_per_minute: int = 60
+
+    def has_scope(self, scope: str) -> bool:
+        """判断当前 Key 是否覆盖指定 scope（支持 ``*`` 与 ``资源:*`` 通配）"""
+        return scope_satisfied(self.scopes, scope)
+
+
+def parse_api_key_scopes(raw: str | None) -> list[str]:
+    """解析 ApiKey.scopes 字段（Text 存 JSON 数组，兼容逗号分隔的历史数据）
+
+    解析失败或为空时返回 :data:`DEFAULT_API_KEY_SCOPES`，保证老 Key 仍可只读访问。
+    """
+    if not raw:
+        return list(DEFAULT_API_KEY_SCOPES)
+    text = raw.strip()
+    if not text:
+        return list(DEFAULT_API_KEY_SCOPES)
+    if text.startswith("["):
+        try:
+            parsed = json.loads(text)
+        except (ValueError, TypeError):
+            logger.warning("API Key scopes 解析失败,降级为默认只读 scope")
+            return list(DEFAULT_API_KEY_SCOPES)
+        if isinstance(parsed, list):
+            scopes = [str(s).strip() for s in parsed if str(s).strip()]
+            return scopes or list(DEFAULT_API_KEY_SCOPES)
+        return list(DEFAULT_API_KEY_SCOPES)
+    # 兼容 "a,b,c" / "a b c" 形式
+    separator = "," if "," in text else " "
+    scopes = [s.strip() for s in text.split(separator) if s.strip()]
+    return scopes or list(DEFAULT_API_KEY_SCOPES)
+
+
+def scope_satisfied(granted: list[str] | tuple[str, ...], required: str) -> bool:
+    """判断 granted 集合是否覆盖 required 这一个 scope
+
+    匹配规则（按优先级）：
+    1. ``*`` —— 覆盖一切；
+    2. 完全相等；
+    3. ``资源:*`` —— 覆盖该资源下全部动作。
+    """
+    if not required:
+        return True
+    resource = required.split(":", 1)[0]
+    for item in granted:
+        if item == "*" or item == required:
+            return True
+        if item.endswith(":*") and item[:-2] == resource:
+            return True
+    return False
+
+
+async def _load_api_key_principal(
+    request: Request, session: AsyncSession
+) -> ApiKeyPrincipal:
+    """从 request.state.api_key_id 还原调用方身份并做实时有效性校验
+
+    ``ApiKeyMiddleware`` 已完成 header 提取与 hash 比对，并注入 ``api_key_id``；
+    这里再查一次库是为了拿到 scopes，并绕过中间件 30s 进程缓存，
+    使吊销 / 过期能即时生效。
+    """
+    key_id = getattr(request.state, "api_key_id", None)
+    if not key_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="缺少有效的 API Key，请在 X-API-Key 请求头中携带",
+            headers={"WWW-Authenticate": "ApiKey"},
+        )
+
+    from models.models import ApiKey
+
+    result = await session.execute(select(ApiKey).where(ApiKey.key_id == key_id))
+    api_key = result.scalar_one_or_none()
+    if api_key is None or not api_key.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API Key 无效或已吊销",
+            headers={"WWW-Authenticate": "ApiKey"},
+        )
+    if api_key.expires_at is not None:
+        expires_at = api_key.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if expires_at <= datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="API Key 已过期",
+                headers={"WWW-Authenticate": "ApiKey"},
+            )
+
+    return ApiKeyPrincipal(
+        key_id=api_key.key_id,
+        tenant_id=api_key.tenant_id,
+        name=api_key.name,
+        scopes=parse_api_key_scopes(api_key.scopes),
+        rate_limit_per_minute=api_key.rate_limit or 60,
+    )
+
+
+def require_api_key(*required_scopes: str) -> Callable[..., Any]:
+    """构造一个校验 API Key + scope 的 FastAPI 依赖
+
+    用法::
+
+        @router.get("/evaluations", dependencies=[])
+        async def list_evaluations(
+            principal: ApiKeyPrincipal = Depends(require_api_key("evaluations:read")),
+        ): ...
+
+    行为：
+    - 未携带 / 无效 / 已吊销 / 已过期 → 401；
+    - 携带有效 Key 但 scope 不足 → 403，并在 detail 中列出缺失 scope；
+    - 不传 scope 参数时仅校验 Key 有效性。
+
+    注意：本依赖只认 API Key，不接受 JWT，用于 ``/api/public/v1`` 这类对外接口。
+    """
+    for scope in required_scopes:
+        if scope not in API_KEY_SCOPES:
+            # 仅告警不阻断，允许业务先行定义新 scope 再补词表
+            logger.warning("require_api_key 使用了未登记的 scope: %s", scope)
+
+    async def _dependency(
+        request: Request,
+        session: AsyncSession = Depends(get_db),
+    ) -> ApiKeyPrincipal:
+        principal = await _load_api_key_principal(request, session)
+        missing = [s for s in required_scopes if not principal.has_scope(s)]
+        if missing:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"API Key 权限不足，缺少 scope: {', '.join(missing)}",
+            )
+        return principal
+
+    return _dependency
 
 
 class AppState:

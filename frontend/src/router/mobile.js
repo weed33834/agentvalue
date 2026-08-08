@@ -34,7 +34,7 @@ export const mobileRoutes = [
       {
         path: 'input',
         name: 'MobileEmployeeInput',
-        component: MobilePlaceholder,
+        component: () => import('@/views/mobile/employee/Input.vue'),
         meta: { title: '工作录入' },
       },
       {
@@ -46,13 +46,13 @@ export const mobileRoutes = [
       {
         path: 'feedback',
         name: 'MobileEmployeeFeedback',
-        component: MobilePlaceholder,
+        component: () => import('@/views/mobile/employee/Feedback.vue'),
         meta: { title: '反馈申诉' },
       },
       {
         path: 'growth-path',
         name: 'MobileEmployeeGrowth',
-        component: MobilePlaceholder,
+        component: () => import('@/views/mobile/employee/Growth.vue'),
         meta: { title: '成长路径' },
       },
       {

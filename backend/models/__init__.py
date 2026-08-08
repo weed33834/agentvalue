@@ -99,6 +99,9 @@ from models.evaluation_models import EvaluationResult, EvaluationTask
 # RAG 质量评测 (对标 RagFlow 检索测试 + 压力测试)
 from models.rag_eval_models import RagEvalResult, RagEvalTask
 
+# WS-2 实验对比 (对标 Braintrust Experiments / LangSmith Experiments)
+from models.experiment_models import Experiment, ExperimentRun, ExperimentRunItem
+
 # 人工标注工具 (对标 Langfuse Human-in-the-loop)
 from models.annotation_models import Annotation, AnnotationTask
 
@@ -149,6 +152,12 @@ from models.policy import (
     WILDCARD,
     Policy,
 )
+# WS-1: 原生 Trace/Span 存储 (对标 Langfuse / LangSmith 自托管链路追踪)
+from models.trace_models import SpanRecord, TraceRecord
+
+# WS-3: 出站 Webhook 订阅 + 投递日志 (对标 Svix / Stripe Webhooks)
+from models.webhook_subscription import WebhookDelivery, WebhookSubscription
+
 # P1-31: 合规认证框架 (SOC2 / ISO27001, 控制矩阵 + 自动化证据收集)
 from models.compliance import (
     CONTROL_STATUSES,
@@ -247,6 +256,10 @@ __all__ = [
     # RAG 质量评测
     "RagEvalTask",
     "RagEvalResult",
+    # WS-2 实验对比
+    "Experiment",
+    "ExperimentRun",
+    "ExperimentRunItem",
     # 人工标注工具
     "AnnotationTask",
     "Annotation",
@@ -292,6 +305,12 @@ __all__ = [
     "EFFECTS",
     "WILDCARD",
     "DEFAULT_PRIORITY",
+    # WS-1: 原生 Trace/Span 存储
+    "TraceRecord",
+    "SpanRecord",
+    # WS-3: 出站 Webhook 订阅 + 投递日志
+    "WebhookSubscription",
+    "WebhookDelivery",
     # P1-31: 合规认证框架 (SOC2 / ISO27001)
     "ComplianceControl",
     "ComplianceEvidence",

@@ -78,6 +78,14 @@ _DEFAULT_TASKS: List[Dict[str, Any]] = [
         "cron_expression": "0 5 * * 0",  # 每周日凌晨 5 点
         "task_type": "notification",
     },
+    {
+        "task_id": "webhook_delivery_retry",
+        "name": "出站 Webhook 投递重试",
+        "description": "扫描到期的出站 Webhook 投递并重投（指数退避 + 死信判定），"
+        "保证进程重启后在途投递不丢失",
+        "cron_expression": "* * * * *",  # 每分钟（秒级退避由 next_retry_at 控制）
+        "task_type": "webhook_delivery",
+    },
 ]
 
 
@@ -263,6 +271,19 @@ async def run_notification_cleanup(
     return {"deleted": deleted}
 
 
+async def run_webhook_delivery_retry(
+    tenant_id: str = DEFAULT_TENANT_ID,
+) -> Dict[str, Any]:
+    """出站 Webhook 投递重试任务（WS-3）
+
+    扫描 status IN (pending, failed) 且 next_retry_at <= now 的投递并重投。
+    跨租户执行（投递行自带 tenant_id），故不按 tenant_id 过滤。
+    """
+    from services.webhook_delivery_service import process_due_deliveries
+
+    return await process_due_deliveries(limit=100)
+
+
 # task_type -> async callable 的映射
 _TASK_FUNC_REGISTRY: Dict[str, Callable] = {
     "retention": run_retention_cleanup,
@@ -270,6 +291,7 @@ _TASK_FUNC_REGISTRY: Dict[str, Callable] = {
     "fairness": run_fairness_audit,
     "api_key": run_api_key_expiry_check,
     "notification": run_notification_cleanup,
+    "webhook_delivery": run_webhook_delivery_retry,
 }
 
 

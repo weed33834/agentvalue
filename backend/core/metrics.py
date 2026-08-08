@@ -300,6 +300,27 @@ LLM_TOKEN_USAGE_TOTAL = Counter(
     ["tier", "model", "direction", "tenant_id"],
 )
 
+# WS-4 租户查询守卫：检测到缺失 tenant_id 谓词的 SELECT 次数（warn 模式只计数不拦截）
+# 切 enforce 前应先把该指标压到 0
+TENANT_GUARD_VIOLATIONS_TOTAL = Counter(
+    "agentvalue_tenant_guard_violations_total",
+    "缺失租户过滤条件的查询次数",
+    ["tables"],
+)
+
+# WS-4 分布式限流：被 Redis 令牌桶拒绝的请求数（按维度统计）
+RATE_LIMIT_REJECTED_TOTAL = Counter(
+    "agentvalue_rate_limit_rejected_total",
+    "分布式限流拒绝请求次数",
+    ["dimension"],
+)
+
+# WS-4 分布式限流：Redis 不可用降级到进程内限流的次数
+RATE_LIMIT_DEGRADED_TOTAL = Counter(
+    "agentvalue_rate_limit_degraded_total",
+    "分布式限流 Redis 故障降级次数",
+)
+
 
 # 便捷埋点函数
 
@@ -356,6 +377,21 @@ def record_evaluation_failure(reason: str, tenant_id: str | None = None) -> None
 def record_token_blacklist_degraded() -> None:
     """记录一次 JWT 黑名单 Redis 故障降级放行。"""
     TOKEN_BLACKLIST_DEGRADED_TOTAL.inc()
+
+
+def record_tenant_guard_violation(tables: str) -> None:
+    """WS-4：记录一次缺失租户过滤条件的查询（tables 为涉及的租户维度表名）。"""
+    TENANT_GUARD_VIOLATIONS_TOTAL.labels(tables=tables).inc()
+
+
+def record_rate_limit_rejected(dimension: str) -> None:
+    """WS-4：记录一次分布式限流拒绝（dimension: tenant/api_key/user/endpoint）。"""
+    RATE_LIMIT_REJECTED_TOTAL.labels(dimension=dimension).inc()
+
+
+def record_rate_limit_degraded() -> None:
+    """WS-4：记录一次限流 Redis 故障降级到进程内限流。"""
+    RATE_LIMIT_DEGRADED_TOTAL.inc()
 
 
 def record_audit_log(action: str, tenant_id: str | None = None) -> None:

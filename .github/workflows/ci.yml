@@ -98,6 +98,50 @@ jobs:
         working-directory: backend
         run: rm -f migration_test.db
 
+  # WS-2: Prompt 变更门禁(回归对比)。有 LLM_API_KEY 时跑真实模型，否则退化为 --mock 冒烟。
+  # continue-on-error: LLM 输出存在抖动，门禁只作为 PR 上的信号而非硬阻塞。
+  backend-eval-gate:
+    name: Backend Eval Regression Gate
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run prompt regression gate (current vs v1.0)
+        working-directory: backend
+        env:
+          AUTH_DEMO_MODE: "true"
+          JWT_SECRET_KEY: ci-test-secret-key-not-for-production
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          # 无密钥时用 Mock Provider 跑通流程，保证门禁脚本本身不腐烂
+          if [ -z "$LLM_API_KEY" ] && [ -z "$OPENAI_API_KEY" ]; then
+            echo "::notice::未配置 LLM 密钥，回退到 --mock 冒烟模式"
+            MOCK_FLAG="--mock"
+          else
+            MOCK_FLAG=""
+          fi
+          python -m eval.evaluate \
+            --compare v1.0 \
+            --output eval-regression-report.json \
+            $MOCK_FLAG
+      - name: Upload regression report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-regression-report
+          path: backend/eval-regression-report.json
+          if-no-files-found: warn
+
   # ────────────────── 前端 ──────────────────
   frontend-lint:
     name: Frontend Lint (eslint + prettier)

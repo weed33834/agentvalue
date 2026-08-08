@@ -48,6 +48,10 @@ class ProviderTemplate(Base):
     __tablename__ = "provider_templates"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    # WS-4 多租户归属（可空：内置模板为平台级共享数据，租户自建模板才落 tenant_id）
+    tenant_id: Mapped[Optional[str]] = mapped_column(
+        String(64), index=True, nullable=True
+    )
     provider: Mapped[str] = mapped_column(
         String(64), nullable=False, unique=True, index=True
     )
@@ -283,6 +287,10 @@ class ModelTemplate(Base):
     __tablename__ = "model_templates"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    # WS-4 多租户归属（可空：内置模板为平台级共享数据，租户自建模板才落 tenant_id）
+    tenant_id: Mapped[Optional[str]] = mapped_column(
+        String(64), index=True, nullable=True
+    )
     provider: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
     model: Mapped[str] = mapped_column(String(128), nullable=False)
     label: Mapped[dict] = mapped_column(JSON, nullable=False)

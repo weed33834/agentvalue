@@ -130,6 +130,8 @@ class BudgetService:
                     # 触发告警
                     budget.alerted = True
                     await self._send_alert_notification(session, tenant_id, budget)
+                    # WS-3: 事务提交后向出站 Webhook 订阅推送 budget.exceeded
+                    self._dispatch_budget_exceeded(session, tenant_id, budget)
                     triggered.append(self._serialize_budget(budget))
                     logger.warning(
                         "预算告警触发 tenant=%s budget_id=%d usage=%.2f/%.2f(%.0f%%)",
@@ -154,6 +156,34 @@ class BudgetService:
         finally:
             if self._owns_session:
                 await self._close_if_owned()
+
+    def _dispatch_budget_exceeded(
+        self,
+        session: AsyncSession,
+        tenant_id: str,
+        budget: BudgetAlert,
+    ) -> None:
+        """向出站 Webhook 订阅推送 budget.exceeded 事件 (失败不阻断预算检查)
+
+        用 ``dispatch_after_commit`` 保证只有真正落库的告警才对外发事件;
+        ``event_id`` 取 ``budget.exceeded:{budget_id}:{period_start}``, 使同一预算
+        周期内重复触发不会重复投递。
+        """
+        try:
+            from services.webhook_delivery_service import dispatch_after_commit
+
+            period_key = (
+                budget.period_start.isoformat() if budget.period_start else "na"
+            )
+            dispatch_after_commit(
+                session,
+                "budget.exceeded",
+                self._serialize_budget(budget),
+                tenant_id=tenant_id,
+                event_id=f"budget.exceeded:{budget.id}:{period_key}",
+            )
+        except Exception:
+            logger.exception("预算超限事件分发失败 budget_id=%s", budget.id)
 
     async def _send_alert_notification(
         self,

@@ -3,6 +3,53 @@
 本文件记录 AgentValue-AI 所有显著变更,格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/),
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [v2.4.0] - 2026-08-08
+
+### 第五轮: v3.0 生产化落地 (对标 Langfuse / Braintrust / Svix 等同类产品)
+
+全面对标 AI Agent 可观测 / 评估 / 集成类平台,补齐 4 条工作流 (WS-1~WS-4) 的关键能力缺口,后端路由从 490 增至 **536** 条,全部跑通并验证。
+
+#### 可观测性 (WS-1, 对标 Langfuse / LangSmith)
+
+- **原生 Trace/Span 存储** — 新增 `trace_records` / `span_records` 表,自托管不再依赖 Langfuse 也可完整追踪
+- **成本账本** — 内置 `core/pricing.py` 定价表 (25+ 主流模型),LLM 调用自动落 `ConversationMetrics` + `BillingRecord`,未知模型显式 fallback 计价并告警,不再静默按 0 计费
+- **零侵入埋点** — `core/observe.py` (contextvars + 异步批量写 + 采样率),失败绝不打断业务路径
+- **管理端 API** — `/api/v1/admin/traces` 列表/统计/成本分桶/瀑布图/导出/删除
+
+#### 评估实验 (WS-2, 对标 Braintrust / Ragas)
+
+- **RAGAS 五指标** — faithfulness / answer_relevancy / context_precision / context_recall / answer_correctness,LLM-as-judge 实现,不可用时显式 `unavailable` 绝不造假
+- **实验对比系统** — Experiment / Run / RunItem 模型 + 对比引擎 (bootstrap 95% CI + 显著性判定 + 逐样本 improved/regressed 分类 + 回归门禁)
+- **管理端 API** — `/api/v1/admin/experiments` 全套 + `/ragas/score` 单样本即评
+
+#### 集成与开放 (WS-3, 对标 Svix / Stripe)
+
+- **出站 Webhook** — 订阅注册表 / HMAC-SHA256 签名 (Stripe 风格防重放) / 指数退避重试 / 死信 / 自动熔断 / 投递日志,事件已接入告警、预算、评估、审批链路
+- **公网开放 API** — `/api/public/v1` 由 API Key + 作用域 (scopes) 门控,替代装饰性鉴权;`require_api_key` 校验 scope/过期/停用
+- **双语言 SDK** — Python (httpx 同步+异步) + TypeScript (fetch),含 `verify_webhook_signature` 签名校验工具
+
+#### 治理与加固 (WS-4, 对标 SOC2 / 等保)
+
+- **多租户隔离补漏** — 3 个未过滤租户的服务 (analytics/hybrid_search/multi_vector) 全部补上租户过滤;8 个缺失模型补 `tenant_id`;全局 `tenant_guard` 查询守卫 (warn/enforce 双模式)
+- **防篡改审计链** — 审计日志 sha256 哈希链 (prev_hash/entry_hash) + `/audit-logs/verify-chain` 校验端点
+- **分布式限流** — Redis Lua 令牌桶 (tenant/api_key/user/endpoint 四维),Redis 不可用自动降级内存限流,标准限流响应头
+- **代码沙箱加固** — RLIMIT_AS/CPU/NOFILE/FSIZE/NPROC + 进程组隔离 (killpg) + 临时目录清理
+
+#### 移动端适配
+
+- 员工端 3 个真实移动页补齐: **工作录入** (含附件上传 + 轮询评估) / **反馈申诉** (评估选择 + 反馈/申诉 + 处理记录) / **成长路径** (推荐方向 + 趋势 + 优势 + 建议行动),替代原 Placeholder 占位页
+- 移动端看板新增"更多功能"快捷入口,移动表单样式统一
+
+#### 清理
+
+- 删除被 README.zh-CN.md / README.ja-JP.md 取代的孤儿旧版 README.zh.md / README.ja.md
+
+#### 验证
+
+- 后端契约: **536 路由 / 441 前端调用 / 0 不匹配**;view→client: 72 个 .vue / 0 缺失
+- 后端测试: 全量 pytest 通过 (WS 新增 97+ 用例);前端 `npm run build` 通过
+- 迁移链: p1a1trace000 → p2b2evalexp0 → p3c3webhook0 → p4d4govern0 完整可升级
+
 ## [v2.3.0] - 2026-08-07
 
 ### 第四轮: 前后端契约全面对齐 (Contract Drift 清零)

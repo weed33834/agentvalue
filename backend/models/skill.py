@@ -17,6 +17,8 @@ class Skill(Base):
 
     __tablename__ = "skills"
     id = Column(Integer, primary_key=True, autoincrement=True)
+    # WS-4 多租户归属（可空：存量行无租户，新行由服务层写入当前租户）
+    tenant_id = Column(String(64), index=True, nullable=True, comment="租户 ID")
     name = Column(String(128), nullable=False, comment="技能名称(唯一)")
     display_name = Column(String(256), nullable=True, comment="显示名称")
     description = Column(Text, nullable=True, comment="技能描述")

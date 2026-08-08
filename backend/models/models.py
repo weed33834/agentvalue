@@ -227,6 +227,13 @@ class AuditLog(Base):
     tenant_id: Mapped[str] = mapped_column(
         String(64), index=True, nullable=False, default=DEFAULT_TENANT_ID
     )
+    # WS-4 防篡改哈希链（按租户独立成链，避免跨租户写入争用）
+    # prev_hash: 同租户上一条的 entry_hash；创世条目为 GENESIS_HASH
+    prev_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    # entry_hash: sha256(canonical_json(字段) + prev_hash)；链计算失败时为 NULL
+    entry_hash: Mapped[Optional[str]] = mapped_column(
+        String(64), index=True, nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=now_utc
     )
@@ -446,6 +453,10 @@ class PromptVersion(Base):
     __tablename__ = "prompt_versions"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    # WS-4 多租户归属（可空：存量行无租户，新行由服务层写入当前租户）
+    tenant_id: Mapped[Optional[str]] = mapped_column(
+        String(64), index=True, nullable=True
+    )
     template_id: Mapped[str] = mapped_column(
         String(64),
         ForeignKey("prompt_templates.id", ondelete="CASCADE"),
@@ -522,6 +533,10 @@ class PromptEvalRun(Base):
     __tablename__ = "prompt_eval_runs"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    # WS-4 多租户归属（可空：存量行无租户，新行由服务层写入当前租户）
+    tenant_id: Mapped[Optional[str]] = mapped_column(
+        String(64), index=True, nullable=True
+    )
     template_id: Mapped[str] = mapped_column(
         String(64),
         ForeignKey("prompt_templates.id", ondelete="CASCADE"),

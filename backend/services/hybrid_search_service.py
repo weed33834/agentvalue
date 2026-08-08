@@ -10,6 +10,19 @@
 4. 文档增量更新（hash 对比 + difflib 段落级差异 + 仅重建变化部分）
 
 BM25 实现：使用 rank_bm25 库（已在 requirements.txt 中声明为必选依赖）。
+
+WS-4 多租户隔离（两层防御）
+--------------------------
+第一层（既有）：路由层按租户拆 collection（agentvalue_kb_{tenant_id}），并在
+`_resolve_collection_name` 里校验 collection 归属。
+第二层（本次新增）：写入时把 tenant_id 打进 chunk metadata，检索时按当前租户
+过滤；BM25 索引缓存键也带上租户，避免同进程内跨租户复用倒排索引。
+
+租户来源优先级：显式入参 > 构造函数 > `get_current_tenant()` 上下文。
+平台级跨租户检索必须显式传 `allow_cross_tenant=True`。
+
+存量兼容：改动前写入的 chunk 没有 tenant_id 元数据，视为「未归属」对所有租户
+可见。要彻底收口需回填历史 chunk 的 tenant_id。
 """
 
 import asyncio
@@ -22,8 +35,12 @@ from typing import Any, Dict, List, Optional, Tuple
 from rank_bm25 import BM25Okapi
 
 from core.config import Settings, get_settings
+from core.tenant_context import get_current_tenant
 
 logger = logging.getLogger(__name__)
+
+# chunk metadata 中的租户字段名（与 multi_vector_service 保持一致）
+TENANT_META_KEY = "tenant_id"
 
 
 # ============================================================
@@ -80,18 +97,49 @@ class HybridSearchService:
     Args:
         kb_store: ChromaCompanyKB 实例，提供 ChromaDB 客户端、embedding 函数与默认 collection
         settings: 应用配置，未提供时从 kb_store 或全局获取
+        tenant_id: WS-4 租户绑定，缺省取 `get_current_tenant()`
     """
 
     def __init__(
         self,
         kb_store,
         settings: Optional[Settings] = None,
+        tenant_id: Optional[str] = None,
     ):
         self.kb_store = kb_store
         self.settings = settings or getattr(kb_store, "settings", None) or get_settings()
-        # BM25 索引缓存：{collection_name: (bm25_instance, doc_list, doc_id_list, doc_meta_list)}
+        # WS-4：构造期固定租户；未传时按当时的请求上下文解析
+        self.tenant_id = tenant_id or get_current_tenant()
+        # BM25 索引缓存：{(collection_name, tenant): (bm25, docs, ids, metas)}
+        # WS-4：缓存键带租户，避免同进程内 A 租户的倒排索引被 B 租户命中
         # 每次 incremental_update 或文档变更后清除缓存，下次检索时重建
-        self._bm25_cache: Dict[str, Tuple[Any, List[str], List[str], List[dict]]] = {}
+        self._bm25_cache: Dict[
+            Tuple[str, Optional[str]],
+            Tuple[Any, List[str], List[str], List[dict]],
+        ] = {}
+
+    def _resolve_tenant(
+        self, tenant_id: Optional[str], allow_cross_tenant: bool
+    ) -> Optional[str]:
+        """解析本次操作的租户作用域；跨租户时返回 None（不过滤）。"""
+        if allow_cross_tenant:
+            logger.info("混合检索执行跨租户操作（allow_cross_tenant=True）")
+            return None
+        return tenant_id or self.tenant_id or get_current_tenant()
+
+    def _tenant_allowed(self, meta: Optional[dict], tenant_id: Optional[str]) -> bool:
+        """判断一条 chunk 是否在租户作用域内。
+
+        `tenant_id=None` 表示调用方已显式授权跨租户；未打标的存量 chunk 放行。
+        """
+        if tenant_id is None:
+            return True
+        if not meta:
+            return True
+        owner = self._normalize_metadata(meta).get(TENANT_META_KEY)
+        if owner in (None, ""):
+            return True
+        return owner == tenant_id
 
     # --------------------------------------------------------
     # 公共方法
@@ -104,6 +152,8 @@ class HybridSearchService:
         top_k: int = 5,
         metadata_filter: Optional[dict] = None,
         alpha: float = 0.5,
+        tenant_id: Optional[str] = None,
+        allow_cross_tenant: bool = False,
     ) -> List[Dict[str, Any]]:
         """混合检索（向量 + BM25）
 
@@ -113,6 +163,9 @@ class HybridSearchService:
             top_k: 返回结果数
             metadata_filter: 元数据过滤条件，如 {"source": "hr_manual", "department": "tech"}
             alpha: 向量/BM25 权重（0=纯BM25, 1=纯向量, 0.5=等权混合）
+            tenant_id: WS-4 检索作用域，缺省取构造函数 / 上下文租户
+            allow_cross_tenant: 显式开启平台级跨租户检索（默认 False）。
+                仅用于运维巡检 / 全局召回质量分析，业务路径不得开启。
 
         Returns:
             检索结果列表，每项格式：
@@ -120,25 +173,30 @@ class HybridSearchService:
         """
         # 边界处理：alpha 裁剪到 [0, 1]
         alpha = max(0.0, min(1.0, float(alpha)))
+        scope = self._resolve_tenant(tenant_id, allow_cross_tenant)
 
         # alpha=1.0 → 纯向量检索
         if alpha >= 1.0:
             return await self._vector_search(
-                query, collection_name, top_k, metadata_filter
+                query, collection_name, top_k, metadata_filter, scope
             )
 
         # alpha=0.0 → 纯 BM25 检索
         if alpha <= 0.0:
             return await self._bm25_search(
-                query, collection_name, top_k, metadata_filter
+                query, collection_name, top_k, metadata_filter, scope
             )
 
         # 混合检索：两路并行检索 + RRF 融合
         # 每路取 top_k * 2 候选，避免融合后 top_k 不足
         candidate_k = max(top_k * 2, top_k + 5)
         vector_results, bm25_results = await asyncio.gather(
-            self._vector_search(query, collection_name, candidate_k, metadata_filter),
-            self._bm25_search(query, collection_name, candidate_k, metadata_filter),
+            self._vector_search(
+                query, collection_name, candidate_k, metadata_filter, scope
+            ),
+            self._bm25_search(
+                query, collection_name, candidate_k, metadata_filter, scope
+            ),
         )
 
         return self._rrf_fusion(vector_results, bm25_results, alpha, top_k)
@@ -148,6 +206,7 @@ class HybridSearchService:
         document_id: str,
         content: str,
         metadata: Optional[dict] = None,
+        tenant_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """文档增量更新
 
@@ -158,17 +217,24 @@ class HybridSearchService:
             document_id: 文档 ID（对应 ChromaDB 中的 kb_id / parent_kb_id）
             content: 新的文档全文
             metadata: 文档元数据
+            tenant_id: WS-4 归属租户，写进每个 chunk 的 metadata 供检索过滤
 
         Returns:
             更新结果摘要，如 {"updated": bool, "added": int, "deleted": int, "reason": str}
         """
-        metadata = metadata or {}
+        metadata = dict(metadata or {})
+        # WS-4：写入即打租户标签，检索侧才有得过滤
+        metadata.setdefault(
+            TENANT_META_KEY, tenant_id or self.tenant_id or get_current_tenant()
+        )
         collection = self._get_collection(self.kb_store.collection.name)
         chunk_size = getattr(self.settings, "chunk_size", 800) or 800
         chunk_overlap = getattr(self.settings, "chunk_overlap", 100) or 0
 
         # 1. 获取现有文档的所有 chunk
-        old_chunks = await self._get_document_chunks(collection, document_id)
+        old_chunks = await self._get_document_chunks(
+            collection, document_id, metadata.get(TENANT_META_KEY)
+        )
 
         # 2. 计算新内容的 hash
         new_content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
@@ -230,8 +296,10 @@ class HybridSearchService:
             )
 
         # 6. 清除 BM25 索引缓存，下次检索时重建
-        cache_key = self.kb_store.collection.name
-        self._bm25_cache.pop(cache_key, None)
+        # WS-4：缓存键是 (collection, tenant)，同一 collection 下所有租户分片都要清
+        collection_key = self.kb_store.collection.name
+        for key in [k for k in self._bm25_cache if k[0] == collection_key]:
+            self._bm25_cache.pop(key, None)
 
         logger.info(
             f"文档 {document_id} 增量更新完成: 新增 {added_count} chunk, 删除 {deleted_count} chunk"
@@ -254,6 +322,7 @@ class HybridSearchService:
         collection_name: str,
         top_k: int,
         metadata_filter: Optional[dict],
+        tenant_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """纯向量检索，调用 ChromaCompanyKB 的 query 方法
 
@@ -267,7 +336,8 @@ class HybridSearchService:
         where = self._build_chroma_where(metadata_filter)
 
         # over-fetch：为后过滤预留余量，避免过滤后结果不足
-        fetch_k = top_k * 3 if metadata_filter else top_k
+        # WS-4：租户过滤同样是后过滤（Chroma where 无法表达「等于 X 或字段缺失」）
+        fetch_k = top_k * 3 if (metadata_filter or tenant_id is not None) else top_k
 
         # 调用现有 ChromaCompanyKB 的 query 方法
         try:
@@ -292,6 +362,9 @@ class HybridSearchService:
                     meta = json.loads(meta)
                 except (json.JSONDecodeError, TypeError):
                     meta = {}
+            # WS-4 租户后过滤（先于业务过滤，越权数据一律不参与后续处理）
+            if not self._tenant_allowed(meta, tenant_id):
+                continue
             # 后过滤：检查嵌套 metadata 中的用户自定义字段
             if metadata_filter and not self._metadata_matches(meta, metadata_filter):
                 continue
@@ -317,15 +390,19 @@ class HybridSearchService:
         collection_name: str,
         top_k: int,
         metadata_filter: Optional[dict],
+        tenant_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """纯 BM25 全文检索
 
         从 ChromaDB collection 中取出所有文档构建 BM25 索引，
         对查询打分后按 metadata_filter 过滤。
+
+        WS-4：索引在构建阶段就按租户裁剪，因此 BM25 的 IDF / 平均文档长度都只
+        基于本租户语料，既不泄漏其他租户文档，打分也更贴合本租户分布。
         """
-        # 获取或构建 BM25 索引
+        # 获取或构建 BM25 索引（按 (collection, tenant) 缓存）
         bm25_instance, doc_texts, doc_ids, doc_metas = await self._get_or_build_bm25_index(
-            collection_name
+            collection_name, tenant_id
         )
 
         if not doc_texts:
@@ -350,6 +427,9 @@ class HybridSearchService:
         # 元数据过滤（BM25 结果后过滤）
         output: List[Dict[str, Any]] = []
         for score, text, doc_id, meta in scored:
+            # WS-4：语料构建阶段已按租户裁剪，这里是二次兜底（缓存被污染时仍安全）
+            if not self._tenant_allowed(meta, tenant_id):
+                continue
             if metadata_filter and not self._metadata_matches(meta, metadata_filter):
                 continue
             output.append(
@@ -365,14 +445,16 @@ class HybridSearchService:
         return output
 
     async def _get_or_build_bm25_index(
-        self, collection_name: str
+        self, collection_name: str, tenant_id: Optional[str] = None
     ) -> Tuple[Any, List[str], List[str], List[dict]]:
         """获取或构建 BM25 索引（带缓存）
 
-        缓存键为 collection_name，incremental_update 后清除缓存。
+        缓存键为 (collection_name, tenant_id)，incremental_update 后清除缓存。
+        WS-4：租户进缓存键，防止 A 租户构建的索引被 B 租户直接命中。
         """
-        if collection_name in self._bm25_cache:
-            return self._bm25_cache[collection_name]
+        cache_key = (collection_name, tenant_id)
+        if cache_key in self._bm25_cache:
+            return self._bm25_cache[cache_key]
 
         collection = self._get_collection(collection_name)
 
@@ -404,6 +486,11 @@ class HybridSearchService:
             # ChromaDB metadata 形如: {"kb_id": "x", "title": "y", "metadata": '{"source":"z"}'}
             # 将嵌套的 metadata JSON 解析后合并到顶层，使 _metadata_matches 能直接匹配用户字段
             meta = self._normalize_metadata(meta)
+            # WS-4：越权文档直接不进语料，连 IDF 统计都不参与
+            if not self._tenant_allowed(meta, tenant_id):
+                doc_texts.pop()
+                doc_ids.pop()
+                continue
             doc_metas.append(meta)
 
         # 分词并构建 BM25 索引
@@ -418,7 +505,7 @@ class HybridSearchService:
             bm25_instance = None
 
         cached = (bm25_instance, doc_texts, doc_ids, doc_metas)
-        self._bm25_cache[collection_name] = cached
+        self._bm25_cache[cache_key] = cached
         return cached
 
     # --------------------------------------------------------
@@ -494,8 +581,14 @@ class HybridSearchService:
     # 增量更新辅助方法
     # --------------------------------------------------------
 
-    async def _get_document_chunks(self, collection, document_id: str) -> List[dict]:
-        """获取文档的所有 chunk（包括主文档和 parent_kb_id 子文档）"""
+    async def _get_document_chunks(
+        self, collection, document_id: str, tenant_id: Optional[str] = None
+    ) -> List[dict]:
+        """获取文档的所有 chunk（包括主文档和 parent_kb_id 子文档）
+
+        WS-4：传入 tenant_id 时只返回该租户的 chunk，避免不同租户 document_id
+        重名时增量更新误删/误比对对方数据。
+        """
         chunks: List[dict] = []
 
         # 1. 尝试按 parent_kb_id 获取分块子文档
@@ -542,6 +635,12 @@ class HybridSearchService:
                     )
             except Exception as e:
                 logger.debug(f"获取主文档失败: {e}")
+
+        # WS-4：租户过滤（未打标的存量 chunk 放行）
+        if tenant_id is not None:
+            chunks = [
+                c for c in chunks if self._tenant_allowed(c.get("metadata"), tenant_id)
+            ]
 
         # 按 paragraph_index + chunk_index 排序
         def _sort_key(c: dict) -> Tuple[int, int]:

@@ -4,6 +4,7 @@ AgentValue 应用配置
 """
 
 from functools import lru_cache
+from dataclasses import dataclass
 from typing import Literal, Optional
 
 from pydantic import model_validator
@@ -262,6 +263,51 @@ class Settings(BaseSettings):
     # 生产环境强制禁止（见 _enforce_prod_demo_mode_guard），避免假数据被当作真实绩效结论。
     llm_mock_mode: bool = False
 
+    # ------------------------------------------------- WS-1 原生 Trace 采集
+    # core/observe.py 的 trace 采样率（0.0~1.0）。1.0 = 全采集（默认）；
+    # 高 QPS 场景可调低以控制 trace_records/span_records 的写入量与存储成本。
+    # 采样在 trace 创建时判定，未命中的 trace 及其全部 span 都不落库。
+    trace_sample_rate: float = 1.0
+
+    # ------------------------------------------------- WS-4 企业级治理加固
+    # 租户查询守卫（core/tenant_guard.py）总开关
+    tenant_guard_enabled: bool = True
+    # 守卫模式：warn(默认，仅告警+打点) / enforce(抛异常) / off
+    # 上线流程：先 warn 跑一轮，把 agentvalue_tenant_guard_violations_total
+    # 压到 0 后再 TENANT_GUARD_MODE=enforce
+    tenant_guard_mode: str = "warn"
+
+    # 分布式限流（core/redis_rate_limit.py）总开关，关闭时沿用 slowapi 进程内限流
+    # 默认开启：REDIS_URL 未配置或 Redis 不可达时自动降级为 slowapi 进程内限流
+    redis_rate_limit_enabled: bool = True
+    # 四维令牌桶默认配额：capacity=桶容量(突发上限)，refill=每秒补充令牌数
+    rate_limit_tenant_capacity: int = 600
+    rate_limit_tenant_refill: float = 10.0
+    rate_limit_api_key_capacity: int = 300
+    rate_limit_api_key_refill: float = 5.0
+    rate_limit_user_capacity: int = 300
+    rate_limit_user_refill: float = 5.0
+    rate_limit_endpoint_capacity: int = 1200
+    rate_limit_endpoint_refill: float = 20.0
+    # 未单独配置的维度（或未来新增维度）的默认配额：每分钟请求数
+    # 换算规则：capacity=per_minute，refill=per_minute/60 每秒
+    redis_rate_limit_default_per_minute: int = 120
+    # Redis 故障降级告警的最小间隔（秒），避免每请求刷日志
+    rate_limit_degrade_log_interval: int = 60
+
+    # 代码沙箱资源限制（agent/code_interpreter.py，仅 POSIX 生效）
+    sandbox_rlimit_enabled: bool = True
+    # 地址空间上限(MB)：拦截 [0]*10**10 这类内存炸弹
+    sandbox_max_memory_mb: int = 512
+    # CPU 时间上限(秒)：拦截死循环（与 wall-clock timeout 互补）
+    sandbox_max_cpu_seconds: int = 10
+    # 最大打开文件数
+    sandbox_max_open_files: int = 64
+    # 单文件写入上限(MB)：拦截磁盘写爆
+    sandbox_max_file_size_mb: int = 16
+    # 最大进程/线程数：拦截 fork bomb
+    sandbox_max_processes: int = 32
+
     @model_validator(mode="after")
     def _enforce_prod_demo_mode_guard(self) -> "Settings":
         """
@@ -289,3 +335,60 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()
+
+
+@dataclass(frozen=True)
+class RateLimitBuckets:
+    """四维令牌桶配额设置组（供 core/redis_rate_limit.py 组装桶规格）。
+
+    - capacity: 桶容量 = 突发上限（瞬时允许的连续请求数）
+    - refill:   每秒补充令牌数 = 稳态 QPS
+    - default_per_minute: 未单独配置维度的默认档（每分钟请求数）
+
+    默认值与 `Settings` 中 WS-4 限流配置保持一致；显式构造时覆盖。
+    """
+
+    tenant_capacity: int = 600
+    tenant_refill: float = 10.0
+    api_key_capacity: int = 300
+    api_key_refill: float = 5.0
+    user_capacity: int = 300
+    user_refill: float = 5.0
+    endpoint_capacity: int = 1200
+    endpoint_refill: float = 20.0
+    default_per_minute: int = 120
+
+    @classmethod
+    def from_settings(cls, settings: Settings) -> "RateLimitBuckets":
+        """从 Settings 实例组装（读取同名 WS-4 配置项，缺失时用默认值）。"""
+        return cls(
+            tenant_capacity=getattr(settings, "rate_limit_tenant_capacity", 600),
+            tenant_refill=getattr(settings, "rate_limit_tenant_refill", 10.0),
+            api_key_capacity=getattr(
+                settings, "rate_limit_api_key_capacity", 300
+            ),
+            api_key_refill=getattr(settings, "rate_limit_api_key_refill", 5.0),
+            user_capacity=getattr(settings, "rate_limit_user_capacity", 300),
+            user_refill=getattr(settings, "rate_limit_user_refill", 5.0),
+            endpoint_capacity=getattr(
+                settings, "rate_limit_endpoint_capacity", 1200
+            ),
+            endpoint_refill=getattr(
+                settings, "rate_limit_endpoint_refill", 20.0
+            ),
+            default_per_minute=getattr(
+                settings, "redis_rate_limit_default_per_minute", 120
+            ),
+        )
+
+    def spec_for(self, dimension: str) -> "tuple[float, float]":
+        """返回 (capacity, refill_per_second)，未知维度回退默认档。"""
+        if dimension == "tenant":
+            return float(self.tenant_capacity), float(self.tenant_refill)
+        if dimension == "api_key":
+            return float(self.api_key_capacity), float(self.api_key_refill)
+        if dimension == "user":
+            return float(self.user_capacity), float(self.user_refill)
+        if dimension == "endpoint":
+            return float(self.endpoint_capacity), float(self.endpoint_refill)
+        return float(self.default_per_minute), float(self.default_per_minute) / 60.0

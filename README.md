@@ -23,7 +23,7 @@
   <img src="https://img.shields.io/badge/Vue_3-4FC08D?logo=vuedotjs&logoColor=white" alt="Vue 3" />
   <img src="https://img.shields.io/badge/LangGraph-agent-FF6B6B" alt="LangGraph" />
   <img src="https://img.shields.io/badge/Docker_Compose-2496ED?logo=docker&logoColor=white" alt="Docker Compose" />
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.3.0-blue.svg" alt="Version 2.2.0" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.4.0-blue.svg" alt="Version 2.2.0" /></a>
   <a href="https://gitcode.com/badhope/agentvalue/issues"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome" /></a>
 </p>
 
@@ -107,6 +107,19 @@ All evaluations go through **mandatory human approval** before taking effect. Th
 | **Operations** | Feature flags, Alert management, Scheduled tasks, Release ops, Model ops |
 
 > Pages marked with `*` have backend API & data models; admin UI is under construction. All other routes have fully functional frontend pages.
+
+### 🚀 Production-Grade Platform Capabilities (v2.4.0)
+
+Benchmarked against Langfuse / LangSmith / Braintrust / Ragas / Svix / Stripe / SOC2-class products:
+
+| Capability | What it gives you |
+|---|---|
+| **Native Tracing & Cost Ledger** | Self-hosted `trace_records` / `span_records` storage (no external dependency), automatic cost accounting for 25+ models with explicit fallback pricing, latency/token/cost dashboards |
+| **Experiment Comparison** | RAGAS 5 metrics (faithfulness / answer_relevancy / context_precision / context_recall / answer_correctness), A/B run comparison with bootstrap 95% CI + significance, per-sample improved/regressed diff, CI regression gating |
+| **Outbound Webhooks** | Signed (HMAC-SHA256, replay-protected) + retried (exponential backoff) + dead-lettered delivery with auto-disable, delivery logs, ping test, event catalog |
+| **Public API + SDK** | `/api/public/v1` gated by scoped API keys (`evaluations:*`, `agents:*`, `datasets:*`, `traces:*`, `webhooks:manage`), Python + TypeScript SDKs with webhook signature verification |
+| **Governance & Hardening** | Multi-tenant isolation guard (warn/enforce), tamper-evident audit hash chain + verify endpoint, Redis distributed rate limiting (tenant/API-key/user/endpoint) with in-memory fallback, resource-limited code sandbox (RLIMIT_AS/CPU/NPROC, process-group kill) |
+| **Mobile Web UI** | `/m/*` mobile-first pages (employee dashboard / work input / history / feedback / growth path / AI chat, manager team analysis, HR review, admin workbench) with bottom-tab navigation |
 
 ---
 

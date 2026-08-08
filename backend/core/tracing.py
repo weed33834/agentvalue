@@ -91,6 +91,10 @@ class NoOpTrace:
     def __exit__(self, *args: Any) -> None:
         pass
 
+    def close(self) -> None:
+        """关闭追踪器(NoOp 无资源,空实现)。供 lifespan 统一调用。"""
+        return
+
 
 # ============================================================
 # LangfuseTracer — 应用层追踪(Langfuse)
@@ -138,6 +142,28 @@ class LangfuseTracer:
             and getattr(s, "langfuse_host", None)
             and self._client is not None
         )
+
+    def close(self) -> None:
+        """关闭追踪器: 将缓冲的 trace/span 刷出,再关闭底层 Langfuse 客户端。
+
+        兼容 langfuse SDK 不同版本 (flush / shutdown),任一步失败仅告警,
+        绝不让关闭流程抛异常打断应用退出。
+        """
+        if self._client is None:
+            return
+        try:
+            flush = getattr(self._client, "flush", None)
+            if callable(flush):
+                flush()
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Langfuse flush 失败: %s", e)
+        try:
+            shutdown = getattr(self._client, "shutdown", None)
+            if callable(shutdown):
+                shutdown()
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Langfuse shutdown 失败: %s", e)
+        self._client = None
 
     @contextmanager
     def trace(

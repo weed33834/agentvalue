@@ -1,0 +1,21 @@
+{
+  "name": "@agentvalue/sdk",
+  "version": "0.1.0",
+  "description": "AgentValue 开放 API 的 TypeScript SDK（X-API-Key 门控客户端 + Webhook 签名校验）",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test dist/__tests__"
+  },
+  "keywords": ["agentvalue", "webhook", "sdk", "llm"],
+  "license": "Proprietary",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.0",
+    "typescript": "^5.4.0"
+  }
+}

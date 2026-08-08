@@ -3,12 +3,28 @@
 基于历史评估数据做纯统计/规则/启发式分析，不依赖真实 LLM。
 包含团队 ROI 分析、员工成长路径推荐、离职风险预测三类能力。
 事务边界由路由层控制，本服务只读查询、不写库。
+
+WS-4 多租户隔离
+---------------
+本服务自身不写 SQL，全部读取都走 `EvaluationService`（其查询已按
+`get_current_tenant()` 过滤）。问题在于：过滤依赖的是**调用时的环境上下文**，
+一旦从后台任务 / 定时器 / 测试夹具里调用，租户上下文可能缺失或不正确，
+而调用方从签名上完全看不出这里有租户语义。
+
+因此本次改造把租户从「隐式环境」提升为「显式契约」：
+- 构造函数与每个公开方法都接受 `tenant_id`，内部用 `tenant_scope()` 固定
+  作用域后再查询，不再依赖调用时刻的环境上下文；
+- 唯一需要平台级视角的 `get_talent_matrix` 增加 `allow_cross_tenant` 开关，
+  必须显式传 True 才跨租户聚合，且实现为**逐租户遍历再合并**，
+  而不是绕过过滤直接全表扫（后者会同时绕过行级隔离与租户守卫）。
 """
 
 import logging
 from collections import Counter, defaultdict
-from typing import Any, Dict, List, Optional, Tuple
+from contextlib import contextmanager
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
+from core.tenant_context import get_current_tenant, tenant_scope
 from services.evaluation_service import EvaluationService
 
 logger = logging.getLogger(__name__)
@@ -158,10 +174,48 @@ def _slope(scores: List[float]) -> float:
 
 
 class AnalyticsService:
-    """高级分析服务，复用 EvaluationService 的只读查询能力"""
+    """高级分析服务，复用 EvaluationService 的只读查询能力
 
-    def __init__(self, eval_service: EvaluationService):
+    Args:
+        eval_service: 已按租户过滤的评估查询服务
+        tenant_id: WS-4 租户绑定，缺省取构造时的 `get_current_tenant()`
+    """
+
+    def __init__(
+        self, eval_service: EvaluationService, tenant_id: Optional[str] = None
+    ):
         self.eval_service = eval_service
+        self.tenant_id = tenant_id or get_current_tenant()
+
+    # ---------------- 租户作用域 ----------------
+
+    @contextmanager
+    def _scope(self, tenant_id: Optional[str] = None) -> Iterator[str]:
+        """在指定租户上下文中执行查询（WS-4）。
+
+        显式入参 > 构造函数绑定 > 当前上下文。进入后 EvaluationService 的
+        `get_current_tenant()` 过滤一定命中期望租户，不受调用环境影响。
+        """
+        effective = tenant_id or self.tenant_id or get_current_tenant()
+        with tenant_scope(effective):
+            yield effective
+
+    async def _list_tenant_ids(self) -> List[str]:
+        """列出所有活跃租户（仅供显式跨租户聚合使用）。
+
+        查 tenants 表本身不是租户维度查询，但为了不触发租户守卫误报，
+        显式套一层逃生舱。
+        """
+        from sqlalchemy import select
+
+        from core.tenant_guard import allow_cross_tenant as _allow_cross_tenant
+        from models.models import Tenant
+
+        with _allow_cross_tenant("平台级人才矩阵：枚举活跃租户"):
+            result = await self.eval_service.session.execute(
+                select(Tenant.tenant_id).where(Tenant.status == "active")
+            )
+            return [row for row in result.scalars().all() if row]
 
     # ---------------- 内部查询 ----------------
 
@@ -185,12 +239,16 @@ class AnalyticsService:
         self,
         team_member_ids: List[str],
         period_range: Optional[Tuple[str, str]] = None,
+        tenant_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """团队 ROI 分析
 
         投入：评估次数 × 平均处理时长（代理成本）
         产出：平均分提升趋势 + 高分员工占比 + 风险降低率
         返回周度趋势、九宫格分布、top/bottom 员工与综合 ROI。
+
+        WS-4：所有底层查询在 `_scope(tenant_id)` 内执行，
+        即使调用方传入了别的租户的 employee_id 也查不到数据。
         """
         members = [m for m in (team_member_ids or []) if m]
         if not members:
@@ -211,7 +269,8 @@ class AnalyticsService:
         )
 
         for mid in members:
-            evals = await self._fetch_evals(mid)
+            with self._scope(tenant_id):
+                evals = await self._fetch_evals(mid)
             if week_set is not None:
                 evals = [e for e in evals if e.period in week_set]
             if not evals:
@@ -471,13 +530,18 @@ class AnalyticsService:
 
     # ---------------- 9.2.1.2 成长路径 ----------------
 
-    async def get_growth_path(self, employee_id: str) -> Dict[str, Any]:
+    async def get_growth_path(
+        self, employee_id: str, tenant_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """员工成长路径推荐
 
         基于历史 4+ 周评估的 strengths/growth_areas 趋势，识别成长方向、
         推荐发展行动，并给出当前 vs 历史的能力雷达对比。
+
+        WS-4：查询全部在 `_scope(tenant_id)` 内执行。
         """
-        evals = await self._fetch_evals(employee_id, limit=50)
+        with self._scope(tenant_id):
+            evals = await self._fetch_evals(employee_id, limit=50)
         if not evals:
             return self._empty_growth_path(employee_id)
 
@@ -516,9 +580,10 @@ class AnalyticsService:
         # 读取员工最近反馈,作为成长建议的补充输入
         employee_voice: List[Dict[str, Any]] = []
         try:
-            feedback_rows = await self.eval_service.list_feedback(
-                employee_id=employee_id, limit=5
-            )
+            with self._scope(tenant_id):
+                feedback_rows = await self.eval_service.list_feedback(
+                    employee_id=employee_id, limit=5
+                )
             for fb, ev in feedback_rows:
                 employee_voice.append(
                     {
@@ -662,11 +727,15 @@ class AnalyticsService:
 
     # ---------------- 9.2.1.3 离职风险 ----------------
 
-    async def get_attrition_risk(self, team_member_ids: List[str]) -> Dict[str, Any]:
+    async def get_attrition_risk(
+        self, team_member_ids: List[str], tenant_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """离职风险预测
 
         风险因子：评分持续下降、growth_areas 持续无改善、engagement 词频下降、申诉频次高。
         风险等级：低 <30，中 30-70，高 >70。
+
+        WS-4：逐成员打分时固定在 `_scope(tenant_id)` 内查询。
         """
         members = [m for m in (team_member_ids or []) if m]
         if not members:
@@ -679,7 +748,7 @@ class AnalyticsService:
 
         results: List[Dict[str, Any]] = []
         for mid in members:
-            results.append(await self._score_attrition(mid))
+            results.append(await self._score_attrition(mid, tenant_id=tenant_id))
 
         distribution = {"low": 0, "medium": 0, "high": 0}
         for r in results:
@@ -694,10 +763,13 @@ class AnalyticsService:
             "members": results,
         }
 
-    async def _score_attrition(self, employee_id: str) -> Dict[str, Any]:
+    async def _score_attrition(
+        self, employee_id: str, tenant_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """计算单员工离职风险分与主要因子"""
-        evals = await self._fetch_evals(employee_id, limit=20)
-        feedback_count = await self._fetch_feedback_count(employee_id)
+        with self._scope(tenant_id):
+            evals = await self._fetch_evals(employee_id, limit=20)
+            feedback_count = await self._fetch_feedback_count(employee_id)
         factors: List[Dict[str, Any]] = []
         score = 0.0
 
@@ -856,6 +928,8 @@ class AnalyticsService:
         self,
         period: Optional[str] = None,
         member_ids: Optional[List[str]] = None,
+        tenant_id: Optional[str] = None,
+        allow_cross_tenant: bool = False,
     ) -> Dict[str, Any]:
         """人才九宫格: 绩效 × 潜力 3x3 矩阵
 
@@ -869,59 +943,24 @@ class AnalyticsService:
         Args:
             period: 可选, 指定周期则只看该周期, 否则按员工取最新一次 approved
             member_ids: 可选, 限定员工集合 (manager 用以限定为直属下属)
+            tenant_id: WS-4 显式租户, 缺省用服务绑定租户
+            allow_cross_tenant: WS-4 平台级视角开关。默认 False。
+                置 True 时**不是**绕过过滤, 而是枚举活跃租户后逐租户
+                在各自 `tenant_scope` 内查询再合并, 每条记录带上 tenant_id。
+                仅供平台运营看板使用, 调用方必须自行完成权限校验。
         """
-        # 1. 拉取所有已审批评估
-        evals_result = await self.eval_service.list_evaluations(
-            status="approved", limit=2000
-        )
-        all_evals = evals_result["items"]
-
-        # 2. 按 employee_id 分组
-        by_employee: Dict[str, List[Any]] = defaultdict(list)
-        for e in all_evals:
-            if member_ids is not None and e.employee_id not in member_ids:
-                continue
-            by_employee[e.employee_id].append(e)
-
-        # 3. 计算每个员工的 performance + potential
-        members: List[Dict[str, Any]] = []
-        for employee_id, evals in by_employee.items():
-            # 按周期升序排序
-            evals.sort(key=lambda e: (e.period, e.created_at))
-
-            # performance: 指定 period 取该周期, 否则取最新一次
-            if period:
-                target_evals = [e for e in evals if e.period == period]
-                if not target_evals:
-                    continue
-                perf_eval = target_evals[-1]
-                # 潜力仍用全部历史评估的斜率
-                slope_evals = evals
-            else:
-                perf_eval = evals[-1]
-                slope_evals = evals
-
-            performance = float(perf_eval.overall_score or 0)
-            scores = [float(e.overall_score or 0) for e in slope_evals]
-            slope = _slope(scores)
-            # slope 映射到 0-100 区间: slope=0 → 50, slope>5 → 100, slope<-5 → 0
-            potential = max(0.0, min(100.0, slope * 10.0 + 50.0))
-
-            members.append(
-                {
-                    "employee_id": employee_id,
-                    "evaluation_id": perf_eval.evaluation_id,
-                    "period": perf_eval.period,
-                    "performance_score": round(performance, 2),
-                    "potential_score": round(potential, 2),
-                    "performance_bucket": _bucket_performance(performance),
-                    "potential_bucket": _bucket_potential_score(potential),
-                    "eval_count": len(evals),
-                    "latest_score": round(scores[-1], 2) if scores else 0,
-                    "first_score": round(scores[0], 2) if scores else 0,
-                    "score_slope": round(slope, 2),
-                }
+        if allow_cross_tenant:
+            tenants = await self._list_tenant_ids()
+            logger.warning(
+                "get_talent_matrix 以跨租户模式执行, 覆盖 %d 个租户", len(tenants)
             )
+            members: List[Dict[str, Any]] = []
+            for tid in tenants:
+                members.extend(
+                    await self._collect_matrix_members(period, member_ids, tid)
+                )
+        else:
+            members = await self._collect_matrix_members(period, member_ids, tenant_id)
 
         # 4. 构造 3x3 矩阵
         buckets = ["low", "mid", "high"]
@@ -950,7 +989,70 @@ class AnalyticsService:
             "total": len(members),
             "period": period,
             "members": members,
+            "cross_tenant": allow_cross_tenant,
         }
+
+    async def _collect_matrix_members(
+        self,
+        period: Optional[str],
+        member_ids: Optional[List[str]],
+        tenant_id: Optional[str],
+    ) -> List[Dict[str, Any]]:
+        """在单个租户作用域内计算九宫格成员明细（WS-4 拆分出来便于跨租户合并）"""
+        with self._scope(tenant_id) as effective_tenant:
+            evals_result = await self.eval_service.list_evaluations(
+                status="approved", limit=2000
+            )
+        all_evals = evals_result["items"]
+
+        # 按 employee_id 分组
+        by_employee: Dict[str, List[Any]] = defaultdict(list)
+        for e in all_evals:
+            if member_ids is not None and e.employee_id not in member_ids:
+                continue
+            by_employee[e.employee_id].append(e)
+
+        # 计算每个员工的 performance + potential
+        members: List[Dict[str, Any]] = []
+        for employee_id, evals in by_employee.items():
+            # 按周期升序排序
+            evals.sort(key=lambda e: (e.period, e.created_at))
+
+            # performance: 指定 period 取该周期, 否则取最新一次
+            if period:
+                target_evals = [e for e in evals if e.period == period]
+                if not target_evals:
+                    continue
+                perf_eval = target_evals[-1]
+                # 潜力仍用全部历史评估的斜率
+                slope_evals = evals
+            else:
+                perf_eval = evals[-1]
+                slope_evals = evals
+
+            performance = float(perf_eval.overall_score or 0)
+            scores = [float(e.overall_score or 0) for e in slope_evals]
+            slope = _slope(scores)
+            # slope 映射到 0-100 区间: slope=0 → 50, slope>5 → 100, slope<-5 → 0
+            potential = max(0.0, min(100.0, slope * 10.0 + 50.0))
+
+            members.append(
+                {
+                    "employee_id": employee_id,
+                    "tenant_id": effective_tenant,
+                    "evaluation_id": perf_eval.evaluation_id,
+                    "period": perf_eval.period,
+                    "performance_score": round(performance, 2),
+                    "potential_score": round(potential, 2),
+                    "performance_bucket": _bucket_performance(performance),
+                    "potential_bucket": _bucket_potential_score(potential),
+                    "eval_count": len(evals),
+                    "latest_score": round(scores[-1], 2) if scores else 0,
+                    "first_score": round(scores[0], 2) if scores else 0,
+                    "score_slope": round(slope, 2),
+                }
+            )
+        return members
 
 
 def _bucket_potential_score(score: float) -> str:

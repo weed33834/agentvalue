@@ -148,7 +148,54 @@ class ApprovalService:
             record_approval_transition(action, current_status, new_status)
         except Exception:
             logger.exception("record_approval_transition 埋点失败 action=%s", action)
+        # WS-3: 事务提交后向出站 Webhook 订阅推送审批结果事件
+        self._dispatch_approval_event(
+            evaluation_id, action, current_status, new_status, actor_id
+        )
         return current_status, new_status
+
+    def _dispatch_approval_event(
+        self,
+        evaluation_id: str,
+        action: str,
+        old_status: str,
+        new_status: str,
+        actor_id: str,
+    ) -> None:
+        """审批终态事件 → 出站 Webhook (仅 approved / rejected 两个终态发事件)
+
+        非终态流转(如 request_hr_review / appeal)不外发,避免订阅方被中间态噪声淹没。
+        任何失败只打日志,绝不影响状态机与业务事务。
+        """
+        event_map = {
+            EvaluationStatus.APPROVED: "evaluation.approved",
+            EvaluationStatus.REJECTED: "evaluation.rejected",
+        }
+        event = event_map.get(new_status)
+        if event is None:
+            return
+        try:
+            from services.webhook_delivery_service import dispatch_after_commit
+
+            tenant_id = get_current_tenant()
+            dispatch_after_commit(
+                self.session,
+                event,
+                {
+                    "evaluation_id": evaluation_id,
+                    "action": action,
+                    "old_status": old_status,
+                    "new_status": new_status,
+                    "actor_id": actor_id,
+                    "tenant_id": tenant_id,
+                },
+                tenant_id=tenant_id,
+                event_id=f"{event}:{evaluation_id}:{new_status}",
+            )
+        except Exception:
+            logger.exception(
+                "审批事件分发失败 evaluation_id=%s action=%s", evaluation_id, action
+            )
 
     async def get_history(self, evaluation_id: str) -> List[ApprovalAction]:
         result = await self.session.execute(

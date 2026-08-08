@@ -188,6 +188,31 @@ class EvaluationService:
             logger.exception(
                 "评估埋点失败 evaluation_id=%s", evaluation_data.get("evaluation_id")
             )
+        # WS-3: 事务提交后向出站 Webhook 订阅推送 evaluation.completed。
+        # 用 after_commit 挂钩而非立即分发，避免调用方回滚时发出「凭空」事件；
+        # 分发走独立会话且内部吞异常，绝不影响评估落库。
+        try:
+            from services.webhook_delivery_service import dispatch_after_commit
+
+            dispatch_after_commit(
+                self.session,
+                "evaluation.completed",
+                {
+                    "evaluation_id": evaluation.evaluation_id,
+                    "employee_id": evaluation.employee_id,
+                    "period": evaluation.period,
+                    "overall_score": evaluation.overall_score,
+                    "status": evaluation.status,
+                    "tenant_id": tenant_id,
+                },
+                tenant_id=tenant_id,
+                event_id=f"evaluation.completed:{evaluation.evaluation_id}",
+            )
+        except Exception:
+            logger.exception(
+                "evaluation.completed 事件分发失败 evaluation_id=%s",
+                evaluation.evaluation_id,
+            )
         return evaluation
 
     async def get_evaluation(self, evaluation_id: str) -> Optional[Evaluation]:
@@ -452,6 +477,27 @@ class EvaluationService:
         )
         self.session.add(user)
         await self.session.flush()
+        # WS-3: 事务提交后向出站 Webhook 订阅推送 user.created (失败不阻断建号)
+        try:
+            from services.webhook_delivery_service import dispatch_after_commit
+
+            dispatch_after_commit(
+                self.session,
+                "user.created",
+                {
+                    "user_id": user.user_id,
+                    "name": user.name,
+                    "email": user.email,
+                    "role": user.role,
+                    "department": user.department,
+                    "manager_id": user.manager_id,
+                    "tenant_id": user.tenant_id,
+                },
+                tenant_id=user.tenant_id,
+                event_id=f"user.created:{user.tenant_id}:{user.user_id}",
+            )
+        except Exception:
+            logger.exception("user.created 事件分发失败 user_id=%s", user.user_id)
         return user
 
     async def ensure_user_exists(

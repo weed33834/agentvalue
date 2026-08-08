@@ -5,7 +5,7 @@
 - send_alert: 通过配置的通道发送告警通知 (飞书群机器人 / 邮件 / Webhook)
 - send_feishu_alert: 飞书群机器人通知 (交互式卡片消息)
 - send_email_alert: 邮件通知 (HTML 邮件模板)
-- send_webhook_alert: Webhook 通知 (POST JSON payload)
+- send_webhook_alert: 出站 Webhook 通知 (WS-3: 订阅注册表 + HMAC 签名 + 退避重试 + 死信)
 - list_alerts: 告警列表 (支持 severity / source 过滤)
 - acknowledge_alert: 确认告警
 - resolve_alert: 解决告警
@@ -61,6 +61,9 @@ SEVERITY_LABELS = {
 
 class AlertService:
     """告警通知服务 (数据库实现)"""
+
+    # ALERT_WEBHOOK_URL 环境变量托管订阅的固定名称 (租户内唯一标识)
+    ENV_SUBSCRIPTION_NAME = "环境变量告警 Webhook"
 
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -315,6 +318,8 @@ class AlertService:
             alert.acknowledged_at = alert.resolved_at
             alert.acknowledged_by = user_id
         await self.session.flush()
+        # WS-3: 事务提交后向出站 Webhook 订阅推送 alert.resolved
+        await self._dispatch_alert_event(alert, "alert.resolved")
         logger.info("解决告警 id=%s by=%s", alert_id, user_id)
         return alert
 
@@ -346,11 +351,8 @@ class AlertService:
         else:
             results["email"] = False
 
-        # Webhook
-        if self.webhook_url:
-            results["webhook"] = await self.send_webhook_alert(alert)
-        else:
-            results["webhook"] = False
+        # 出站 Webhook (WS-3: 订阅注册表 + HMAC 签名 + 指数退避重试 + 死信)
+        results["webhook"] = await self.send_webhook_alert(alert)
 
         logger.info("告警通知发送完成 id=%s results=%s", alert.id, results)
         return results
@@ -481,41 +483,81 @@ class AlertService:
             return False
 
     async def send_webhook_alert(self, alert: Alert) -> bool:
-        """Webhook 通知 (POST JSON payload)
+        """出站 Webhook 通知 (WS-3: 走订阅注册表 + 签名 + 重试 + 死信)
 
-        向配置的 Webhook URL 发送 JSON 格式的告警 payload。
+        此前这里是一次裸 POST: 无签名、无重试、无投递日志, 对端抖动即丢事件。
+        现改为投递给 ``webhook_subscriptions`` 注册表中匹配 ``alert.triggered``
+        的所有订阅, 由 ``services/webhook_delivery_service`` 负责 HMAC 签名、
+        指数退避重试与死信记录。
+
+        兼容: 仍配置了 ``ALERT_WEBHOOK_URL`` 环境变量时, 会为该 URL 幂等托管一条
+        订阅 (名称 ``环境变量告警 Webhook``), 使旧配置无需改动即可获得签名与重试;
+        用户可在 admin 订阅页看到并管理它。
 
         Args:
             alert: 告警对象。
 
         Returns:
-            True 表示发送成功, False 表示失败。
+            True 表示事件已挂到事务提交后分发, False 表示分发链路不可用。
         """
-        if not self.webhook_url:
-            logger.debug("告警 Webhook URL 未配置, 跳过 Webhook 通知")
-            return False
+        return await self._dispatch_alert_event(alert, "alert.triggered")
 
-        payload = {
-            "event": "alert",
-            "alert_id": alert.id,
-            "severity": alert.severity,
-            "title": alert.title,
-            "message": alert.message,
-            "source": alert.source,
-            "status": alert.status,
-            "metadata": alert.metadata_,
-            "created_at": alert.created_at.isoformat() if alert.created_at else None,
-        }
-
+    async def _dispatch_alert_event(self, alert: Alert, event: str) -> bool:
+        """把告警事件交给出站 Webhook 投递服务 (失败绝不影响告警主流程)"""
         try:
-            async with httpx.AsyncClient(timeout=10) as client:
-                resp = await client.post(self.webhook_url, json=payload)
-                resp.raise_for_status()
-            logger.info("Webhook 告警通知发送成功 id=%s", alert.id)
-            return True
-        except Exception as e:
-            logger.warning("Webhook 告警通知发送失败 id=%s: %s", alert.id, e)
+            from services.webhook_delivery_service import dispatch_after_commit
+
+            await self._ensure_env_webhook_subscription(alert.tenant_id)
+            return dispatch_after_commit(
+                self.session,
+                event,
+                self._alert_to_dict(alert),
+                tenant_id=alert.tenant_id,
+                event_id=f"{event}:{alert.id}",
+            )
+        except Exception:
+            logger.exception("告警事件分发失败 id=%s event=%s", alert.id, event)
             return False
+
+    async def _ensure_env_webhook_subscription(self, tenant_id: str) -> None:
+        """为 ALERT_WEBHOOK_URL 幂等托管一条订阅 (未配置该环境变量时直接返回)"""
+        if not self.webhook_url:
+            return
+        from sqlalchemy import select as _select
+
+        from core.database import AsyncSessionLocal
+        from models.webhook_subscription import WebhookSubscription
+        from services.webhook_delivery_service import generate_secret
+
+        # 用独立会话, 避免把订阅托管写入业务事务
+        async with AsyncSessionLocal() as session:
+            existing = (
+                await session.execute(
+                    _select(WebhookSubscription).where(
+                        WebhookSubscription.tenant_id == tenant_id,
+                        WebhookSubscription.name == self.ENV_SUBSCRIPTION_NAME,
+                    )
+                )
+            ).scalar_one_or_none()
+            if existing is None:
+                session.add(
+                    WebhookSubscription(
+                        tenant_id=tenant_id,
+                        name=self.ENV_SUBSCRIPTION_NAME,
+                        url=self.webhook_url,
+                        events=["alert.*"],
+                        secret=generate_secret(),
+                        headers={},
+                        enabled=True,
+                        description="由 ALERT_WEBHOOK_URL 环境变量自动托管, "
+                        "删除后下次告警会重建; 如需停用请清空该环境变量",
+                        created_by="system",
+                    )
+                )
+                await session.commit()
+            elif existing.url != self.webhook_url:
+                existing.url = self.webhook_url
+                await session.commit()
 
     # ===================== 内部方法 =====================
 

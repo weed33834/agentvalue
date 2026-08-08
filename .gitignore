@@ -73,3 +73,7 @@ backend/data/pilot/sla-report.json
 
 # Local dev server PID file (scripts/devserver.sh)
 backend/.devserver.pid
+
+# WS-3 SDK 构建产物
+node_modules/
+sdk/typescript/dist/

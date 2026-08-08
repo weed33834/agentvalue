@@ -117,6 +117,10 @@ class WorkflowRun(Base):
 
     # 主键: 业务层生成的 cuid/uuid
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    # WS-4 多租户归属（可空: 存量 run 无租户, 新 run 由服务层写入当前租户）
+    tenant_id: Mapped[Optional[str]] = mapped_column(
+        String(64), index=True, nullable=True
+    )
     # 关联的工作流 ID (软关联, 不加外键, 工作流删除后 run 仍可查)
     workflow_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
     # 线程 ID (可关联到 LangGraph thread / trace, 同一 thread 可重放)
