@@ -247,7 +247,7 @@ async def create_kb_doc(
     try:
         await _index_doc(store, doc, app_state.settings)
     except Exception as e:
-        logger.warning(f"向量库写入失败(忽略,可后续 reindex): {e}")
+        logger.warning("向量库写入失败(忽略,可后续 reindex): %s", e)
     await audit_service.log(
         actor_id=await get_current_user_id(request),
         action="admin_create_kb_doc",
@@ -325,7 +325,7 @@ async def delete_kb_doc(
     try:
         await _delete_doc_vectors(store, kb_id)
     except Exception as e:
-        logger.warning(f"向量库删除失败(忽略): {e}")
+        logger.warning("向量库删除失败(忽略): %s", e)
     await audit_service.log(
         actor_id=await get_current_user_id(request),
         action="admin_delete_kb_doc",
@@ -499,7 +499,7 @@ async def _index_doc(store, doc: CompanyKB, settings) -> None:
     add_doc = getattr(store, "add_document", None)
     if add_doc is None:
         # 测试场景的 DummyCompanyKB 没有 add_document,记录后跳过
-        logger.debug(f"store 无 add_document 方法,跳过向量写入: {type(store)}")
+        logger.debug("store 无 add_document 方法,跳过向量写入: %s", type(store))
         return
     chunk_size = getattr(settings, "chunk_size", 800) or 800
     chunk_overlap = getattr(settings, "chunk_overlap", 100) or 0

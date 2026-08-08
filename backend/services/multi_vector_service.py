@@ -664,8 +664,8 @@ class MultiVectorSearchService:
 
         for idx, (chunk, vec) in enumerate(zip(chunks, vectors)):
             # chunk_id 含粒度、索引与内容 hash，保证唯一且可重新索引
-            content_hash = hashlib.md5(
-                chunk.encode("utf-8"), usedforsecurity=False
+            content_hash = hashlib.sha256(
+                chunk.encode("utf-8")
             ).hexdigest()[:8]
             chunk_id = f"{doc_id}__{granularity}__{idx}__{content_hash}"
             ids.append(chunk_id)

@@ -158,7 +158,7 @@ class OpenAICompatibleProvider(BaseProvider):
             model_ids = [m.id for m in models.data]
             return self.config.model_name in model_ids
         except Exception as e:
-            logger.debug(f"健康检查失败: {e}")
+            logger.debug("健康检查失败: %s", e)
             return False
 
     async def stream_chat_completion(

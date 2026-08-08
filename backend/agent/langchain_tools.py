@@ -21,10 +21,13 @@
 from __future__ import annotations
 
 import datetime
+import ipaddress
 import json
 import logging
 import math
+import socket
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 
 from agent.tools import AgentToolkit
 
@@ -38,6 +41,52 @@ try:
 except ImportError:
     LANGCHAIN_TOOLS_AVAILABLE = False
     BaseTool = object  # type: ignore[assignment, misc]
+
+
+# SSRF 防护: 阻止访问内网/本地地址
+_BLOCKED_NETWORKS = [
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("fc00::/7"),
+]
+
+
+def _is_internal_url(url: str) -> bool:
+    """检查 URL 是否指向内网地址 (SSRF 防护)"""
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return True
+    if parsed.scheme not in ("http", "https"):
+        return True
+    host = parsed.hostname
+    if not host:
+        return True
+    host = host.strip().lower()
+    if host in ("localhost",):
+        return True
+    try:
+        ip = ipaddress.ip_address(host)
+        return any(ip in net for net in _BLOCKED_NETWORKS)
+    except ValueError:
+        pass
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        return False
+    for info in infos:
+        sockaddr = info[4]
+        ip_str = sockaddr[0]
+        try:
+            ip = ipaddress.ip_address(ip_str)
+        except ValueError:
+            continue
+        if any(ip in net for net in _BLOCKED_NETWORKS):
+            return True
+    return False
 
 
 def _is_tool_enabled(tool_name: str, enabled_csv: Optional[str]) -> bool:
@@ -134,6 +183,9 @@ def _build_builtin_tools(enabled_csv: Optional[str] = None) -> List[Any]:
                 max_length: Maximum characters to return (default 5000)
             """
             try:
+                # SSRF 防护
+                if _is_internal_url(url):
+                    return f"Fetch failed: 不允许访问内部地址"
                 import trafilatura
 
                 downloaded = trafilatura.fetch_url(url)
@@ -150,19 +202,42 @@ def _build_builtin_tools(enabled_csv: Optional[str] = None) -> List[Any]:
                 return _truncate_result(text or "", max_chars=max_length)
             except ImportError:
                 # trafilatura 未安装时降级为基本 HTML 提取
-                import re
                 import urllib.request
+                from html.parser import HTMLParser
 
+                class _HTMLTextExtractor(HTMLParser):
+                    def __init__(self):
+                        super().__init__()
+                        self._text = []
+                        self._skip = False
+
+                    def handle_starttag(self, tag, attrs):
+                        if tag.lower() in ("script", "style"):
+                            self._skip = True
+
+                    def handle_endtag(self, tag):
+                        if tag.lower() in ("script", "style"):
+                            self._skip = False
+
+                    def handle_data(self, data):
+                        if not self._skip:
+                            self._text.append(data)
+
+                    def get_text(self):
+                        return " ".join(self._text)
+
+                # SSRF 防护
+                if _is_internal_url(url):
+                    return f"Fetch failed: 不允许访问内部地址"
                 req = urllib.request.Request(
                     url, headers={"User-Agent": "Mozilla/5.0"}
                 )
                 with urllib.request.urlopen(req, timeout=15) as resp:
                     content = resp.read().decode("utf-8", errors="replace")
-                text = re.sub(
-                    r"<script[^>]*>.*?</script>", "", content, flags=re.DOTALL
-                )
-                text = re.sub(r"<style[^>]*>.*?</style>", "", text, flags=re.DOTALL)
-                text = re.sub(r"<[^>]+>", " ", text)
+                parser = _HTMLTextExtractor()
+                parser.feed(content)
+                text = parser.get_text()
+                import re
                 text = re.sub(r"\s+", " ", text).strip()
                 return _truncate_result(text, max_chars=max_length)
             except Exception as e:

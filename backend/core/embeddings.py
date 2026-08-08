@@ -114,7 +114,7 @@ class EmbeddingClient:
                     )
             return vectors
         except Exception as e:
-            logger.warning(f"embedding 调用失败，降级为零向量: {e}")
+            logger.warning("embedding 调用失败，降级为零向量: %s", e)
             return [[0.0] * self.dimensions for _ in texts]
 
     async def embed_query(self, text: str) -> List[float]:

@@ -17,11 +17,14 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import logging
 import re
+import socket
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple, Type
+from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, create_model
 
@@ -39,6 +42,54 @@ _OAS_TYPE_PY = {
     "array": List[Any],
     "object": Dict[str, Any],
 }
+
+
+
+
+# SSRF 防护: 阻止访问内网/本地地址 (与 workflow_engine.py 保持一致)
+_BLOCKED_NETWORKS = [
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("fc00::/7"),
+]
+
+
+def _is_internal_url(url: str) -> bool:
+    """检查 URL 是否指向内网地址 (SSRF 防护)"""
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return True
+    if parsed.scheme not in ("http", "https"):
+        return True
+    host = parsed.hostname
+    if not host:
+        return True
+    host = host.strip().lower()
+    if host in ("localhost",):
+        return True
+    try:
+        ip = ipaddress.ip_address(host)
+        return any(ip in net for net in _BLOCKED_NETWORKS)
+    except ValueError:
+        pass
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        return False
+    for info in infos:
+        sockaddr = info[4]
+        ip_str = sockaddr[0]
+        try:
+            ip = ipaddress.ip_address(ip_str)
+        except ValueError:
+            continue
+        if any(ip in net for net in _BLOCKED_NETWORKS):
+            return True
+    return False
 
 
 @dataclass
@@ -401,6 +452,9 @@ def build_langchain_tool(tool_spec: ToolSpec, auth: Optional[AuthConfig] = None)
                 json_body = value if isinstance(value, dict) else {"data": value}
 
         try:
+            # SSRF 防护
+            if _is_internal_url(rendered_url):
+                return f"工具调用失败: 不允许访问内部地址"
             with httpx.Client(timeout=30.0) as client:
                 resp = client.request(
                     method,
@@ -439,6 +493,9 @@ def build_langchain_tool(tool_spec: ToolSpec, auth: Optional[AuthConfig] = None)
                 json_body = value if isinstance(value, dict) else {"data": value}
 
         try:
+            # SSRF 防护
+            if _is_internal_url(rendered_url):
+                return f"工具调用失败: 不允许访问内部地址"
             async with httpx.AsyncClient(timeout=30.0) as client:
                 resp = await client.request(
                     method,

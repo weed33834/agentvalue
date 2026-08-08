@@ -23,6 +23,7 @@ P2-N2:统一应用层日志格式,加上 trace_id / tenant_id / timestamp 等结
 import json
 import logging
 import os
+import re
 import sys
 from datetime import datetime, timezone
 from typing import Optional
@@ -32,6 +33,24 @@ from typing import Optional
 # 比 logging.BASIC_FORMAT 多了 timestamp / process / thread,便于多进程调试
 DEFAULT_FMT = "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
 DEFAULT_DATEFMT = "%Y-%m-%dT%H:%M:%S%z"
+
+# 日志消息消毒: 防止 CRLF 注入等日志注入攻击
+_LOG_SANITIZE_PATTERN = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+_MAX_LOG_LENGTH = 4096
+
+
+def sanitize_log(msg: str) -> str:
+    """消毒日志消息, 防止 CRLF 注入等攻击。
+
+    1. 替换控制字符(保留 \t \n \r)
+    2. 截断超过 4096 字符的消息
+    """
+    if not isinstance(msg, str):
+        msg = str(msg)
+    msg = _LOG_SANITIZE_PATTERN.sub("", msg)
+    if len(msg) > _MAX_LOG_LENGTH:
+        msg = msg[:_MAX_LOG_LENGTH] + "...[truncated]"
+    return msg
 
 
 class StructuredJsonFormatter(logging.Formatter):
@@ -59,11 +78,14 @@ class StructuredJsonFormatter(logging.Formatter):
             .replace("+00:00", "Z")
         )
 
+        # 对消息进行消毒, 防止日志注入
+        msg = sanitize_log(record.getMessage())
+
         payload = {
             "ts": ts,
             "level": record.levelname,
             "logger": record.name,
-            "msg": record.getMessage(),
+            "msg": msg,
             "pid": record.process,
             "thread": record.threadName,
         }
@@ -149,6 +171,19 @@ class TraceContextFilter(logging.Filter):
         return True
 
 
+class SanitizeLogFilter(logging.Filter):
+    """日志注入防护 Filter: 在 LogRecord 层面消毒消息。
+
+    对所有经过该 filter 的日志记录进行消毒, 防止 CRLF 注入。
+    作为防御深度层, 与业务代码中的 %s 格式配合使用。
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if isinstance(record.msg, str):
+            record.msg = sanitize_log(record.msg)
+        return True
+
+
 def setup_logging(
     level: Optional[str] = None,
     json_logs: Optional[bool] = None,
@@ -197,6 +232,9 @@ def setup_logging(
     # 读 trace_id / tenant_id 写入 LogRecord,Formatter 再平铺到日志顶层。
     trace_filter = TraceContextFilter()
 
+    # 日志注入防护 Filter: 对所有日志消息进行消毒
+    sanitize_filter = SanitizeLogFilter()
+
     if json_logs:
         formatter: logging.Formatter = StructuredJsonFormatter()
     else:
@@ -205,6 +243,7 @@ def setup_logging(
     for h in (stdout_handler, stderr_handler):
         h.setFormatter(formatter)
         h.addFilter(trace_filter)
+        h.addFilter(sanitize_filter)
         root.addHandler(h)
 
     root.setLevel(level)
